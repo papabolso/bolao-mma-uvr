@@ -545,4 +545,12 @@ with tab_admin:
                     sheet_write("Palpites", df_vazio_palpites)
                     sheet_write("Resultados", df_vazio_resultados)
                     invalidate_cache()
-                    st.success("BOOM! Planilhas
+                    st.success("BOOM! Planilhas de Palpites e Resultados zeradas com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao tentar zerar: {e}")
+            elif senha_reset != "":
+                st.error("❌ Senha incorreta para reset.")
+
+        st.markdown("---")
+        if st.button("🚪 Sair do Admin"): st.session_state.admin_ok = False; st.rerun()

@@ -34,7 +34,7 @@ html,body,[data-testid="stAppViewContainer"]{background:var(--bg)!important;colo
 .fight-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:4px;background:var(--accent);color:#fff;margin-bottom:.5rem}
 .fight-tag.main{background:var(--gold);color:#000}
 .fight-tag.co-main{background:#555}
-.fight-tag.prelim{background:#2a4365;color:#fff} /* AZUL PARA PRELIMINARES */
+.fight-tag.prelim{background:#2a4365;color:#fff}
 .rank-table{width:100%;border-collapse:collapse}
 .rank-table th{font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.1em;color:var(--muted);border-bottom:2px solid var(--border);padding:.5rem .7rem;text-align:left}
 .rank-table td{padding:.55rem .7rem;border-bottom:1px solid var(--border)}
@@ -58,7 +58,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# CONFIG (lê do secrets.toml)
+# CONFIG & LOAD DATA
 # ──────────────────────────────────────────────
 SHEET_ID        = st.secrets["gsheets"]["spreadsheet_id"]
 LUTAS_GID       = int(st.secrets["gsheets"].get("lutas_gid", 0))
@@ -69,9 +69,6 @@ APPS_SCRIPT_URL = st.secrets["gsheets"]["apps_script_url"]
 def csv_url(gid: int) -> str:
     return f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
 
-# ──────────────────────────────────────────────
-# LEITURA PÚBLICA via Pandas
-# ──────────────────────────────────────────────
 @st.cache_data(ttl=60)
 def load_lutas() -> pd.DataFrame:
     try:
@@ -100,25 +97,17 @@ def load_resultados() -> pd.DataFrame:
         df["Luta_ID"] = df["Luta_ID"].str.strip()
         return df.dropna(subset=["Luta_ID"])
     except Exception:
-        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento"])
+        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento", "Abertura"])
 
 def invalidate_cache():
     load_lutas.clear()
     load_palpites.clear()
     load_resultados.clear()
 
-# ──────────────────────────────────────────────
-# ESCRITA via APPS SCRIPT
-# ──────────────────────────────────────────────
 def sheet_write(worksheet_name: str, df: pd.DataFrame):
     df = df.fillna("").astype(str)
     data_to_send = [df.columns.tolist()] + df.values.tolist()
-    
-    payload = {
-        "sheet": worksheet_name,
-        "data": data_to_send
-    }
-    
+    payload = {"sheet": worksheet_name, "data": data_to_send}
     try:
         response = requests.post(APPS_SCRIPT_URL, json=payload)
         res_json = response.json()
@@ -200,6 +189,54 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
     return df_rank
 
 # ──────────────────────────────────────────────
+# FUNÇÃO DO CRONÔMETRO JAVASCRIPT
+# ──────────────────────────────────────────────
+def render_timer(target_str, title, color="#f5c518", end_text="ENCERRADO"):
+    try:
+        dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
+        iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
+        
+        cronometro_html = f"""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+            .timer-box {{ background-color: #1a1a1a; border: 1px solid {color}; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 20px; }}
+            .timer-title {{ color: #888; font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }}
+            .timer-time {{ color: {color}; font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 0.05em; margin-top: -5px; }}
+        </style>
+        <div class="timer-box">
+            <div class="timer-title">{title}</div>
+            <div class="timer-time" id="clock">CALCULANDO...</div>
+        </div>
+        <script>
+            var target = new Date("{iso_str}").getTime();
+            var x = setInterval(function() {{
+                var now = new Date().getTime();
+                var d = target - now;
+                if (d < 0) {{
+                    clearInterval(x);
+                    document.getElementById("clock").innerHTML = "{end_text}";
+                    document.getElementById("clock").style.color = "{color}";
+                }} else {{
+                    var days = Math.floor(d / (1000 * 60 * 60 * 24));
+                    var hours = Math.floor((d % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    var minutes = Math.floor((d % (1000 * 60 * 60)) / (1000 * 60));
+                    var seconds = Math.floor((d % (1000 * 60)) / 1000);
+                    
+                    var res = "";
+                    if(days > 0) res += days + "d ";
+                    res += (hours < 10 ? "0" : "") + hours + "h ";
+                    res += (minutes < 10 ? "0" : "") + minutes + "m ";
+                    res += (seconds < 10 ? "0" : "") + seconds + "s";
+                    document.getElementById("clock").innerHTML = res;
+                }}
+            }}, 1000);
+        </script>
+        """
+        components.html(cronometro_html, height=130)
+    except:
+        pass
+
+# ──────────────────────────────────────────────
 # TABS
 # ──────────────────────────────────────────────
 tab_votar, tab_ranking, tab_admin = st.tabs(["🥊  Votar", "🏆  Ranking", "🔐  Admin"])
@@ -209,74 +246,51 @@ with tab_votar:
     resultados_trava = load_resultados()
     
     agora_brt = datetime.utcnow() - timedelta(hours=3)
-    bolao_fechado = False
+    bolao_status = "ABERTO"
+    abertura_str = ""
     fechamento_str = ""
     
     if not resultados_trava.empty:
+        # 1. Verifica Trava Manual primeiro (é a prioridade master)
         if "Bloqueado" in resultados_trava.columns and resultados_trava["Bloqueado"].str.upper().eq("TRUE").any():
-            bolao_fechado = True
+            bolao_status = "FECHADO"
         
-        if "Fechamento" in resultados_trava.columns:
+        # 2. Verifica Data de Abertura
+        if "Abertura" in resultados_trava.columns:
+            a_val = resultados_trava["Abertura"].iloc[0]
+            if pd.notna(a_val) and str(a_val).strip() != "" and str(a_val).lower() != "nan":
+                abertura_str = str(a_val).strip()
+                try:
+                    abertura_dt = datetime.strptime(abertura_str, "%d/%m/%Y %H:%M")
+                    if agora_brt < abertura_dt:
+                        bolao_status = "AGUARDANDO"
+                except: pass
+
+        # 3. Verifica Data de Fechamento (se já não estiver aguardando abrir)
+        if "Fechamento" in resultados_trava.columns and bolao_status != "AGUARDANDO":
             f_val = resultados_trava["Fechamento"].iloc[0]
             if pd.notna(f_val) and str(f_val).strip() != "" and str(f_val).lower() != "nan":
                 fechamento_str = str(f_val).strip()
                 try:
                     fechamento_dt = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
                     if agora_brt >= fechamento_dt:
-                        bolao_fechado = True
-                except:
-                    pass
+                        bolao_status = "FECHADO"
+                except: pass
 
+    # LÓGICA DA TELA BASEADO NO STATUS
     if lutas.empty: 
         st.warning("Nenhuma luta cadastrada ainda. Aguarde o Admin configurar o evento.")
-    elif bolao_fechado:
+    elif bolao_status == "AGUARDANDO":
+        st.info(f"⏳ O bolão abre oficialmente dia **{abertura_str}** (Horário de Brasília).")
+        render_timer(abertura_str, "O BOLÃO ABRIRÁ EM:", color="#32CD32", end_text="ABERTO! ATUALIZE A PÁGINA")
+        st.warning("Aguarde a abertura dos portões para registrar seu palpite.")
+    elif bolao_status == "FECHADO":
         st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados.")
         st.info("O evento já vai começar (ou já começou). Vá para a aba **Ranking** para acompanhar a pontuação e ver o VAR. Boa sorte!")
     else:
+        # STATUS = ABERTO
         if fechamento_str:
-            try:
-                dt_obj = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
-                iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
-                
-                cronometro_html = f"""
-                <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
-                    .timer-box {{ background-color: #1a1a1a; border: 1px solid #e8002d; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 20px; }}
-                    .timer-title {{ color: #888; font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }}
-                    .timer-time {{ color: #f5c518; font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 0.05em; margin-top: -5px; }}
-                </style>
-                <div class="timer-box">
-                    <div class="timer-title">TEMPO RESTANTE PARA O BOLÃO FECHAR</div>
-                    <div class="timer-time" id="clock">CALCULANDO...</div>
-                </div>
-                <script>
-                    var target = new Date("{iso_str}").getTime();
-                    var x = setInterval(function() {{
-                        var now = new Date().getTime();
-                        var d = target - now;
-                        if (d < 0) {{
-                            clearInterval(x);
-                            document.getElementById("clock").innerHTML = "ENCERRADO";
-                            document.getElementById("clock").style.color = "#e8002d";
-                        }} else {{
-                            var days = Math.floor(d / (1000 * 60 * 60 * 24));
-                            var hours = Math.floor((d % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            var minutes = Math.floor((d % (1000 * 60 * 60)) / (1000 * 60));
-                            var seconds = Math.floor((d % (1000 * 60)) / 1000);
-                            
-                            var res = "";
-                            if(days > 0) res += days + "d ";
-                            res += (hours < 10 ? "0" : "") + hours + "h ";
-                            res += (minutes < 10 ? "0" : "") + minutes + "m ";
-                            res += (seconds < 10 ? "0" : "") + seconds + "s";
-                            document.getElementById("clock").innerHTML = res;
-                        }}
-                    }}, 1000);
-                </script>
-                """
-                components.html(cronometro_html, height=130)
-            except:
-                st.warning(f"⏳ Atenção: O bolão fecha dia **{fechamento_str}** (Horário de Brasília).")
+            render_timer(fechamento_str, "TEMPO RESTANTE PARA O BOLÃO FECHAR:", color="#f5c518", end_text="FECHADO!")
 
         st.markdown("### Seu nome")
         nome_usuario = st.text_input("Nome", placeholder="Ex: João Silva", label_visibility="collapsed")
@@ -294,15 +308,10 @@ with tab_votar:
             todos_lutadores.extend([lutador1, lutador2])
             lista_lutas_formatada.append(f"{lutador1} vs {lutador2}")
 
-            # NOVA LÓGICA DE TAGS DE LUTA AQUI
-            if tipo == "F1":
-                tag_class, tag_label = "main", "MAIN EVENT"
-            elif tipo == "F2":
-                tag_class, tag_label = "co-main", "CO-MAIN EVENT"
-            elif tipo == "PRINCIPAL":
-                tag_class, tag_label = "", "CARD PRINCIPAL" # Fica vermelho padrão
-            else:
-                tag_class, tag_label = "prelim", "PRELIMINAR" # Fica azul
+            if tipo == "F1": tag_class, tag_label = "main", "MAIN EVENT"
+            elif tipo == "F2": tag_class, tag_label = "co-main", "CO-MAIN EVENT"
+            elif tipo == "PRINCIPAL": tag_class, tag_label = "", "CARD PRINCIPAL"
+            else: tag_class, tag_label = "prelim", "PRELIMINAR"
 
             st.markdown(f"""
             <div class="card">
@@ -425,20 +434,28 @@ with tab_admin:
                     st.success("Lutas salvas!")
                 except Exception as e: st.error(f"Erro: {e}")
 
-        st.markdown('<div class="admin-section">🏁 Resultados e Pesos</div>', unsafe_allow_html=True)
+        st.markdown('<div class="admin-section">🏁 Resultados, Bloqueios e Pesos</div>', unsafe_allow_html=True)
         lutas_df_adm = load_lutas()
         resultados_df_adm = load_resultados()
 
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1:
+        # CONFIGURAÇÕES DO EVENTO (Abertura, Fechamento e Flags)
+        st.markdown("##### ⚙️ Configurações Gerais")
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            abertura_atual = resultados_df_adm["Abertura"].iloc[0] if not resultados_df_adm.empty and "Abertura" in resultados_df_adm.columns and pd.notna(resultados_df_adm["Abertura"].iloc[0]) else ""
+            if str(abertura_atual).lower() == "nan": abertura_atual = ""
+            abertura_input = st.text_input("🟢 Abre Auto (BRT)", value=str(abertura_atual), placeholder="DD/MM/AAAA HH:MM")
+            
             f2_especial_flag = st.checkbox("F2 vale 2 pts?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
-        with col_f2:
-            bolao_fechado_flag = st.checkbox("🚫 BLOQUEAR AGORA", value=(resultados_df_adm["Bloqueado"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "Bloqueado" in resultados_df_adm.columns else False))
-        with col_f3:
+        with col_c2:
             fechamento_atual = resultados_df_adm["Fechamento"].iloc[0] if not resultados_df_adm.empty and "Fechamento" in resultados_df_adm.columns and pd.notna(resultados_df_adm["Fechamento"].iloc[0]) else ""
             if str(fechamento_atual).lower() == "nan": fechamento_atual = ""
-            fechamento_input = st.text_input("⏰ Fechar Auto (BRT)", value=str(fechamento_atual), placeholder="DD/MM/AAAA HH:MM")
+            fechamento_input = st.text_input("🔴 Fecha Auto (BRT)", value=str(fechamento_atual), placeholder="DD/MM/AAAA HH:MM")
+            
+            bolao_fechado_flag = st.checkbox("🚫 BLOQUEAR AGORA MANUALMENTe", value=(resultados_df_adm["Bloqueado"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "Bloqueado" in resultados_df_adm.columns else False))
 
+        st.markdown("---")
+        
         resultados_novos: list = []
         if lutas_df_adm.empty: st.warning("Cadastre as lutas primeiro.")
         else:
@@ -516,7 +533,7 @@ with tab_admin:
         potn2_v = "" 
 
         st.markdown("---")
-        if st.button("💾  SALVAR TODOS OS RESULTADOS"):
+        if st.button("💾  SALVAR TODOS OS RESULTADOS E CONFIGURAÇÕES"):
             try:
                 df_res = pd.DataFrame(resultados_novos)
                 df_res["FOTN_1"] = fotn1_v
@@ -526,9 +543,10 @@ with tab_admin:
                 df_res["F2_Especial"] = str(f2_especial_flag)
                 df_res["Bloqueado"] = str(bolao_fechado_flag)
                 df_res["Fechamento"] = str(fechamento_input)
+                df_res["Abertura"] = str(abertura_input) # Salvando a Abertura aqui
                 sheet_write("Resultados", df_res)
                 invalidate_cache()
-                st.success("Resultados salvos! Ranking atualizado em instantes. 🏆")
+                st.success("Tudo salvo com sucesso! 🏆")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
 
@@ -541,7 +559,7 @@ with tab_admin:
             if senha_reset == SENHA_ADMIN:
                 try:
                     df_vazio_palpites = pd.DataFrame(columns=["Nome", "Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2"])
-                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento"])
+                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento", "Abertura"])
                     sheet_write("Palpites", df_vazio_palpites)
                     sheet_write("Resultados", df_vazio_resultados)
                     invalidate_cache()

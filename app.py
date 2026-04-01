@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import requests
 import streamlit as st
+from datetime import datetime, timedelta
 
 # ──────────────────────────────────────────────
 # PAGE CONFIG & CSS
@@ -97,7 +98,8 @@ def load_resultados() -> pd.DataFrame:
         df["Luta_ID"] = df["Luta_ID"].str.strip()
         return df.dropna(subset=["Luta_ID"])
     except Exception:
-        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado"])
+        # Adicionado o Fechamento aqui na matriz vazia
+        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento"])
 
 def invalidate_cache():
     load_lutas.clear()
@@ -205,16 +207,40 @@ with tab_votar:
     lutas = load_lutas()
     resultados_trava = load_resultados()
     
+    # 🕒 LÓGICA DO RELÓGIO DE BRASÍLIA
+    agora_brt = datetime.utcnow() - timedelta(hours=3) # Horário Oficial de Brasília
+    
     bolao_fechado = False
-    if not resultados_trava.empty and "Bloqueado" in resultados_trava.columns:
-        bolao_fechado = resultados_trava["Bloqueado"].str.upper().eq("TRUE").any()
+    fechamento_str = ""
+    
+    if not resultados_trava.empty:
+        # Checa a trava manual primeiro
+        if "Bloqueado" in resultados_trava.columns and resultados_trava["Bloqueado"].str.upper().eq("TRUE").any():
+            bolao_fechado = True
+        
+        # Checa o relógio automático se a coluna existir
+        if "Fechamento" in resultados_trava.columns:
+            f_val = resultados_trava["Fechamento"].iloc[0]
+            if pd.notna(f_val) and str(f_val).strip() != "" and str(f_val).lower() != "nan":
+                fechamento_str = str(f_val).strip()
+                try:
+                    # Converte a string "DD/MM/AAAA HH:MM" pra data de verdade
+                    fechamento_dt = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
+                    if agora_brt >= fechamento_dt:
+                        bolao_fechado = True
+                except:
+                    pass # Se o admin digitou errado, ele ignora e não fecha
 
     if lutas.empty: 
         st.warning("Nenhuma luta cadastrada ainda. Aguarde o Admin configurar o evento.")
     elif bolao_fechado:
-        st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados pelo administrador.")
+        st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados.")
         st.info("O evento já vai começar (ou já começou). Vá para a aba **Ranking** para acompanhar a pontuação e ver o VAR. Boa sorte!")
     else:
+        # Mostra o aviso de quando vai fechar, se tiver configurado
+        if fechamento_str:
+            st.warning(f"⏳ Atenção: O bolão fecha automaticamente dia **{fechamento_str}** (Horário de Brasília).")
+            
         st.markdown("### Seu nome")
         nome_usuario = st.text_input("Nome", placeholder="Ex: João Silva", label_visibility="collapsed")
         st.markdown("---")
@@ -359,12 +385,16 @@ with tab_admin:
         lutas_df_adm = load_lutas()
         resultados_df_adm = load_resultados()
 
-        # FLAGS DO EVENTO E BOTÃO DE BLOQUEIO
-        col_f1, col_f2 = st.columns(2)
+        # FLAGS DO EVENTO E BOTÃO DE BLOQUEIO MANUAL/AUTOMÁTICO
+        col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
-            f2_especial_flag = st.checkbox("F2 vale 2 pontos neste evento?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
+            f2_especial_flag = st.checkbox("F2 vale 2 pts?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
         with col_f2:
-            bolao_fechado_flag = st.checkbox("🚫 BLOQUEAR NOVOS PALPITES", value=(resultados_df_adm["Bloqueado"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "Bloqueado" in resultados_df_adm.columns else False))
+            bolao_fechado_flag = st.checkbox("🚫 BLOQUEAR AGORA", value=(resultados_df_adm["Bloqueado"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "Bloqueado" in resultados_df_adm.columns else False))
+        with col_f3:
+            fechamento_atual = resultados_df_adm["Fechamento"].iloc[0] if not resultados_df_adm.empty and "Fechamento" in resultados_df_adm.columns and pd.notna(resultados_df_adm["Fechamento"].iloc[0]) else ""
+            if str(fechamento_atual).lower() == "nan": fechamento_atual = ""
+            fechamento_input = st.text_input("⏰ Fechar Auto (BRT)", value=str(fechamento_atual), placeholder="DD/MM/AAAA HH:MM")
 
         resultados_novos: list = []
         if lutas_df_adm.empty: st.warning("Cadastre as lutas primeiro.")
@@ -447,8 +477,10 @@ with tab_admin:
                 df_res["FOTN_2"] = fotn2_v
                 df_res["POTN_1"] = potn1_v
                 df_res["POTN_2"] = potn2_v
+                df_res["F2_Especial"] = str(bolao_fechado_flag) # Salvando a flag de bloqueio manual
                 df_res["F2_Especial"] = str(f2_especial_flag)
-                df_res["Bloqueado"] = str(bolao_fechado_flag) # Salvando a flag de bloqueio
+                df_res["Bloqueado"] = str(bolao_fechado_flag)
+                df_res["Fechamento"] = str(fechamento_input)
                 sheet_write("Resultados", df_res)
                 invalidate_cache()
                 st.success("Resultados salvos! Ranking atualizado em instantes. 🏆")
@@ -464,7 +496,7 @@ with tab_admin:
             if senha_reset == SENHA_ADMIN:
                 try:
                     df_vazio_palpites = pd.DataFrame(columns=["Nome", "Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2"])
-                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado"])
+                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento"])
                     sheet_write("Palpites", df_vazio_palpites)
                     sheet_write("Resultados", df_vazio_resultados)
                     invalidate_cache()

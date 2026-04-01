@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 
 # ──────────────────────────────────────────────
@@ -98,7 +99,6 @@ def load_resultados() -> pd.DataFrame:
         df["Luta_ID"] = df["Luta_ID"].str.strip()
         return df.dropna(subset=["Luta_ID"])
     except Exception:
-        # Adicionado o Fechamento aqui na matriz vazia
         return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado", "Fechamento"])
 
 def invalidate_cache():
@@ -207,29 +207,24 @@ with tab_votar:
     lutas = load_lutas()
     resultados_trava = load_resultados()
     
-    # 🕒 LÓGICA DO RELÓGIO DE BRASÍLIA
-    agora_brt = datetime.utcnow() - timedelta(hours=3) # Horário Oficial de Brasília
-    
+    agora_brt = datetime.utcnow() - timedelta(hours=3)
     bolao_fechado = False
     fechamento_str = ""
     
     if not resultados_trava.empty:
-        # Checa a trava manual primeiro
         if "Bloqueado" in resultados_trava.columns and resultados_trava["Bloqueado"].str.upper().eq("TRUE").any():
             bolao_fechado = True
         
-        # Checa o relógio automático se a coluna existir
         if "Fechamento" in resultados_trava.columns:
             f_val = resultados_trava["Fechamento"].iloc[0]
             if pd.notna(f_val) and str(f_val).strip() != "" and str(f_val).lower() != "nan":
                 fechamento_str = str(f_val).strip()
                 try:
-                    # Converte a string "DD/MM/AAAA HH:MM" pra data de verdade
                     fechamento_dt = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
                     if agora_brt >= fechamento_dt:
                         bolao_fechado = True
                 except:
-                    pass # Se o admin digitou errado, ele ignora e não fecha
+                    pass
 
     if lutas.empty: 
         st.warning("Nenhuma luta cadastrada ainda. Aguarde o Admin configurar o evento.")
@@ -237,10 +232,53 @@ with tab_votar:
         st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados.")
         st.info("O evento já vai começar (ou já começou). Vá para a aba **Ranking** para acompanhar a pontuação e ver o VAR. Boa sorte!")
     else:
-        # Mostra o aviso de quando vai fechar, se tiver configurado
+        # 🕒 WIDGET DO CRONÔMETRO AO VIVO
         if fechamento_str:
-            st.warning(f"⏳ Atenção: O bolão fecha automaticamente dia **{fechamento_str}** (Horário de Brasília).")
-            
+            try:
+                # Transforma a data em formato que o Javascript entende, com fuso do Brasil (-03:00)
+                dt_obj = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
+                iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
+                
+                cronometro_html = f"""
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+                    .timer-box {{ background-color: #1a1a1a; border: 1px solid #e8002d; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 20px; }}
+                    .timer-title {{ color: #888; font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }}
+                    .timer-time {{ color: #f5c518; font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 0.05em; margin-top: -5px; }}
+                </style>
+                <div class="timer-box">
+                    <div class="timer-title">TEMPO RESTANTE PARA O BOLÃO FECHAR</div>
+                    <div class="timer-time" id="clock">CALCULANDO...</div>
+                </div>
+                <script>
+                    var target = new Date("{iso_str}").getTime();
+                    var x = setInterval(function() {{
+                        var now = new Date().getTime();
+                        var d = target - now;
+                        if (d < 0) {{
+                            clearInterval(x);
+                            document.getElementById("clock").innerHTML = "ENCERRADO";
+                            document.getElementById("clock").style.color = "#e8002d";
+                        }} else {{
+                            var days = Math.floor(d / (1000 * 60 * 60 * 24));
+                            var hours = Math.floor((d % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            var minutes = Math.floor((d % (1000 * 60 * 60)) / (1000 * 60));
+                            var seconds = Math.floor((d % (1000 * 60)) / 1000);
+                            
+                            var res = "";
+                            if(days > 0) res += days + "d ";
+                            res += (hours < 10 ? "0" : "") + hours + "h ";
+                            res += (minutes < 10 ? "0" : "") + minutes + "m ";
+                            res += (seconds < 10 ? "0" : "") + seconds + "s";
+                            document.getElementById("clock").innerHTML = res;
+                        }}
+                    }}, 1000);
+                </script>
+                """
+                components.html(cronometro_html, height=130)
+            except:
+                st.warning(f"⏳ Atenção: O bolão fecha dia **{fechamento_str}** (Horário de Brasília).")
+
         st.markdown("### Seu nome")
         nome_usuario = st.text_input("Nome", placeholder="Ex: João Silva", label_visibility="collapsed")
         st.markdown("---")
@@ -385,7 +423,6 @@ with tab_admin:
         lutas_df_adm = load_lutas()
         resultados_df_adm = load_resultados()
 
-        # FLAGS DO EVENTO E BOTÃO DE BLOQUEIO MANUAL/AUTOMÁTICO
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
             f2_especial_flag = st.checkbox("F2 vale 2 pts?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
@@ -477,7 +514,6 @@ with tab_admin:
                 df_res["FOTN_2"] = fotn2_v
                 df_res["POTN_1"] = potn1_v
                 df_res["POTN_2"] = potn2_v
-                df_res["F2_Especial"] = str(bolao_fechado_flag) # Salvando a flag de bloqueio manual
                 df_res["F2_Especial"] = str(f2_especial_flag)
                 df_res["Bloqueado"] = str(bolao_fechado_flag)
                 df_res["Fechamento"] = str(fechamento_input)

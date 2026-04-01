@@ -55,7 +55,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# CONFIG & READ DATA
+# CONFIG (lê do secrets.toml)
 # ──────────────────────────────────────────────
 SHEET_ID        = st.secrets["gsheets"]["spreadsheet_id"]
 LUTAS_GID       = int(st.secrets["gsheets"].get("lutas_gid", 0))
@@ -66,6 +66,9 @@ APPS_SCRIPT_URL = st.secrets["gsheets"]["apps_script_url"]
 def csv_url(gid: int) -> str:
     return f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
 
+# ──────────────────────────────────────────────
+# LEITURA PÚBLICA via Pandas
+# ──────────────────────────────────────────────
 @st.cache_data(ttl=60)
 def load_lutas() -> pd.DataFrame:
     try:
@@ -74,7 +77,7 @@ def load_lutas() -> pd.DataFrame:
         df["ID"] = df["ID"].str.strip()
         return df.dropna(subset=["ID"])
     except Exception:
-        return pd.DataFrame(columns=["ID", "Lutador_1", "Lutador_2", "Tipo", "Pontos"])
+        return pd.DataFrame(columns=["ID", "Lutador_1", "Lutador_2", "Tipo"])
 
 @st.cache_data(ttl=60)
 def load_palpites() -> pd.DataFrame:
@@ -94,17 +97,25 @@ def load_resultados() -> pd.DataFrame:
         df["Luta_ID"] = df["Luta_ID"].str.strip()
         return df.dropna(subset=["Luta_ID"])
     except Exception:
-        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial"])
+        return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado"])
 
 def invalidate_cache():
     load_lutas.clear()
     load_palpites.clear()
     load_resultados.clear()
 
+# ──────────────────────────────────────────────
+# ESCRITA via APPS SCRIPT
+# ──────────────────────────────────────────────
 def sheet_write(worksheet_name: str, df: pd.DataFrame):
     df = df.fillna("").astype(str)
     data_to_send = [df.columns.tolist()] + df.values.tolist()
-    payload = {"sheet": worksheet_name, "data": data_to_send}
+    
+    payload = {
+        "sheet": worksheet_name,
+        "data": data_to_send
+    }
+    
     try:
         response = requests.post(APPS_SCRIPT_URL, json=payload)
         res_json = response.json()
@@ -192,7 +203,17 @@ tab_votar, tab_ranking, tab_admin = st.tabs(["🥊  Votar", "🏆  Ranking", "�
 
 with tab_votar:
     lutas = load_lutas()
-    if lutas.empty: st.warning("Nenhuma luta cadastrada ainda. Aguarde o Admin configurar o evento.")
+    resultados_trava = load_resultados()
+    
+    bolao_fechado = False
+    if not resultados_trava.empty and "Bloqueado" in resultados_trava.columns:
+        bolao_fechado = resultados_trava["Bloqueado"].str.upper().eq("TRUE").any()
+
+    if lutas.empty: 
+        st.warning("Nenhuma luta cadastrada ainda. Aguarde o Admin configurar o evento.")
+    elif bolao_fechado:
+        st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados pelo administrador.")
+        st.info("O evento já vai começar (ou já começou). Vá para a aba **Ranking** para acompanhar a pontuação e ver o VAR. Boa sorte!")
     else:
         st.markdown("### Seu nome")
         nome_usuario = st.text_input("Nome", placeholder="Ex: João Silva", label_visibility="collapsed")
@@ -281,9 +302,6 @@ with tab_ranking:
         st.markdown(f'<table class="rank-table"><thead><tr><th>POS</th><th>NOME</th><th style="text-align:center">PTS</th><th style="text-align:center">ACERTOS</th><th style="text-align:center">F1</th><th style="text-align:center">F2</th></tr></thead><tbody>{rows_html}</tbody></table>', unsafe_allow_html=True)
         st.caption("Atualizado a cada 1 min · Desempate: Pts › Acertos › F1 › F2 › Nome")
 
-        # ──────────────────────────────────────────────
-        # VAR REFORMULADO - BONITO E ORGANIZADO
-        # ──────────────────────────────────────────────
         st.markdown("---")
         st.markdown('<div class="admin-section">🔍 VAR: Histórico de Palpites</div>', unsafe_allow_html=True)
         opcoes_var = ["— Selecione um Participante —"] + sorted(ranking["Nome"].tolist())
@@ -291,21 +309,13 @@ with tab_ranking:
         
         if membro_selecionado != "— Selecione um Participante —":
             st.markdown(f"#### 🥊 Palpites de {membro_selecionado}")
-            
-            # Pega os palpites do usuário selecionado
             user_palpites = palpites_df[palpites_df["Nome"] == membro_selecionado]
-            
-            # Cruza com a tabela de lutas para pegar os nomes dos lutadores ao invés do ID
             var_completo = pd.merge(user_palpites, lutas_df[['ID', 'Lutador_1', 'Lutador_2']], left_on="Luta_ID", right_on="ID", how="left")
-            
-            # Cria uma coluna bonitinha pro Combate
             var_completo["Combate"] = var_completo["Lutador_1"] + " vs " + var_completo["Lutador_2"]
             var_display = var_completo[["Combate", "Palpite"]].rename(columns={"Palpite": "Vencedor Escolhido"})
             
-            # Mostra a tabela de lutas limpa
             st.dataframe(var_display, hide_index=True, use_container_width=True)
             
-            # Extrai os bônus (pega da primeira linha pois é igual pra todas do mesmo usuário)
             primeira_linha = user_palpites.iloc[0]
             f1 = str(primeira_linha.get("FOTN_1", "")).strip()
             f2 = str(primeira_linha.get("FOTN_2", "")).strip()
@@ -314,7 +324,6 @@ with tab_ranking:
             texto_fotn = f"{f1} vs {f2}" if (f1 and f2 and f1 != "nan" and f2 != "nan") else "Nenhuma selecionada"
             texto_potn = p1 if (p1 and p1 != "nan") else "Nenhum selecionado"
             
-            # Caixinhas de destaque para os Bônus
             st.info(f"**🌟 Luta da Noite:** {texto_fotn}")
             st.success(f"**⚡ Performance da Noite:** {texto_potn}")
 
@@ -350,7 +359,12 @@ with tab_admin:
         lutas_df_adm = load_lutas()
         resultados_df_adm = load_resultados()
 
-        f2_especial_flag = st.checkbox("F2 vale 2 pontos neste evento?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
+        # FLAGS DO EVENTO E BOTÃO DE BLOQUEIO
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            f2_especial_flag = st.checkbox("F2 vale 2 pontos neste evento?", value=(resultados_df_adm["F2_Especial"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "F2_Especial" in resultados_df_adm.columns else False))
+        with col_f2:
+            bolao_fechado_flag = st.checkbox("🚫 BLOQUEAR NOVOS PALPITES", value=(resultados_df_adm["Bloqueado"].str.upper().eq("TRUE").any() if not resultados_df_adm.empty and "Bloqueado" in resultados_df_adm.columns else False))
 
         resultados_novos: list = []
         if lutas_df_adm.empty: st.warning("Cadastre as lutas primeiro.")
@@ -434,6 +448,7 @@ with tab_admin:
                 df_res["POTN_1"] = potn1_v
                 df_res["POTN_2"] = potn2_v
                 df_res["F2_Especial"] = str(f2_especial_flag)
+                df_res["Bloqueado"] = str(bolao_fechado_flag) # Salvando a flag de bloqueio
                 sheet_write("Resultados", df_res)
                 invalidate_cache()
                 st.success("Resultados salvos! Ranking atualizado em instantes. 🏆")
@@ -449,7 +464,7 @@ with tab_admin:
             if senha_reset == SENHA_ADMIN:
                 try:
                     df_vazio_palpites = pd.DataFrame(columns=["Nome", "Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2"])
-                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial"])
+                    df_vazio_resultados = pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial", "Bloqueado"])
                     sheet_write("Palpites", df_vazio_palpites)
                     sheet_write("Resultados", df_vazio_resultados)
                     invalidate_cache()

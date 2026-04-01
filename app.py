@@ -11,13 +11,15 @@ st.title("🥊 BOLÃO UVR 2.0 🤖")
 st.markdown("Bem-vindo ao sistema oficial de palpites!")
 
 # ==========================================
-# 2. FUNÇÕES DE LEITURA (CACHE DE 1 MINUTO)
+# 2. FUNÇÕES DE LEITURA (CACHE DE 1 MINUTO E PROTEÇÃO DE ERROS)
 # ==========================================
 @st.cache_data(ttl=60)
 def get_data(spreadsheet_id, gid):
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     try:
         df = pd.read_csv(url)
+        # O ANTI-ERRO: Limpa espaços invisíveis nos nomes das colunas!
+        df.columns = df.columns.str.strip()
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -44,9 +46,11 @@ if not df_lutas.empty:
         df_lutas['Pontos'] = pd.to_numeric(df_lutas['Pontos'], errors='coerce').fillna(1)
 
 # ==========================================
-# 4. MENU DE NAVEGAÇÃO
+# 4. MENU DE NAVEGAÇÃO (VOLTOU PRO TOPO!)
 # ==========================================
-menu = st.sidebar.radio("Navegação", ["📋 Card de Lutas", "🏆 Ranking", "🔐 Admin"])
+menu = st.radio("Menu", ["📋 Card de Lutas", "🏆 Ranking", "🔐 Admin"], horizontal=True)
+
+st.markdown("---")
 
 # ==========================================
 # ABA 1: CARD DE LUTAS
@@ -56,7 +60,7 @@ if menu == "📋 Card de Lutas":
     if not df_lutas.empty:
         for index, row in df_lutas.iterrows():
             peso = int(row.get('Pontos', 1))
-            st.info(f"**Luta {row['Luta_ID']}** (Vale {peso} pts): {row['Lutador_1']} vs {row['Lutador_2']}")
+            st.info(f"**Luta {row.get('Luta_ID', index)}** (Vale {peso} pts): {row.get('Lutador_1', 'Lutador 1')} vs {row.get('Lutador_2', 'Lutador 2')}")
     else:
         st.warning("Nenhuma luta cadastrada ainda.")
 
@@ -138,7 +142,7 @@ elif menu == "🔐 Admin":
     # Dicionário do que já foi salvo
     dict_resultados = {}
     if not df_resultados.empty:
-        dict_resultados = {str(row['Luta_ID']): row['Vencedor_Real'] for _, row in df_resultados.iterrows()}
+        dict_resultados = {str(row.get('Luta_ID', index)): row.get('Vencedor_Real', '') for index, row in df_resultados.iterrows()}
     
     with st.form("form_admin"):
         novos_resultados = []
@@ -147,9 +151,9 @@ elif menu == "🔐 Admin":
         
         if not df_lutas.empty:
             for index, luta in df_lutas.iterrows():
-                id_luta = str(luta['Luta_ID'])
-                lutador1 = luta['Lutador_1']
-                lutador2 = luta['Lutador_2']
+                id_luta = str(luta.get('Luta_ID', index))
+                lutador1 = luta.get('Lutador_1', f'Lutador A {index}')
+                lutador2 = luta.get('Lutador_2', f'Lutador B {index}')
                 peso_atual = int(luta.get('Pontos', 1))
                 
                 # Botão Selecione por padrão

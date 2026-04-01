@@ -97,7 +97,6 @@ def load_resultados() -> pd.DataFrame:
         df["Luta_ID"] = df["Luta_ID"].str.strip()
         return df.dropna(subset=["Luta_ID"])
     except Exception:
-        # Adicionado o 'Pontos' aqui pra se a planilha estiver vazia ele não surtar
         return pd.DataFrame(columns=["Luta_ID", "Vencedor_Real", "Pontos", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2", "F2_Especial"])
 
 def invalidate_cache():
@@ -165,12 +164,12 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
         tipo = str(luta_map.at[luta_id, "Tipo"]).strip().upper() if luta_id in luta_map.index else "PRELIM"
         acertou = palpite.upper() == vencedor
 
-        # BLINDAGEM DA PONTUAÇÃO LIVRE: Usa sua regra, mas sobrescreve se achar 'Pontos' na planilha
+        # BLINDAGEM DA PONTUAÇÃO LIVRE
         peso_luta = 2 if tipo == "F1" else (2 if (tipo == "F2" and f2_especial) else 1)
         
         if "Pontos" in res_map.columns:
             p_val = res_map.loc[luta_id, "Pontos"]
-            if isinstance(p_val, pd.Series): p_val = p_val.iloc[0] # Segurança extra pra não quebrar
+            if isinstance(p_val, pd.Series): p_val = p_val.iloc[0] 
             if pd.notna(p_val) and str(p_val).strip() != "" and str(p_val).strip().lower() != "nan":
                 try:
                     peso_luta = int(float(p_val))
@@ -187,6 +186,7 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
             
         scores[nome]["Pontos"] += pts
 
+    # Lógica de bônus intacta (como fotn e potn viraram 1 escolha só, funciona igual)
     for acc in scores.values():
         if fotn_real:
             fu = {acc["_fotn_1"].upper(), acc["_fotn_2"].upper()} - {"", "NAN"}
@@ -218,12 +218,14 @@ with tab_votar:
 
         palpites_usuario: dict = {}
         todos_lutadores: list = []
+        lista_lutas_formatada: list = [] # Para o FOTN
 
         for _, luta in lutas.iterrows():
             luta_id = str(luta["ID"])
             lutador1, lutador2 = str(luta["Lutador_1"]).strip(), str(luta["Lutador_2"]).strip()
             tipo = str(luta["Tipo"]).strip().upper()
             todos_lutadores.extend([lutador1, lutador2])
+            lista_lutas_formatada.append(f"{lutador1} vs {lutador2}")
 
             tag_class = "main" if tipo == "F1" else ("co-main" if tipo == "F2" else "")
             tag_label = "LUTA PRINCIPAL" if tipo == "F1" else ("CO-MAIN" if tipo == "F2" else "PRELIMINAR")
@@ -245,28 +247,30 @@ with tab_votar:
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**🌟 FOTN – Luta da Noite**")
-            fotn1 = st.selectbox("FOTN 1", opcao_vazio + todos_lut_uniq, key="fotn1")
-            fotn2 = st.selectbox("FOTN 2", opcao_vazio + todos_lut_uniq, key="fotn2")
+            # Agora é um campo só, escolhendo a luta inteira!
+            fotn_escolha = st.selectbox("Luta da Noite", opcao_vazio + lista_lutas_formatada, key="fotn_voto", label_visibility="collapsed")
         with col2:
             st.markdown("**⚡ POTN – Performance**")
-            potn1 = st.selectbox("POTN 1", opcao_vazio + todos_lut_uniq, key="potn1")
-            potn2 = st.selectbox("POTN 2", opcao_vazio + todos_lut_uniq, key="potn2")
+            # Apenas 1 lutador selecionado!
+            potn_escolha = st.selectbox("Melhor Performance", opcao_vazio + todos_lut_uniq, key="potn_voto", label_visibility="collapsed")
 
         st.markdown("---")
         if st.button("✅  ENVIAR PALPITES"):
             nome_limpo = nome_usuario.strip()
             erros = []
             if not nome_limpo: erros.append("Informe seu nome.")
-            if fotn1 != "— Selecione —" and fotn1 == fotn2: erros.append("Os dois lutadores do FOTN devem ser diferentes.")
-            if potn1 != "— Selecione —" and potn1 == potn2: erros.append("Os dois lutadores do POTN devem ser diferentes.")
 
             if erros:
                 for e in erros: st.error(e)
             else:
-                _f1 = "" if fotn1 == "— Selecione —" else fotn1
-                _f2 = "" if fotn2 == "— Selecione —" else fotn2
-                _p1 = "" if potn1 == "— Selecione —" else potn1
-                _p2 = "" if potn2 == "— Selecione —" else potn2
+                # Divide a luta selecionada (A vs B) em 2 variáveis para salvar na planilha certinho
+                if fotn_escolha != "— Selecione —":
+                    _f1, _f2 = fotn_escolha.split(" vs ")
+                else:
+                    _f1, _f2 = "", ""
+
+                _p1 = "" if potn_escolha == "— Selecione —" else potn_escolha
+                _p2 = "" # POTN 2 fica vazio por regra de 1 performance só
 
                 palpites_existentes = load_palpites()
                 palpites_existentes = palpites_existentes[palpites_existentes["Nome"].str.strip().str.upper() != nome_limpo.upper()]
@@ -300,14 +304,15 @@ with tab_ranking:
         st.markdown(f'<table class="rank-table"><thead><tr><th>POS</th><th>NOME</th><th style="text-align:center">PTS</th><th style="text-align:center">ACERTOS</th><th style="text-align:center">F1</th><th style="text-align:center">F2</th></tr></thead><tbody>{rows_html}</tbody></table>', unsafe_allow_html=True)
         st.caption("Atualizado a cada 1 min · Desempate: Pts › Acertos › F1 › F2 › Nome")
 
-        # VAR 100% FUNCIONAL ABAIXO DA SUA TABELA
+        # VAR FUNCIONAL ABAIXO DA SUA TABELA
         st.markdown("---")
         st.markdown('<div class="admin-section">🔍 VAR: Histórico de Palpites</div>', unsafe_allow_html=True)
         opcoes_var = ["— Selecione um Participante —"] + sorted(ranking["Nome"].tolist())
         membro_selecionado = st.selectbox("Fiscalize os votos:", opcoes_var, label_visibility="collapsed")
         
         if membro_selecionado != "— Selecione um Participante —":
-            df_var = palpites_df[palpites_df["Nome"] == membro_selecionado][["Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1", "POTN_2"]]
+            df_var = palpites_df[palpites_df["Nome"] == membro_selecionado][["Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1"]]
+            # Modifiquei pra mostrar só o FOTN 1 e 2 (que compõem a luta) e o POTN 1. Fica mais limpo no VAR.
             st.dataframe(df_var, hide_index=True, use_container_width=True)
 
 with tab_admin:
@@ -351,7 +356,6 @@ with tab_admin:
                 lid, lutador1, lutador2, tipo = str(luta["ID"]), str(luta["Lutador_1"]).strip(), str(luta["Lutador_2"]).strip(), str(luta["Tipo"]).strip().upper()
                 venc_atual = "Selecione"
                 
-                # Peso original da sua regra
                 peso_atual = 2 if tipo == "F1" else (2 if tipo == "F2" and f2_especial_flag else 1)
 
                 mask = resultados_df_adm["Luta_ID"] == lid
@@ -359,7 +363,6 @@ with tab_admin:
                     v_real = str(resultados_df_adm.loc[mask, "Vencedor_Real"].values[0]).strip()
                     if v_real: venc_atual = v_real
                     
-                    # Lê o peso que o admin digitou antes (se existir)
                     if "Pontos" in resultados_df_adm.columns:
                         p_salvo = str(resultados_df_adm.loc[mask, "Pontos"].values[0]).strip()
                         if p_salvo and p_salvo.lower() != "nan":
@@ -373,8 +376,6 @@ with tab_admin:
                 tag_label = "PRINCIPAL" if tipo == "F1" else ("CO-MAIN" if tipo == "F2" else "PRELIM")
 
                 st.markdown(f"**[{tag_label}]** {lutador1} vs {lutador2}")
-                
-                # CAIXINHA DE PONTOS LIVRES ALINHADA BONITINHA
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     venc_sel = st.selectbox(f"res_{lid}", opcoes, index=idx_default, key=f"res_{lid}", label_visibility="collapsed")
@@ -385,28 +386,44 @@ with tab_admin:
 
         st.markdown('<div class="admin-section">🌟 Bônus da Noite (FOTN / POTN)</div>', unsafe_allow_html=True)
         todos_lut_adm = sorted(set(lutas_df_adm["Lutador_1"].tolist() + lutas_df_adm["Lutador_2"].tolist())) if not lutas_df_adm.empty else []
+        
+        # Gerando lista de combates pro admin também
+        lista_fights_adm = ["— Nenhum —"]
+        for _, luta in lutas_df_adm.iterrows():
+            lista_fights_adm.append(f"{str(luta['Lutador_1']).strip()} vs {str(luta['Lutador_2']).strip()}")
+            
         def safe_idx(lst, val): return lst.index(val) if val in lst else 0
 
         lista_adm = ["— Nenhum —"] + todos_lut_adm
-        pf1 = pf2 = pp1 = pp2 = ""
+        pf1 = pf2 = pp1 = ""
+        fotn_idx = 0
         if not resultados_df_adm.empty:
             r0 = resultados_df_adm.iloc[0]
-            pf1, pf2, pp1, pp2 = str(r0.get("FOTN_1", "")).strip(), str(r0.get("FOTN_2", "")).strip(), str(r0.get("POTN_1", "")).strip(), str(r0.get("POTN_2", "")).strip()
+            pf1, pf2, pp1 = str(r0.get("FOTN_1", "")).strip(), str(r0.get("FOTN_2", "")).strip(), str(r0.get("POTN_1", "")).strip()
+            
+            # Reconstrói a luta pro admin ver a Luta da Noite que já foi marcada
+            if pf1 and pf2:
+                op1 = f"{pf1} vs {pf2}"
+                op2 = f"{pf2} vs {pf1}" # Caso a ordem esteja invertida
+                if op1 in lista_fights_adm: fotn_idx = lista_fights_adm.index(op1)
+                elif op2 in lista_fights_adm: fotn_idx = lista_fights_adm.index(op2)
 
         col_f, col_p = st.columns(2)
         with col_f:
             st.markdown("**FOTN (Luta da Noite)**")
-            fotn1_adm = st.selectbox("F1", lista_adm, index=safe_idx(lista_adm, pf1), key="adm_f1")
-            fotn2_adm = st.selectbox("F2", lista_adm, index=safe_idx(lista_adm, pf2), key="adm_f2")
+            fotn_adm = st.selectbox("Luta", lista_fights_adm, index=fotn_idx, key="adm_fotn_unica", label_visibility="collapsed")
         with col_p:
             st.markdown("**POTN (Performance)**")
-            potn1_adm = st.selectbox("P1", lista_adm, index=safe_idx(lista_adm, pp1), key="adm_p1")
-            potn2_adm = st.selectbox("P2", lista_adm, index=safe_idx(lista_adm, pp2), key="adm_p2")
+            potn_adm = st.selectbox("Lutador", lista_adm, index=safe_idx(lista_adm, pp1), key="adm_potn_unica", label_visibility="collapsed")
 
-        fotn1_v = "" if fotn1_adm == "— Nenhum —" else fotn1_adm
-        fotn2_v = "" if fotn2_adm == "— Nenhum —" else fotn2_adm
-        potn1_v = "" if potn1_adm == "— Nenhum —" else potn1_adm
-        potn2_v = "" if potn2_adm == "— Nenhum —" else potn2_adm
+        # Divindo a seleção de luta do admin em 2 lutadores para salvar perfeitamente
+        if fotn_adm != "— Nenhum —":
+            fotn1_v, fotn2_v = fotn_adm.split(" vs ")
+        else:
+            fotn1_v, fotn2_v = "", ""
+
+        potn1_v = "" if potn_adm == "— Nenhum —" else potn_adm
+        potn2_v = "" # Fica vazio
 
         st.markdown("---")
         if st.button("💾  SALVAR TODOS OS RESULTADOS"):
@@ -425,7 +442,7 @@ with tab_admin:
 
         st.markdown("---")
         
-        # ZONA DE PERIGO FUNCIONANDO COM A FUNÇÃO SHEET_WRITE ORIGINAL
+        # ZONA DE PERIGO FUNCIONANDO
         st.markdown('<div class="admin-section" style="color: #e8002d;">🚨 ZONA DE PERIGO: RESET TOTAL</div>', unsafe_allow_html=True)
         st.warning("Isso vai apagar TODOS os palpites e resultados da planilha para você iniciar um novo evento limpo.")
         senha_reset = st.text_input("Digite a senha admin para confirmar o Reset:", type="password", key="reset_pw")

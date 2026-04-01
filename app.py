@@ -18,7 +18,6 @@ def get_data(spreadsheet_id, gid):
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     try:
         df = pd.read_csv(url)
-        # Limpa espaços em branco ocultos nas colunas
         df.columns = df.columns.str.strip() 
         df.columns = df.columns.str.replace("Luta ID", "Luta_ID")
         df.columns = df.columns.str.replace("Lutador 1", "Lutador_1")
@@ -41,7 +40,6 @@ df_lutas = get_data(sheet_id, lutas_gid)
 df_palpites = get_data(sheet_id, palpites_gid)
 df_resultados = get_data(sheet_id, resultados_gid)
 
-# Garante que a coluna 'Pontos' exista nas Lutas
 if not df_lutas.empty:
     if 'Pontos' not in df_lutas.columns:
         df_lutas['Pontos'] = 1
@@ -51,30 +49,80 @@ if not df_lutas.empty:
 # ==========================================
 # 4. NAVEGAÇÃO ANTIGA (BARRA LATERAL)
 # ==========================================
-menu = st.sidebar.radio("Navegação", ["📋 Card de Lutas", "🏆 Ranking", "🔐 Admin"])
+menu = st.sidebar.radio("Navegação", ["📝 Fazer Palpite", "🏆 Ranking", "🔐 Admin"])
 
 # ==========================================
-# ABA 1: CARD DE LUTAS (PÚBLICO E BLINDADO)
+# ABA 1: FAZER PALPITE (AGORA O CARA VOTA!)
 # ==========================================
-if menu == "📋 Card de Lutas":
-    st.header("Card do Evento")
+if menu == "📝 Fazer Palpite":
+    st.header("Faça suas Apostas!")
+    st.markdown("Preencha seu nome e escolha os vencedores de cada combate.")
+    
     if not df_lutas.empty:
-        for index, row in df_lutas.iterrows():
-            luta_id = row.get('Luta_ID', index + 1)
-            lutador1 = row.get('Lutador_1', 'Lutador 1')
-            lutador2 = row.get('Lutador_2', 'Lutador 2')
+        with st.form("form_palpites_usuarios"):
+            nome_usuario = st.text_input("Seu Nick/Nome:")
             
-            st.info(f"**Luta {luta_id}**: {lutador1} vs {lutador2}")
+            st.markdown("### Combates")
+            palpites_feitos = []
+            
+            for index, row in df_lutas.iterrows():
+                luta_id = str(row.get('Luta_ID', index + 1))
+                lutador1 = row.get('Lutador_1', 'Lutador A')
+                lutador2 = row.get('Lutador_2', 'Lutador B')
+                
+                # O cara escolhe quem ganha aqui
+                escolha = st.radio(
+                    f"Luta {luta_id}: {lutador1} vs {lutador2}",
+                    options=[lutador1, lutador2],
+                    key=f"palpite_user_{luta_id}"
+                )
+                palpites_feitos.append({"Luta_ID": luta_id, "Palpite": escolha})
+                st.write("---")
+            
+            st.markdown("### Bônus da Noite")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                usr_fotn_1 = st.text_input("Luta da Noite (Lutador 1)")
+                usr_fotn_2 = st.text_input("Luta da Noite (Lutador 2)")
+            with col_b:
+                usr_potn_1 = st.text_input("Performance (Lutador 1)")
+                usr_potn_2 = st.text_input("Performance (Lutador 2)")
+                
+            enviou_palpite = st.form_submit_button("Enviar Palpites 🚀")
+            
+            if enviou_palpite:
+                if nome_usuario.strip() == "":
+                    st.error("Esqueceu de colocar o nome, amigão! Digita aí.")
+                else:
+                    dados_para_enviar = {"acao": "salvar_palpite_usuario", "dados": []}
+                    for p in palpites_feitos:
+                        dados_para_enviar["dados"].append({
+                            "Nome": nome_usuario,
+                            "Luta_ID": p["Luta_ID"],
+                            "Palpite": p["Palpite"],
+                            "FOTN_1": usr_fotn_1,
+                            "FOTN_2": usr_fotn_2,
+                            "POTN_1": usr_potn_1,
+                            "POTN_2": usr_potn_2
+                        })
+                    
+                    try:
+                        response = requests.post(webhook_url, json=dados_para_enviar)
+                        if response.status_code == 200:
+                            st.success("Boa! Seus palpites foram registrados. Dá uma olhada no Ranking depois!")
+                        else:
+                            st.error("Erro ao enviar os dados pra planilha. Avisa o administrador (Seara).")
+                    except Exception as e:
+                        st.error(f"Falha no envio: {e}")
     else:
-        st.warning("Nenhuma luta cadastrada ainda.")
+        st.warning("O Card de Lutas ainda não foi montado. Volte mais tarde!")
 
 # ==========================================
-# ABA 2: RANKING E VAR (AGORA SEPARADOS!)
+# ABA 2: RANKING E VAR
 # ==========================================
 elif menu == "🏆 Ranking":
     st.header("🏆 Ranking Geral")
     
-    # --- PARTE 1: O RANKING (Só funciona se tiver Resultados) ---
     if not df_palpites.empty and not df_resultados.empty and 'Luta_ID' in df_palpites.columns and 'Luta_ID' in df_resultados.columns:
         df_calc = pd.merge(df_palpites, df_resultados[['Luta_ID', 'Vencedor_Real']], on="Luta_ID", how="left")
         
@@ -122,12 +170,10 @@ elif menu == "🏆 Ranking":
     else:
         st.warning("O Ranking aparecerá assim que o primeiro resultado for lançado no Admin!")
 
-    # --- PARTE 2: O VAR (Funciona INDEPENDENTE do Ranking) ---
     st.markdown("---")
     st.subheader("🔍 VAR: Detalhes dos Palpites")
     
     if not df_palpites.empty and 'Nome' in df_palpites.columns:
-        # Pega a lista de quem já votou e deixa em ordem alfabética
         lista_nomes = df_palpites['Nome'].dropna().unique().tolist()
         lista_nomes.sort()
         

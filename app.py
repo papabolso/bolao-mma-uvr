@@ -34,6 +34,7 @@ html,body,[data-testid="stAppViewContainer"]{background:var(--bg)!important;colo
 .fight-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:4px;background:var(--accent);color:#fff;margin-bottom:.5rem}
 .fight-tag.main{background:var(--gold);color:#000}
 .fight-tag.co-main{background:#555}
+.fight-tag.prelim{background:#2a4365;color:#fff} /* AZUL PARA PRELIMINARES */
 .rank-table{width:100%;border-collapse:collapse}
 .rank-table th{font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.1em;color:var(--muted);border-bottom:2px solid var(--border);padding:.5rem .7rem;text-align:left}
 .rank-table td{padding:.55rem .7rem;border-bottom:1px solid var(--border)}
@@ -232,10 +233,8 @@ with tab_votar:
         st.error("🚨 **BOLÃO ENCERRADO!** Os palpites foram fechados.")
         st.info("O evento já vai começar (ou já começou). Vá para a aba **Ranking** para acompanhar a pontuação e ver o VAR. Boa sorte!")
     else:
-        # 🕒 WIDGET DO CRONÔMETRO AO VIVO
         if fechamento_str:
             try:
-                # Transforma a data em formato que o Javascript entende, com fuso do Brasil (-03:00)
                 dt_obj = datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M")
                 iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
                 
@@ -295,8 +294,15 @@ with tab_votar:
             todos_lutadores.extend([lutador1, lutador2])
             lista_lutas_formatada.append(f"{lutador1} vs {lutador2}")
 
-            tag_class = "main" if tipo == "F1" else ("co-main" if tipo == "F2" else "")
-            tag_label = "LUTA PRINCIPAL" if tipo == "F1" else ("CO-MAIN" if tipo == "F2" else "PRELIMINAR")
+            # NOVA LÓGICA DE TAGS DE LUTA AQUI
+            if tipo == "F1":
+                tag_class, tag_label = "main", "MAIN EVENT"
+            elif tipo == "F2":
+                tag_class, tag_label = "co-main", "CO-MAIN EVENT"
+            elif tipo == "PRINCIPAL":
+                tag_class, tag_label = "", "CARD PRINCIPAL" # Fica vermelho padrão
+            else:
+                tag_class, tag_label = "prelim", "PRELIMINAR" # Fica azul
 
             st.markdown(f"""
             <div class="card">
@@ -408,7 +414,7 @@ with tab_admin:
         st.dataframe(lutas_atual, use_container_width=True, hide_index=True)
 
         with st.expander("➕ Adicionar / substituir tabela de Lutas"):
-            st.info("Cole no formato CSV. Tipo aceito: F1, F2, PRELIM")
+            st.info("Cole no formato CSV. Tipo aceito: F1, F2, PRINCIPAL, PRELIM")
             lutas_csv = st.text_area("CSV", height=180, placeholder="ID,Lutador_1,Lutador_2,Tipo\n1,Jon Jones,Stipe Miocic,F1")
             if st.button("💾 Salvar Lutas"):
                 try:
@@ -457,7 +463,10 @@ with tab_admin:
                 if venc_atual not in opcoes: venc_atual = "Selecione"
                 idx_default = opcoes.index(venc_atual)
                 
-                tag_label = "PRINCIPAL" if tipo == "F1" else ("CO-MAIN" if tipo == "F2" else "PRELIM")
+                if tipo == "F1": tag_label = "MAIN EVENT"
+                elif tipo == "F2": tag_label = "CO-MAIN"
+                elif tipo == "PRINCIPAL": tag_label = "PRINCIPAL"
+                else: tag_label = "PRELIM"
 
                 st.markdown(f"**[{tag_label}]** {lutador1} vs {lutador2}")
                 col1, col2 = st.columns([3, 1])
@@ -536,12 +545,4 @@ with tab_admin:
                     sheet_write("Palpites", df_vazio_palpites)
                     sheet_write("Resultados", df_vazio_resultados)
                     invalidate_cache()
-                    st.success("BOOM! Planilhas de Palpites e Resultados zeradas com sucesso!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao tentar zerar: {e}")
-            elif senha_reset != "":
-                st.error("❌ Senha incorreta para reset.")
-
-        st.markdown("---")
-        if st.button("🚪 Sair do Admin"): st.session_state.admin_ok = False; st.rerun()
+                    st.success("BOOM! Planilhas

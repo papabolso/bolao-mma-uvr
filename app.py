@@ -3,9 +3,26 @@ import pandas as pd
 import requests
 
 # ==========================================
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO DA PÁGINA E CSS
 # ==========================================
 st.set_page_config(page_title="BOLÃO UVR 2.0 🤖", page_icon="🥊", layout="wide")
+
+# CSS para deixar o menu horizontal lindão
+st.markdown("""
+    <style>
+    /* Estilizando o menu de navegação (radio) */
+    .stRadio [role=radiogroup] {
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(128, 128, 128, 0.1);
+        padding: 15px;
+        border-radius: 15px;
+        gap: 30px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("🥊 BOLÃO UVR 2.0 🤖")
 st.markdown("Bem-vindo ao sistema oficial de palpites!")
@@ -47,12 +64,18 @@ if not df_lutas.empty:
         df_lutas['Pontos'] = pd.to_numeric(df_lutas['Pontos'], errors='coerce').fillna(1)
 
 # ==========================================
-# 4. NAVEGAÇÃO ANTIGA (BARRA LATERAL)
+# 4. NAVEGAÇÃO HORIZONTAL VIP
 # ==========================================
-menu = st.sidebar.radio("Navegação", ["📝 Fazer Palpite", "🏆 Ranking", "🔐 Admin"])
+# label_visibility="collapsed" esconde o título "Navegação" para ficar mais clean
+menu = st.radio(
+    "Navegação", 
+    ["📝 Fazer Palpite", "🏆 Ranking", "🔐 Admin"], 
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
 # ==========================================
-# ABA 1: FAZER PALPITE (AGORA O CARA VOTA!)
+# ABA 1: FAZER PALPITE (A GALERA VOTA AQUI!)
 # ==========================================
 if menu == "📝 Fazer Palpite":
     st.header("Faça suas Apostas!")
@@ -70,7 +93,6 @@ if menu == "📝 Fazer Palpite":
                 lutador1 = row.get('Lutador_1', 'Lutador A')
                 lutador2 = row.get('Lutador_2', 'Lutador B')
                 
-                # O cara escolhe quem ganha aqui
                 escolha = st.radio(
                     f"Luta {luta_id}: {lutador1} vs {lutador2}",
                     options=[lutador1, lutador2],

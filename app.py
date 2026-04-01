@@ -3,26 +3,9 @@ import pandas as pd
 import requests
 
 # ==========================================
-# 1. CONFIGURAÇÃO DA PÁGINA E CSS
+# 1. CONFIGURAÇÃO DA PÁGINA
 # ==========================================
 st.set_page_config(page_title="BOLÃO UVR 2.0 🤖", page_icon="🥊", layout="wide")
-
-# CSS para deixar o menu horizontal lindão
-st.markdown("""
-    <style>
-    /* Estilizando o menu de navegação (radio) */
-    .stRadio [role=radiogroup] {
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(128, 128, 128, 0.1);
-        padding: 15px;
-        border-radius: 15px;
-        gap: 30px;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 st.title("🥊 BOLÃO UVR 2.0 🤖")
 st.markdown("Bem-vindo ao sistema oficial de palpites!")
@@ -64,18 +47,18 @@ if not df_lutas.empty:
         df_lutas['Pontos'] = pd.to_numeric(df_lutas['Pontos'], errors='coerce').fillna(1)
 
 # ==========================================
-# 4. NAVEGAÇÃO HORIZONTAL VIP
+# 4. NAVEGAÇÃO HORIZONTAL (LIMPA E CLÁSSICA)
 # ==========================================
-# label_visibility="collapsed" esconde o título "Navegação" para ficar mais clean
 menu = st.radio(
     "Navegação", 
     ["📝 Fazer Palpite", "🏆 Ranking", "🔐 Admin"], 
     horizontal=True,
     label_visibility="collapsed"
 )
+st.markdown("---") # Linha de separação charmosa
 
 # ==========================================
-# ABA 1: FAZER PALPITE (A GALERA VOTA AQUI!)
+# ABA 1: FAZER PALPITE
 # ==========================================
 if menu == "📝 Fazer Palpite":
     st.header("Faça suas Apostas!")
@@ -220,104 +203,114 @@ elif menu == "🏆 Ranking":
         st.info("Aguardando a galera mandar os palpites...")
 
 # ==========================================
-# ABA 3: ADMIN (BLINDADO)
+# ABA 3: ADMIN (TRANCADO COM SENHA)
 # ==========================================
 elif menu == "🔐 Admin":
     st.header("Painel de Controle do Evento")
     
-    dict_resultados = {}
-    if not df_resultados.empty and 'Luta_ID' in df_resultados.columns and 'Vencedor_Real' in df_resultados.columns:
-        dict_resultados = {str(row['Luta_ID']): row['Vencedor_Real'] for _, row in df_resultados.iterrows()}
+    SENHA_MESTRE = "senha123" # Troque aqui pela senha que você quer
     
-    with st.form("form_admin"):
-        novos_resultados = []
-        st.subheader("📝 Resultados e Pontuações")
+    senha_acesso = st.text_input("🔒 Digite a senha de administrador para acessar:", type="password")
+    
+    if senha_acesso == SENHA_MESTRE:
+        st.success("Acesso Liberado!")
+        st.markdown("---")
         
-        if not df_lutas.empty:
-            for index, luta in df_lutas.iterrows():
-                id_luta = str(luta.get('Luta_ID', index + 1))
-                lutador1 = luta.get('Lutador_1', f'Lutador A (Luta {id_luta})')
-                lutador2 = luta.get('Lutador_2', f'Lutador B (Luta {id_luta})')
-                peso_atual = int(luta.get('Pontos', 1))
-                
-                resultado_salvo = dict_resultados.get(id_luta, "Selecione")
-                opcoes = ["Selecione", lutador1, lutador2, "Empate"]
-                index_padrao = opcoes.index(resultado_salvo) if resultado_salvo in opcoes else 0
-                
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    vencedor = st.radio(
-                        f"Luta {id_luta}: {lutador1} vs {lutador2}",
-                        options=opcoes,
-                        index=index_padrao,
-                        key=f"admin_luta_{id_luta}"
-                    )
-                with col2:
-                    novo_peso = st.number_input(f"Pontos ({id_luta})", value=peso_atual, min_value=1, step=1, key=f"peso_{id_luta}")
-                
-                novos_resultados.append({"Luta_ID": id_luta, "Vencedor_Real": vencedor, "Pontos": novo_peso})
-                st.write("---")
+        dict_resultados = {}
+        if not df_resultados.empty and 'Luta_ID' in df_resultados.columns and 'Vencedor_Real' in df_resultados.columns:
+            dict_resultados = {str(row['Luta_ID']): row['Vencedor_Real'] for _, row in df_resultados.iterrows()}
         
-        st.subheader("Bônus do Evento")
-        fotn1_salvo = df_resultados['FOTN_1'].iloc[0] if not df_resultados.empty and 'FOTN_1' in df_resultados.columns else ""
-        fotn2_salvo = df_resultados['FOTN_2'].iloc[0] if not df_resultados.empty and 'FOTN_2' in df_resultados.columns else ""
-        potn1_salvo = df_resultados['POTN_1'].iloc[0] if not df_resultados.empty and 'POTN_1' in df_resultados.columns else ""
-        potn2_salvo = df_resultados['POTN_2'].iloc[0] if not df_resultados.empty and 'POTN_2' in df_resultados.columns else ""
-        
-        col3, col4 = st.columns(2)
-        with col3:
-            in_fotn_1 = st.text_input("Luta da Noite (Lutador 1)", value=fotn1_salvo)
-            in_fotn_2 = st.text_input("Luta da Noite (Lutador 2)", value=fotn2_salvo)
-        with col4:
-            in_potn_1 = st.text_input("Performance (Lutador 1)", value=potn1_salvo)
-            in_potn_2 = st.text_input("Performance (Lutador 2)", value=potn2_salvo)
+        with st.form("form_admin"):
+            novos_resultados = []
+            st.subheader("📝 Resultados e Pontuações")
             
-        submitted = st.form_submit_button("Salvar Resultados e Pontos 🚀")
-        
-        if submitted:
-            dados_para_enviar = {"acao": "salvar_resultados", "dados": []}
-            for item in novos_resultados:
-                dados_para_enviar["dados"].append({
-                    "Luta_ID": item["Luta_ID"],
-                    "Vencedor_Real": item["Vencedor_Real"],
-                    "Pontos": item["Pontos"],
-                    "FOTN_1": in_fotn_1,
-                    "FOTN_2": in_fotn_2,
-                    "POTN_1": in_potn_1,
-                    "POTN_2": in_potn_2
-                })
+            if not df_lutas.empty:
+                for index, luta in df_lutas.iterrows():
+                    id_luta = str(luta.get('Luta_ID', index + 1))
+                    lutador1 = luta.get('Lutador_1', f'Lutador A (Luta {id_luta})')
+                    lutador2 = luta.get('Lutador_2', f'Lutador B (Luta {id_luta})')
+                    peso_atual = int(luta.get('Pontos', 1))
+                    
+                    resultado_salvo = dict_resultados.get(id_luta, "Selecione")
+                    opcoes = ["Selecione", lutador1, lutador2, "Empate"]
+                    index_padrao = opcoes.index(resultado_salvo) if resultado_salvo in opcoes else 0
+                    
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        vencedor = st.radio(
+                            f"Luta {id_luta}: {lutador1} vs {lutador2}",
+                            options=opcoes,
+                            index=index_padrao,
+                            key=f"admin_luta_{id_luta}"
+                        )
+                    with col2:
+                        novo_peso = st.number_input(f"Pontos ({id_luta})", value=peso_atual, min_value=1, step=1, key=f"peso_{id_luta}")
+                    
+                    novos_resultados.append({"Luta_ID": id_luta, "Vencedor_Real": vencedor, "Pontos": novo_peso})
+                    st.write("---")
             
-            try:
-                response = requests.post(webhook_url, json=dados_para_enviar)
-                if response.status_code == 200:
-                    st.success("Sucesso! Dê um 'Clear Cache' para ver as mudanças no Ranking.")
-                else:
-                    st.error("Erro ao comunicar com a planilha.")
-            except Exception as e:
-                st.error(f"Falha no envio: {e}")
+            st.subheader("Bônus do Evento")
+            fotn1_salvo = df_resultados['FOTN_1'].iloc[0] if not df_resultados.empty and 'FOTN_1' in df_resultados.columns else ""
+            fotn2_salvo = df_resultados['FOTN_2'].iloc[0] if not df_resultados.empty and 'FOTN_2' in df_resultados.columns else ""
+            potn1_salvo = df_resultados['POTN_1'].iloc[0] if not df_resultados.empty and 'POTN_1' in df_resultados.columns else ""
+            potn2_salvo = df_resultados['POTN_2'].iloc[0] if not df_resultados.empty and 'POTN_2' in df_resultados.columns else ""
+            
+            col3, col4 = st.columns(2)
+            with col3:
+                in_fotn_1 = st.text_input("Luta da Noite (Lutador 1)", value=fotn1_salvo)
+                in_fotn_2 = st.text_input("Luta da Noite (Lutador 2)", value=fotn2_salvo)
+            with col4:
+                in_potn_1 = st.text_input("Performance (Lutador 1)", value=potn1_salvo)
+                in_potn_2 = st.text_input("Performance (Lutador 2)", value=potn2_salvo)
+                
+            submitted = st.form_submit_button("Salvar Resultados e Pontos 🚀")
+            
+            if submitted:
+                dados_para_enviar = {"acao": "salvar_resultados", "dados": []}
+                for item in novos_resultados:
+                    dados_para_enviar["dados"].append({
+                        "Luta_ID": item["Luta_ID"],
+                        "Vencedor_Real": item["Vencedor_Real"],
+                        "Pontos": item["Pontos"],
+                        "FOTN_1": in_fotn_1,
+                        "FOTN_2": in_fotn_2,
+                        "POTN_1": in_potn_1,
+                        "POTN_2": in_potn_2
+                    })
+                
+                try:
+                    response = requests.post(webhook_url, json=dados_para_enviar)
+                    if response.status_code == 200:
+                        st.success("Sucesso! Dê um 'Clear Cache' para ver as mudanças no Ranking.")
+                    else:
+                        st.error("Erro ao comunicar com a planilha.")
+                except Exception as e:
+                    st.error(f"Falha no envio: {e}")
 
-    # ==========================================
-    # ZONA DE PERIGO: RESET DO EVENTO
-    # ==========================================
-    st.markdown("---")
-    st.subheader("⚠️ ZONA DE PERIGO")
-    st.warning("Esta ação apagará TODOS os palpites e resultados atuais para iniciar um novo evento.")
-    
-    SENHA_MESTRE = "senha123" 
-    
-    senha_digitada = st.text_input("Digite a senha de administrador para confirmar o Reset:", type="password")
-    
-    if st.button("🚨 ZERAR BOLÃO PARA NOVO EVENTO"):
-        if senha_digitada == SENHA_MESTRE:
-            try:
-                comando_reset = {"acao": "zerar_planilhas"}
-                response = requests.post(webhook_url, json=comando_reset)
-                
-                if response.status_code == 200:
-                    st.success("BOOM! 💥 O bolão foi zerado com sucesso. Prepare-se para o próximo card!")
-                else:
-                    st.error("Erro ao tentar zerar a planilha.")
-            except Exception as e:
-                st.error(f"Falha na conexão: {e}")
-        elif senha_digitada != "":
-            st.error("❌ Senha incorreta! O botão de autodestruição foi bloqueado.")
+        # ==========================================
+        # ZONA DE PERIGO: RESET DO EVENTO
+        # ==========================================
+        st.markdown("---")
+        st.subheader("⚠️ ZONA DE PERIGO")
+        st.warning("Esta ação apagará TODOS os palpites e resultados atuais para iniciar um novo evento.")
+        
+        # Só um botão extra de confirmação por segurança, já que a aba já tá com senha
+        confirmar_reset = st.checkbox("Tenho certeza que quero apagar tudo")
+        
+        if st.button("🚨 ZERAR BOLÃO PARA NOVO EVENTO"):
+            if confirmar_reset:
+                try:
+                    comando_reset = {"acao": "zerar_planilhas"}
+                    response = requests.post(webhook_url, json=comando_reset)
+                    
+                    if response.status_code == 200:
+                        st.success("BOOM! 💥 O bolão foi zerado com sucesso. Prepare-se para o próximo card!")
+                    else:
+                        st.error("Erro ao tentar zerar a planilha.")
+                except Exception as e:
+                    st.error(f"Falha na conexão: {e}")
+            else:
+                st.error("❌ Marque a caixinha de confirmação antes de apertar o botão vermelho!")
+
+    elif senha_acesso != "":
+        st.error("❌ Senha incorreta! Acesso negado.")

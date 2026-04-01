@@ -5,7 +5,7 @@ import requests
 import streamlit as st
 
 # ──────────────────────────────────────────────
-# PAGE CONFIG & CSS (INTACTO - SUA OBRA DE ARTE)
+# PAGE CONFIG & CSS
 # ──────────────────────────────────────────────
 st.set_page_config(
     page_title="UVR 2.0 – Bolão de MMA",
@@ -55,7 +55,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# CONFIG (lê do secrets.toml)
+# CONFIG & READ DATA
 # ──────────────────────────────────────────────
 SHEET_ID        = st.secrets["gsheets"]["spreadsheet_id"]
 LUTAS_GID       = int(st.secrets["gsheets"].get("lutas_gid", 0))
@@ -66,9 +66,6 @@ APPS_SCRIPT_URL = st.secrets["gsheets"]["apps_script_url"]
 def csv_url(gid: int) -> str:
     return f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
 
-# ──────────────────────────────────────────────
-# LEITURA PÚBLICA via Pandas
-# ──────────────────────────────────────────────
 @st.cache_data(ttl=60)
 def load_lutas() -> pd.DataFrame:
     try:
@@ -77,7 +74,7 @@ def load_lutas() -> pd.DataFrame:
         df["ID"] = df["ID"].str.strip()
         return df.dropna(subset=["ID"])
     except Exception:
-        return pd.DataFrame(columns=["ID", "Lutador_1", "Lutador_2", "Tipo"])
+        return pd.DataFrame(columns=["ID", "Lutador_1", "Lutador_2", "Tipo", "Pontos"])
 
 @st.cache_data(ttl=60)
 def load_palpites() -> pd.DataFrame:
@@ -104,18 +101,10 @@ def invalidate_cache():
     load_palpites.clear()
     load_resultados.clear()
 
-# ──────────────────────────────────────────────
-# ESCRITA via APPS SCRIPT
-# ──────────────────────────────────────────────
 def sheet_write(worksheet_name: str, df: pd.DataFrame):
     df = df.fillna("").astype(str)
     data_to_send = [df.columns.tolist()] + df.values.tolist()
-    
-    payload = {
-        "sheet": worksheet_name,
-        "data": data_to_send
-    }
-    
+    payload = {"sheet": worksheet_name, "data": data_to_send}
     try:
         response = requests.post(APPS_SCRIPT_URL, json=payload)
         res_json = response.json()
@@ -125,7 +114,7 @@ def sheet_write(worksheet_name: str, df: pd.DataFrame):
         raise Exception(f"Falha de conexão com a planilha: {e}")
 
 # ──────────────────────────────────────────────
-# MOTOR DE PONTUAÇÃO (SEU ORIGINAL BLINDADO)
+# MOTOR DE PONTUAÇÃO
 # ──────────────────────────────────────────────
 def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, resultados_df: pd.DataFrame) -> pd.DataFrame:
     if palpites_df.empty or lutas_df.empty or resultados_df.empty: return pd.DataFrame()
@@ -158,27 +147,22 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
         if luta_id not in res_map.index: continue
         vencedor = str(res_map.at[luta_id, "Vencedor_Real"]).strip().upper()
         
-        # Ignora o "Selecione" do Admin e os cancelamentos
         if vencedor in ("EMPATE", "CANCELADA", "NAN", "", "SELECIONE"): continue
 
         tipo = str(luta_map.at[luta_id, "Tipo"]).strip().upper() if luta_id in luta_map.index else "PRELIM"
         acertou = palpite.upper() == vencedor
 
-        # BLINDAGEM DA PONTUAÇÃO LIVRE
         peso_luta = 2 if tipo == "F1" else (2 if (tipo == "F2" and f2_especial) else 1)
         
         if "Pontos" in res_map.columns:
             p_val = res_map.loc[luta_id, "Pontos"]
             if isinstance(p_val, pd.Series): p_val = p_val.iloc[0] 
             if pd.notna(p_val) and str(p_val).strip() != "" and str(p_val).strip().lower() != "nan":
-                try:
-                    peso_luta = int(float(p_val))
-                except:
-                    pass
+                try: peso_luta = int(float(p_val))
+                except: pass
             
         pts = peso_luta if acertou else 0
 
-        # MANTÉM OS SEUS DESEMPATES INTACTOS
         if acertou: 
             scores[nome]["Acertos"] += 1
             if tipo == "F1": scores[nome]["Acerto_F1"] += 1
@@ -186,7 +170,6 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
             
         scores[nome]["Pontos"] += pts
 
-    # Lógica de bônus intacta (como fotn e potn viraram 1 escolha só, funciona igual)
     for acc in scores.values():
         if fotn_real:
             fu = {acc["_fotn_1"].upper(), acc["_fotn_2"].upper()} - {"", "NAN"}
@@ -218,7 +201,7 @@ with tab_votar:
 
         palpites_usuario: dict = {}
         todos_lutadores: list = []
-        lista_lutas_formatada: list = [] # Para o FOTN
+        lista_lutas_formatada: list = [] 
 
         for _, luta in lutas.iterrows():
             luta_id = str(luta["ID"])
@@ -246,31 +229,25 @@ with tab_votar:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**🌟 FOTN – Luta da Noite**")
-            # Agora é um campo só, escolhendo a luta inteira!
+            st.markdown("**🌟 Luta da Noite**")
             fotn_escolha = st.selectbox("Luta da Noite", opcao_vazio + lista_lutas_formatada, key="fotn_voto", label_visibility="collapsed")
         with col2:
-            st.markdown("**⚡ POTN – Performance**")
-            # Apenas 1 lutador selecionado!
+            st.markdown("**⚡ Performance**")
             potn_escolha = st.selectbox("Melhor Performance", opcao_vazio + todos_lut_uniq, key="potn_voto", label_visibility="collapsed")
 
         st.markdown("---")
         if st.button("✅  ENVIAR PALPITES"):
             nome_limpo = nome_usuario.strip()
-            erros = []
-            if not nome_limpo: erros.append("Informe seu nome.")
-
-            if erros:
-                for e in erros: st.error(e)
+            if not nome_limpo: 
+                st.error("Informe seu nome.")
             else:
-                # Divide a luta selecionada (A vs B) em 2 variáveis para salvar na planilha certinho
                 if fotn_escolha != "— Selecione —":
                     _f1, _f2 = fotn_escolha.split(" vs ")
                 else:
                     _f1, _f2 = "", ""
 
                 _p1 = "" if potn_escolha == "— Selecione —" else potn_escolha
-                _p2 = "" # POTN 2 fica vazio por regra de 1 performance só
+                _p2 = "" 
 
                 palpites_existentes = load_palpites()
                 palpites_existentes = palpites_existentes[palpites_existentes["Nome"].str.strip().str.upper() != nome_limpo.upper()]
@@ -304,16 +281,42 @@ with tab_ranking:
         st.markdown(f'<table class="rank-table"><thead><tr><th>POS</th><th>NOME</th><th style="text-align:center">PTS</th><th style="text-align:center">ACERTOS</th><th style="text-align:center">F1</th><th style="text-align:center">F2</th></tr></thead><tbody>{rows_html}</tbody></table>', unsafe_allow_html=True)
         st.caption("Atualizado a cada 1 min · Desempate: Pts › Acertos › F1 › F2 › Nome")
 
-        # VAR FUNCIONAL ABAIXO DA SUA TABELA
+        # ──────────────────────────────────────────────
+        # VAR REFORMULADO - BONITO E ORGANIZADO
+        # ──────────────────────────────────────────────
         st.markdown("---")
         st.markdown('<div class="admin-section">🔍 VAR: Histórico de Palpites</div>', unsafe_allow_html=True)
         opcoes_var = ["— Selecione um Participante —"] + sorted(ranking["Nome"].tolist())
         membro_selecionado = st.selectbox("Fiscalize os votos:", opcoes_var, label_visibility="collapsed")
         
         if membro_selecionado != "— Selecione um Participante —":
-            df_var = palpites_df[palpites_df["Nome"] == membro_selecionado][["Luta_ID", "Palpite", "FOTN_1", "FOTN_2", "POTN_1"]]
-            # Modifiquei pra mostrar só o FOTN 1 e 2 (que compõem a luta) e o POTN 1. Fica mais limpo no VAR.
-            st.dataframe(df_var, hide_index=True, use_container_width=True)
+            st.markdown(f"#### 🥊 Palpites de {membro_selecionado}")
+            
+            # Pega os palpites do usuário selecionado
+            user_palpites = palpites_df[palpites_df["Nome"] == membro_selecionado]
+            
+            # Cruza com a tabela de lutas para pegar os nomes dos lutadores ao invés do ID
+            var_completo = pd.merge(user_palpites, lutas_df[['ID', 'Lutador_1', 'Lutador_2']], left_on="Luta_ID", right_on="ID", how="left")
+            
+            # Cria uma coluna bonitinha pro Combate
+            var_completo["Combate"] = var_completo["Lutador_1"] + " vs " + var_completo["Lutador_2"]
+            var_display = var_completo[["Combate", "Palpite"]].rename(columns={"Palpite": "Vencedor Escolhido"})
+            
+            # Mostra a tabela de lutas limpa
+            st.dataframe(var_display, hide_index=True, use_container_width=True)
+            
+            # Extrai os bônus (pega da primeira linha pois é igual pra todas do mesmo usuário)
+            primeira_linha = user_palpites.iloc[0]
+            f1 = str(primeira_linha.get("FOTN_1", "")).strip()
+            f2 = str(primeira_linha.get("FOTN_2", "")).strip()
+            p1 = str(primeira_linha.get("POTN_1", "")).strip()
+            
+            texto_fotn = f"{f1} vs {f2}" if (f1 and f2 and f1 != "nan" and f2 != "nan") else "Nenhuma selecionada"
+            texto_potn = p1 if (p1 and p1 != "nan") else "Nenhum selecionado"
+            
+            # Caixinhas de destaque para os Bônus
+            st.info(f"**🌟 Luta da Noite:** {texto_fotn}")
+            st.success(f"**⚡ Performance da Noite:** {texto_potn}")
 
 with tab_admin:
     SENHA_ADMIN = "uvr2026"
@@ -387,7 +390,6 @@ with tab_admin:
         st.markdown('<div class="admin-section">🌟 Bônus da Noite (FOTN / POTN)</div>', unsafe_allow_html=True)
         todos_lut_adm = sorted(set(lutas_df_adm["Lutador_1"].tolist() + lutas_df_adm["Lutador_2"].tolist())) if not lutas_df_adm.empty else []
         
-        # Gerando lista de combates pro admin também
         lista_fights_adm = ["— Nenhum —"]
         for _, luta in lutas_df_adm.iterrows():
             lista_fights_adm.append(f"{str(luta['Lutador_1']).strip()} vs {str(luta['Lutador_2']).strip()}")
@@ -401,29 +403,27 @@ with tab_admin:
             r0 = resultados_df_adm.iloc[0]
             pf1, pf2, pp1 = str(r0.get("FOTN_1", "")).strip(), str(r0.get("FOTN_2", "")).strip(), str(r0.get("POTN_1", "")).strip()
             
-            # Reconstrói a luta pro admin ver a Luta da Noite que já foi marcada
-            if pf1 and pf2:
+            if pf1 and pf2 and pf1 != "nan" and pf2 != "nan":
                 op1 = f"{pf1} vs {pf2}"
-                op2 = f"{pf2} vs {pf1}" # Caso a ordem esteja invertida
+                op2 = f"{pf2} vs {pf1}" 
                 if op1 in lista_fights_adm: fotn_idx = lista_fights_adm.index(op1)
                 elif op2 in lista_fights_adm: fotn_idx = lista_fights_adm.index(op2)
 
         col_f, col_p = st.columns(2)
         with col_f:
-            st.markdown("**FOTN (Luta da Noite)**")
+            st.markdown("**Luta da Noite**")
             fotn_adm = st.selectbox("Luta", lista_fights_adm, index=fotn_idx, key="adm_fotn_unica", label_visibility="collapsed")
         with col_p:
-            st.markdown("**POTN (Performance)**")
+            st.markdown("**Performance**")
             potn_adm = st.selectbox("Lutador", lista_adm, index=safe_idx(lista_adm, pp1), key="adm_potn_unica", label_visibility="collapsed")
 
-        # Divindo a seleção de luta do admin em 2 lutadores para salvar perfeitamente
         if fotn_adm != "— Nenhum —":
             fotn1_v, fotn2_v = fotn_adm.split(" vs ")
         else:
             fotn1_v, fotn2_v = "", ""
 
         potn1_v = "" if potn_adm == "— Nenhum —" else potn_adm
-        potn2_v = "" # Fica vazio
+        potn2_v = "" 
 
         st.markdown("---")
         if st.button("💾  SALVAR TODOS OS RESULTADOS"):
@@ -441,8 +441,6 @@ with tab_admin:
                 st.error(f"Erro ao salvar: {e}")
 
         st.markdown("---")
-        
-        # ZONA DE PERIGO FUNCIONANDO
         st.markdown('<div class="admin-section" style="color: #e8002d;">🚨 ZONA DE PERIGO: RESET TOTAL</div>', unsafe_allow_html=True)
         st.warning("Isso vai apagar TODOS os palpites e resultados da planilha para você iniciar um novo evento limpo.")
         senha_reset = st.text_input("Digite a senha admin para confirmar o Reset:", type="password", key="reset_pw")

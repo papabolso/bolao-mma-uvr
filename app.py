@@ -11,7 +11,7 @@ st.title("🥊 BOLÃO UVR 2.0 🤖")
 st.markdown("Bem-vindo ao sistema oficial de palpites!")
 
 # ==========================================
-# 2. FUNÇÕES DE LEITURA (CACHE 1 MIN E ANTI-BUG EXTREMO)
+# 2. FUNÇÕES DE LEITURA (CACHE 1 MIN E ANTI-BUG)
 # ==========================================
 @st.cache_data(ttl=60)
 def get_data(spreadsheet_id, gid):
@@ -20,7 +20,6 @@ def get_data(spreadsheet_id, gid):
         df = pd.read_csv(url)
         # Limpa espaços em branco ocultos nas colunas
         df.columns = df.columns.str.strip() 
-        # Arruma os nomes caso você tenha digitado sem o underline na planilha
         df.columns = df.columns.str.replace("Luta ID", "Luta_ID")
         df.columns = df.columns.str.replace("Lutador 1", "Lutador_1")
         df.columns = df.columns.str.replace("Lutador 2", "Lutador_2")
@@ -61,7 +60,6 @@ if menu == "📋 Card de Lutas":
     st.header("Card do Evento")
     if not df_lutas.empty:
         for index, row in df_lutas.iterrows():
-            # Usa .get() para não quebrar o site se a coluna sumir do Google Sheets
             luta_id = row.get('Luta_ID', index + 1)
             lutador1 = row.get('Lutador_1', 'Lutador 1')
             lutador2 = row.get('Lutador_2', 'Lutador 2')
@@ -71,15 +69,15 @@ if menu == "📋 Card de Lutas":
         st.warning("Nenhuma luta cadastrada ainda.")
 
 # ==========================================
-# ABA 2: RANKING E VAR
+# ABA 2: RANKING E VAR (AGORA SEPARADOS!)
 # ==========================================
 elif menu == "🏆 Ranking":
     st.header("🏆 Ranking Geral")
     
+    # --- PARTE 1: O RANKING (Só funciona se tiver Resultados) ---
     if not df_palpites.empty and not df_resultados.empty and 'Luta_ID' in df_palpites.columns and 'Luta_ID' in df_resultados.columns:
         df_calc = pd.merge(df_palpites, df_resultados[['Luta_ID', 'Vencedor_Real']], on="Luta_ID", how="left")
         
-        # Só tenta dar merge na pontuação se a df_lutas estiver certinha
         if 'Luta_ID' in df_lutas.columns:
             df_calc = pd.merge(df_calc, df_lutas[['Luta_ID', 'Pontos']], on="Luta_ID", how="left")
         else:
@@ -121,16 +119,27 @@ elif menu == "🏆 Ranking":
         df_ranking.index += 1 
         
         st.dataframe(df_ranking[['Nome', 'Pontuação Total', 'Pontos_Luta', 'Pontos_Bonus']], use_container_width=True)
+    else:
+        st.warning("O Ranking aparecerá assim que o primeiro resultado for lançado no Admin!")
+
+    # --- PARTE 2: O VAR (Funciona INDEPENDENTE do Ranking) ---
+    st.markdown("---")
+    st.subheader("🔍 VAR: Detalhes dos Palpites")
+    
+    if not df_palpites.empty and 'Nome' in df_palpites.columns:
+        # Pega a lista de quem já votou e deixa em ordem alfabética
+        lista_nomes = df_palpites['Nome'].dropna().unique().tolist()
+        lista_nomes.sort()
         
-        st.markdown("---")
-        st.subheader("🔍 VAR: Detalhes dos Palpites")
-        participante_selecionado = st.selectbox("Selecione um participante para ver as escolhas:", [""] + list(df_ranking['Nome']))
+        participante_selecionado = st.selectbox(
+            "Selecione um membro para ver as escolhas:", 
+            options=["Selecione um participante..."] + lista_nomes
+        )
         
-        if participante_selecionado != "":
+        if participante_selecionado != "Selecione um participante...":
             detalhes = df_palpites[df_palpites['Nome'] == participante_selecionado]
             st.write(f"Palpites de **{participante_selecionado}**:")
             
-            # Mais uma segurança para não quebrar a tabela do VAR
             if 'Luta_ID' in detalhes.columns and 'Palpite' in detalhes.columns:
                 st.dataframe(detalhes[['Luta_ID', 'Palpite']], hide_index=True)
             else:
@@ -139,9 +148,8 @@ elif menu == "🏆 Ranking":
             primeira_linha = detalhes.iloc[0]
             st.info(f"🏆 **Luta da Noite:** {primeira_linha.get('FOTN_1')} vs {primeira_linha.get('FOTN_2')}")
             st.info(f"💥 **Performance:** {primeira_linha.get('POTN_1')} e {primeira_linha.get('POTN_2')}")
-
     else:
-        st.warning("Aguardando palpites ou a coluna Luta_ID na planilha de Resultados e Palpites.")
+        st.info("Aguardando a galera mandar os palpites...")
 
 # ==========================================
 # ABA 3: ADMIN (BLINDADO)

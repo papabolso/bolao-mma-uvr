@@ -11,15 +11,15 @@ st.title("🥊 BOLÃO UVR 2.0 🤖")
 st.markdown("Bem-vindo ao sistema oficial de palpites!")
 
 # ==========================================
-# 2. FUNÇÕES DE LEITURA (CACHE DE 1 MINUTO E PROTEÇÃO DE ERROS)
+# 2. FUNÇÕES DE LEITURA (CACHE 1 MIN E ANTI-BUG)
 # ==========================================
 @st.cache_data(ttl=60)
 def get_data(spreadsheet_id, gid):
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     try:
         df = pd.read_csv(url)
-        # O ANTI-ERRO: Limpa espaços invisíveis nos nomes das colunas!
-        df.columns = df.columns.str.strip()
+        # Limpa espaços em branco ocultos nas colunas que causam KeyError
+        df.columns = df.columns.str.strip() 
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -38,7 +38,7 @@ df_lutas = get_data(sheet_id, lutas_gid)
 df_palpites = get_data(sheet_id, palpites_gid)
 df_resultados = get_data(sheet_id, resultados_gid)
 
-# Garante que a coluna 'Pontos' exista nas Lutas (Padrão 1 se não existir)
+# Garante que a coluna 'Pontos' exista nas Lutas
 if not df_lutas.empty:
     if 'Pontos' not in df_lutas.columns:
         df_lutas['Pontos'] = 1
@@ -46,21 +46,19 @@ if not df_lutas.empty:
         df_lutas['Pontos'] = pd.to_numeric(df_lutas['Pontos'], errors='coerce').fillna(1)
 
 # ==========================================
-# 4. MENU DE NAVEGAÇÃO (VOLTOU PRO TOPO!)
+# 4. NAVEGAÇÃO ANTIGA (BARRA LATERAL)
 # ==========================================
-menu = st.radio("Menu", ["📋 Card de Lutas", "🏆 Ranking", "🔐 Admin"], horizontal=True)
-
-st.markdown("---")
+menu = st.sidebar.radio("Navegação", ["📋 Card de Lutas", "🏆 Ranking", "🔐 Admin"])
 
 # ==========================================
-# ABA 1: CARD DE LUTAS
+# ABA 1: CARD DE LUTAS (PÚBLICO - SEM PONTOS)
 # ==========================================
 if menu == "📋 Card de Lutas":
     st.header("Card do Evento")
     if not df_lutas.empty:
         for index, row in df_lutas.iterrows():
-            peso = int(row.get('Pontos', 1))
-            st.info(f"**Luta {row.get('Luta_ID', index)}** (Vale {peso} pts): {row.get('Lutador_1', 'Lutador 1')} vs {row.get('Lutador_2', 'Lutador 2')}")
+            # Mostra só a luta, sem revelar os pontos publicamente
+            st.info(f"**Luta {row['Luta_ID']}**: {row['Lutador_1']} vs {row['Lutador_2']}")
     else:
         st.warning("Nenhuma luta cadastrada ainda.")
 
@@ -71,18 +69,14 @@ elif menu == "🏆 Ranking":
     st.header("🏆 Ranking Geral")
     
     if not df_palpites.empty and not df_resultados.empty:
-        # Mesclando palpites com resultados e pesos das lutas
         df_calc = pd.merge(df_palpites, df_resultados[['Luta_ID', 'Vencedor_Real']], on="Luta_ID", how="left")
         df_calc = pd.merge(df_calc, df_lutas[['Luta_ID', 'Pontos']], on="Luta_ID", how="left")
         
-        # Calculando pontos das lutas
         df_calc['Acertou'] = df_calc['Palpite'] == df_calc['Vencedor_Real']
         df_calc['Pontos_Luta'] = df_calc['Acertou'] * df_calc['Pontos']
         
-        # Agrupando por participante
         df_ranking = df_calc.groupby('Nome')['Pontos_Luta'].sum().reset_index()
         
-        # Lógica de Bônus
         res_fotn_1 = df_resultados['FOTN_1'].iloc[0] if 'FOTN_1' in df_resultados.columns else None
         res_fotn_2 = df_resultados['FOTN_2'].iloc[0] if 'FOTN_2' in df_resultados.columns else None
         res_potn_1 = df_resultados['POTN_1'].iloc[0] if 'POTN_1' in df_resultados.columns else None
@@ -110,13 +104,11 @@ elif menu == "🏆 Ranking":
         df_ranking = pd.merge(df_ranking, df_bonus, on='Nome')
         df_ranking['Pontuação Total'] = df_ranking['Pontos_Luta'] + df_ranking['Pontos_Bonus']
         
-        # Ordenando o pódio
         df_ranking = df_ranking.sort_values(by='Pontuação Total', ascending=False).reset_index(drop=True)
         df_ranking.index += 1 
         
         st.dataframe(df_ranking[['Nome', 'Pontuação Total', 'Pontos_Luta', 'Pontos_Bonus']], use_container_width=True)
         
-        # --- O "VAR" (Visualizar Palpites) ---
         st.markdown("---")
         st.subheader("🔍 VAR: Detalhes dos Palpites")
         participante_selecionado = st.selectbox("Selecione um participante para ver as escolhas:", [""] + list(df_ranking['Nome']))
@@ -134,34 +126,31 @@ elif menu == "🏆 Ranking":
         st.warning("Aguardando palpites ou resultados...")
 
 # ==========================================
-# ABA 3: ADMIN (ATUALIZAÇÃO AO VIVO + RESET)
+# ABA 3: ADMIN (SEGURO E FUNCIONAL)
 # ==========================================
 elif menu == "🔐 Admin":
     st.header("Painel de Controle do Evento")
     
-    # Dicionário do que já foi salvo
     dict_resultados = {}
     if not df_resultados.empty:
-        dict_resultados = {str(row.get('Luta_ID', index)): row.get('Vencedor_Real', '') for index, row in df_resultados.iterrows()}
+        dict_resultados = {str(row['Luta_ID']): row['Vencedor_Real'] for _, row in df_resultados.iterrows()}
     
     with st.form("form_admin"):
         novos_resultados = []
-        
         st.subheader("📝 Resultados e Pontuações")
         
         if not df_lutas.empty:
             for index, luta in df_lutas.iterrows():
-                id_luta = str(luta.get('Luta_ID', index))
-                lutador1 = luta.get('Lutador_1', f'Lutador A {index}')
-                lutador2 = luta.get('Lutador_2', f'Lutador B {index}')
+                id_luta = str(luta['Luta_ID'])
+                lutador1 = luta['Lutador_1']
+                lutador2 = luta['Lutador_2']
                 peso_atual = int(luta.get('Pontos', 1))
                 
-                # Botão Selecione por padrão
                 resultado_salvo = dict_resultados.get(id_luta, "Selecione")
                 opcoes = ["Selecione", lutador1, lutador2, "Empate"]
-                
                 index_padrao = opcoes.index(resultado_salvo) if resultado_salvo in opcoes else 0
                 
+                # Caixinha de pontos discreta ao lado da luta
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     vencedor = st.radio(
@@ -171,7 +160,7 @@ elif menu == "🔐 Admin":
                         key=f"admin_luta_{id_luta}"
                     )
                 with col2:
-                    novo_peso = st.number_input(f"Pontos da Luta {id_luta}", value=peso_atual, min_value=1, step=1, key=f"peso_{id_luta}")
+                    novo_peso = st.number_input(f"Pontos ({id_luta})", value=peso_atual, min_value=1, step=1, key=f"peso_{id_luta}")
                 
                 novos_resultados.append({"Luta_ID": id_luta, "Vencedor_Real": vencedor, "Pontos": novo_peso})
                 st.write("---")
@@ -193,7 +182,6 @@ elif menu == "🔐 Admin":
         submitted = st.form_submit_button("Salvar Resultados e Pontos 🚀")
         
         if submitted:
-            # Estruturando dados com a nova ação
             dados_para_enviar = {"acao": "salvar_resultados", "dados": []}
             for item in novos_resultados:
                 dados_para_enviar["dados"].append({

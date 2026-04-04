@@ -117,13 +117,18 @@ def sheet_write(worksheet_name: str, df: pd.DataFrame):
         raise Exception(f"Falha de conexão com a planilha: {e}")
 
 # ──────────────────────────────────────────────
-# MOTOR DE PONTUAÇÃO
+# MOTOR DE PONTUAÇÃO (DESEMPATE INFINITO AO VIVO)
 # ──────────────────────────────────────────────
 def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, resultados_df: pd.DataFrame) -> pd.DataFrame:
     if palpites_df.empty or lutas_df.empty or resultados_df.empty: return pd.DataFrame()
 
     res_map  = resultados_df.set_index("Luta_ID")
     luta_map = lutas_df.set_index("ID")
+    
+    try:
+        lutas_ordenadas = sorted(lutas_df["ID"].dropna().unique(), key=lambda x: int(x))
+    except:
+        lutas_ordenadas = sorted(lutas_df["ID"].dropna().unique())
 
     f2_especial = False
     if "F2_Especial" in res_map.columns:
@@ -145,7 +150,8 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
         if nome not in scores:
             scores[nome] = {"Pontos": 0, "Acertos": 0, "Acerto_F1": 0, "Acerto_F2": 0,
                             "_fotn_1": str(row.get("FOTN_1", "")).strip(), "_fotn_2": str(row.get("FOTN_2", "")).strip(),
-                            "_potn_1": str(row.get("POTN_1", "")).strip(), "_potn_2": str(row.get("POTN_2", "")).strip()}
+                            "_potn_1": str(row.get("POTN_1", "")).strip(), "_potn_2": str(row.get("POTN_2", "")).strip(),
+                            "Desempate_Lutas": {lid: 0 for lid in lutas_ordenadas}}
 
         if luta_id not in res_map.index: continue
         vencedor = str(res_map.at[luta_id, "Vencedor_Real"]).strip().upper()
@@ -171,6 +177,9 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
             if tipo == "F1": scores[nome]["Acerto_F1"] += 1
             if tipo == "F2": scores[nome]["Acerto_F2"] += 1
             
+            if luta_id in scores[nome]["Desempate_Lutas"]:
+                scores[nome]["Desempate_Lutas"][luta_id] = 1
+            
         scores[nome]["Pontos"] += pts
 
     for acc in scores.values():
@@ -183,8 +192,19 @@ def calcular_pontuacao(palpites_df: pd.DataFrame, lutas_df: pd.DataFrame, result
 
     if not scores: return pd.DataFrame()
 
-    df_rank = pd.DataFrame([{"Nome": n, **v} for n, v in scores.items()])
-    df_rank = df_rank.sort_values(by=["Pontos", "Acertos", "Acerto_F1", "Acerto_F2", "Nome"], ascending=[False, False, False, False, True]).reset_index(drop=True)
+    linhas_rank = []
+    for n, v in scores.items():
+        linha = {"Nome": n, "Pontos": v["Pontos"], "Acertos": v["Acertos"], "Acerto_F1": v["Acerto_F1"], "Acerto_F2": v["Acerto_F2"]}
+        for lid in lutas_ordenadas:
+            linha[f"Luta_{lid}"] = v["Desempate_Lutas"][lid]
+        linhas_rank.append(linha)
+        
+    df_rank = pd.DataFrame(linhas_rank)
+    
+    colunas_ordenacao = ["Pontos", "Acertos"] + [f"Luta_{lid}" for lid in lutas_ordenadas] + ["Nome"]
+    ordens = [False, False] + [False] * len(lutas_ordenadas) + [True]
+    
+    df_rank = df_rank.sort_values(by=colunas_ordenacao, ascending=ordens).reset_index(drop=True)
     df_rank.insert(0, "Pos", range(1, len(df_rank) + 1))
     return df_rank
 
@@ -379,7 +399,7 @@ with tab_ranking:
             rows_html += f'<tr class="{cls}"><td>{medal} {pos}º</td><td>{r["Nome"]}</td><td style="text-align:center">{int(r["Pontos"])}</td><td style="text-align:center">{int(r["Acertos"])}</td><td style="text-align:center">{"✅" if int(r["Acerto_F1"]) else "❌"}</td><td style="text-align:center">{"✅" if int(r["Acerto_F2"]) else "❌"}</td></tr>'
 
         st.markdown(f'<table class="rank-table"><thead><tr><th>POS</th><th>NOME</th><th style="text-align:center">PTS</th><th style="text-align:center">ACERTOS</th><th style="text-align:center">F1</th><th style="text-align:center">F2</th></tr></thead><tbody>{rows_html}</tbody></table>', unsafe_allow_html=True)
-        st.caption("Atualizado a cada 1 min · Desempate: Pts › Acertos › F1 › F2 › Nome")
+        st.caption("Atualizado a cada 1 min · Desempate: Pts › Acertos › Luta 1 › Luta 2 › Luta 3... › Nome")
 
         st.markdown("---")
         st.markdown('<div class="admin-section">🔍 VAR: Histórico de Palpites</div>', unsafe_allow_html=True)

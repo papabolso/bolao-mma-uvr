@@ -528,7 +528,7 @@ with tab_votar:
 
         tag_map = {
             "F1": ("main", "🏆 TITLE FIGHT"),
-            "F2": ("co-main", "🏆 INTERIM TITLE"),
+            "F2": ("co-main", "CO-MAIN"),
             "PRINCIPAL": ("", "MAIN CARD"),
             "PRELIM": ("prelim", "MAIN CARD"),
         }
@@ -691,18 +691,18 @@ with tab_admin:
         res_adm = load_resultados()
 
         # ----- Configurações gerais -----
-        st.markdown('<div class="admin-section">⚙️ Configurações do Evento</div>', unsafe_allow_html=True)
+        st.markdown('<div class="admin-section">⚙️ Configurações</div>', unsafe_allow_html=True)
         cc1, cc2 = st.columns(2)
         with cc1:
-            abertura_in = st.text_input("🟢 Abre em (BRT)",
+            abertura_in = st.text_input("Abre em (BRT)",
                                         value=cfg_adm.get("abertura",""),
                                         placeholder="DD/MM/AAAA HH:MM")
-            f2_flag = st.checkbox("⭐ Co-Main vale 2 pts", value=bool(cfg_adm.get("f2_especial", False)))
         with cc2:
-            fechamento_in = st.text_input("🔴 Fecha em (BRT)",
+            fechamento_in = st.text_input("Fecha em (BRT)",
                                           value=cfg_adm.get("fechamento",""),
                                           placeholder="DD/MM/AAAA HH:MM")
-            bloq_flag = st.checkbox("🚫 Bloquear AGORA", value=bool(cfg_adm.get("bloqueado", False)))
+        bloq_flag = st.checkbox("🚫 Bloquear palpites AGORA", value=bool(cfg_adm.get("bloqueado", False)))
+        f2_flag = bool(cfg_adm.get("f2_especial", False))  # mantido pra compatibilidade, mas oculto
 
         st.markdown("---")
 
@@ -911,6 +911,7 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
 
         # ----- Resultados das lutas -----
         st.markdown('<div class="admin-section">🏁 Resultados</div>', unsafe_allow_html=True)
+        st.caption("Vencedor + pontos da luta (edite os pontos por luta livremente).")
         resultados_novos = []
 
         for _, luta in lutas_adm.iterrows():
@@ -934,13 +935,12 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
             if venc_atual not in opcoes: venc_atual = "Selecione"
             idx = opcoes.index(venc_atual)
 
-            label = {"F1":"TITLE","F2":"INT.TITLE","PRINCIPAL":"MAIN"}.get(tipo,"MAIN")
-            st.markdown(f"**[{label}]** {l1} vs {l2}")
-            c1, c2 = st.columns([3,1])
+            st.markdown(f"<div style='color:var(--muted); font-size:.8rem; margin-top:.8rem'>Luta {lid} · {l1} vs {l2}</div>", unsafe_allow_html=True)
+            c1, c2 = st.columns([4,1])
             with c1:
                 venc = st.selectbox(f"r{lid}", opcoes, index=idx, key=f"res_{lid}", label_visibility="collapsed")
             with c2:
-                peso = st.number_input(f"p{lid}", value=peso_atual, min_value=1, step=1, key=f"peso_{lid}", label_visibility="collapsed")
+                peso = st.number_input(f"p{lid}", value=peso_atual, min_value=1, step=1, key=f"peso_{lid}", label_visibility="collapsed", help="Pts")
             resultados_novos.append({"luta_id":lid, "vencedor_real":venc, "pontos":int(peso)})
 
         # ----- Bônus -----

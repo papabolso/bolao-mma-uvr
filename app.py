@@ -527,7 +527,7 @@ with tab_votar:
         lista_lutas_fmt = []
 
         tag_map = {
-            "F1": ("main", "🏆 TITLE FIGHT"),
+            "F1": ("main", "MAIN EVENT"),
             "F2": ("co-main", "CO-MAIN"),
             "PRINCIPAL": ("", "MAIN CARD"),
             "PRELIM": ("prelim", "MAIN CARD"),

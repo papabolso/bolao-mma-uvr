@@ -713,59 +713,82 @@ with tab_admin:
         # ===== IMPORT VIA CSV/COLA =====
         with st.expander("📋 Importar card via CSV (cola rápida)", expanded=False):
             st.markdown("""
-**Formato (uma luta por linha):**
+**Formato aceito** (com ou sem header, com ou sem ID):
 ```
-Lutador 1, Lutador 2, tipo
+ID,Lutador_1,Lutador_2,Tipo
+1,Belal Muhammad,Gabriel Bonfim,F1
+2,Brendan Allen,Edmen Shahbazyan,F2
+3,Fares Ziam,Tom Nolan,PRINCIPAL
 ```
-**Tipos válidos:** `F1` (main/title, 2pts), `F2` (co-main), `PRINCIPAL`, `PRELIM` (default).
-Se omitir o tipo, vira `PRELIM`. Separador: vírgula `,` ou ponto-e-vírgula `;`.
 
-**Exemplo:**
+Ou simples (sem header, sem ID):
 ```
-Ilia Topuria, Justin Gaethje, F1
-Alex Pereira, Ciryl Gane, F2
-Sean O'Malley, Aiemann Zahabi
-Michael Chandler, Mauricio Ruffy
+Belal Muhammad, Gabriel Bonfim, F1
+Brendan Allen, Edmen Shahbazyan, F2
 ```
+
+**Tipos válidos:** `F1` (main/title, 2pts), `F2` (co-main), `PRINCIPAL`, `PRELIM` (default).
+Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`.
             """)
+
+            def parse_csv(text):
+                """Parser flexível: detecta header, ID opcional"""
+                linhas = [ln for ln in text.strip().splitlines() if ln.strip()]
+                if not linhas:
+                    return []
+                # Detecta e remove header (se primeira linha tiver 'lutador' ou 'ID' case-insensitive)
+                primeira = linhas[0].lower()
+                if "lutador" in primeira or primeira.startswith("id,") or primeira.startswith("id;"):
+                    linhas = linhas[1:]
+
+                resultado = []
+                for ln in linhas:
+                    parts = [p.strip() for p in ln.replace(";", ",").split(",") if p.strip() != ""]
+                    if len(parts) < 2:
+                        continue
+                    # Detecta se primeira coluna é ID numérico → descarta
+                    if parts[0].isdigit() and len(parts) >= 3:
+                        parts = parts[1:]
+                    if len(parts) < 2 or not parts[0] or not parts[1]:
+                        continue
+                    l1, l2 = parts[0], parts[1]
+                    tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
+                    if tp not in ("F1","F2","PRINCIPAL","PRELIM"):
+                        tp = "PRELIM"
+                    resultado.append({"l1": l1, "l2": l2, "tipo": tp})
+                return resultado
+
             csv_text = st.text_area(
                 "Cole aqui",
-                height=200,
-                placeholder="Lutador 1, Lutador 2, F1\nLutador 3, Lutador 4, PRELIM\n...",
+                height=240,
+                placeholder="ID,Lutador_1,Lutador_2,Tipo\n1,Lutador A,Lutador B,F1\n2,Lutador C,Lutador D,F2\n...",
                 key="csv_import",
             )
             cb1, cb2 = st.columns(2)
             with cb1:
                 if st.button("👁️ Preview"):
-                    parsed_preview = []
-                    for ln in csv_text.strip().splitlines():
-                        if not ln.strip(): continue
-                        parts = [p.strip() for p in ln.replace(";", ",").split(",")]
-                        if len(parts) < 2: continue
-                        l1, l2 = parts[0], parts[1]
-                        tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
-                        if tp not in ("F1","F2","PRINCIPAL","PRELIM"): tp = "PRELIM"
-                        parsed_preview.append({"Lutador 1": l1, "Lutador 2": l2, "Tipo": tp})
-                    if parsed_preview:
-                        st.dataframe(pd.DataFrame(parsed_preview), hide_index=True, use_container_width=True)
+                    parsed = parse_csv(csv_text)
+                    if parsed:
+                        st.dataframe(
+                            pd.DataFrame([{
+                                "#": i+1, "Lutador 1": p["l1"],
+                                "Lutador 2": p["l2"], "Tipo": p["tipo"]
+                            } for i, p in enumerate(parsed)]),
+                            hide_index=True, use_container_width=True,
+                        )
+                        st.caption(f"{len(parsed)} lutas detectadas.")
                     else:
                         st.warning("Nada válido pra processar.")
             with cb2:
                 if st.button("🚀 IMPORTAR e SALVAR"):
-                    validas = []
-                    for idx, ln in enumerate(csv_text.strip().splitlines()):
-                        if not ln.strip(): continue
-                        parts = [p.strip() for p in ln.replace(";", ",").split(",")]
-                        if len(parts) < 2 or not parts[0] or not parts[1]: continue
-                        tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
-                        if tp not in ("F1","F2","PRINCIPAL","PRELIM"): tp = "PRELIM"
-                        validas.append({
-                            "id": len(validas)+1,
-                            "lutador_1": parts[0],
-                            "lutador_2": parts[1],
-                            "tipo": tp,
-                            "ordem": len(validas)+1,
-                        })
+                    parsed = parse_csv(csv_text)
+                    validas = [{
+                        "id": i+1,
+                        "lutador_1": p["l1"],
+                        "lutador_2": p["l2"],
+                        "tipo": p["tipo"],
+                        "ordem": i+1,
+                    } for i, p in enumerate(parsed)]
                     if not validas:
                         st.error("Nada válido pra importar.")
                     else:

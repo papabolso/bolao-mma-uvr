@@ -1,5 +1,5 @@
 """
-UFC Freedom 250 — Bolão Friendly (papabolso/UVR)
+Bolão UFC — UVR
 Streamlit + Supabase
 """
 import pandas as pd
@@ -303,14 +303,10 @@ hr{border-color:var(--border)!important; margin:1.5rem 0!important}
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <p class="nfx-brand">🇺🇸 UFC · 250th Anniversary Event</p>
-  <h1 class="nfx-title">FREEDOM <span style="color:var(--mm-red)">250</span></h1>
-  <p class="nfx-subtitle">Topuria vs Gaethje · Bolão UVR</p>
-  <span class="nfx-badge">Histórico · Octógono na Casa Branca</span>
-</div>
-<div class="event-info">
-  <div class="venue">The White House · Washington D.C.</div>
-  <div class="date">14 · 06 · 2026</div>
+  <p class="nfx-brand">🥊 Ultimate Fighting Championship</p>
+  <h1 class="nfx-title">BOLÃO <span style="color:var(--mm-red)">UFC</span></h1>
+  <p class="nfx-subtitle">Bolão Friendly · UVR</p>
+  <span class="nfx-badge">It's Time! · Quem leva a bolada?</span>
 </div>
 """, unsafe_allow_html=True)
 

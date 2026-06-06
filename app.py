@@ -706,6 +706,109 @@ with tab_admin:
 
         st.markdown("---")
 
+        # ----- Editor de Card -----
+        st.markdown('<div class="admin-section">✏️ Editar Card do Evento</div>', unsafe_allow_html=True)
+        st.caption("⚠️ Alterar lutas APAGA todos os palpites e resultados antigos.")
+
+        if "card_editor" not in st.session_state:
+            # carrega lutas atuais no editor
+            st.session_state.card_editor = [
+                {
+                    "id": int(row["id"]),
+                    "l1": str(row["lutador_1"]),
+                    "l2": str(row["lutador_2"]),
+                    "tipo": str(row["tipo"]),
+                }
+                for _, row in lutas_adm.iterrows()
+            ]
+
+        tipo_opts = ["F1", "F2", "PRINCIPAL", "PRELIM"]
+        tipo_labels = {
+            "F1": "F1 · Main / Title (2pts)",
+            "F2": "F2 · Co-Main (1 ou 2pts)",
+            "PRINCIPAL": "Principal (1pt)",
+            "PRELIM": "Prelim (1pt)",
+        }
+
+        novo_card = []
+        for i, luta in enumerate(st.session_state.card_editor):
+            with st.container():
+                st.markdown(f"**Luta {i+1}**")
+                c_l1, c_l2 = st.columns(2)
+                with c_l1:
+                    l1_new = st.text_input(
+                        f"Lutador 1", value=luta["l1"],
+                        key=f"ed_l1_{i}", label_visibility="collapsed",
+                        placeholder="Lutador 1",
+                    )
+                with c_l2:
+                    l2_new = st.text_input(
+                        f"Lutador 2", value=luta["l2"],
+                        key=f"ed_l2_{i}", label_visibility="collapsed",
+                        placeholder="Lutador 2",
+                    )
+                c_t, c_r = st.columns([3, 1])
+                with c_t:
+                    tipo_idx = tipo_opts.index(luta["tipo"]) if luta["tipo"] in tipo_opts else 3
+                    tipo_new = st.selectbox(
+                        "Tipo", tipo_opts, index=tipo_idx,
+                        format_func=lambda x: tipo_labels[x],
+                        key=f"ed_tipo_{i}", label_visibility="collapsed",
+                    )
+                with c_r:
+                    if st.button("🗑️", key=f"del_{i}", help="Remover esta luta"):
+                        st.session_state.card_editor.pop(i)
+                        st.rerun()
+                novo_card.append({"id": i+1, "l1": l1_new, "l2": l2_new, "tipo": tipo_new})
+                st.markdown("")
+
+        cbtn1, cbtn2, cbtn3 = st.columns(3)
+        with cbtn1:
+            if st.button("➕ Add luta"):
+                next_id = len(st.session_state.card_editor) + 1
+                st.session_state.card_editor.append(
+                    {"id": next_id, "l1": "", "l2": "", "tipo": "PRELIM"}
+                )
+                st.rerun()
+        with cbtn2:
+            if st.button("🔄 Recarregar do banco"):
+                del st.session_state.card_editor
+                st.rerun()
+        with cbtn3:
+            if st.button("🧹 Limpar tudo"):
+                st.session_state.card_editor = []
+                st.rerun()
+
+        if st.button("💾 SALVAR CARD"):
+            # valida
+            validas = [
+                {"id": idx+1, "lutador_1": l["l1"].strip(), "lutador_2": l["l2"].strip(),
+                 "tipo": l["tipo"], "ordem": idx+1}
+                for idx, l in enumerate(novo_card)
+                if l["l1"].strip() and l["l2"].strip()
+            ]
+            if not validas:
+                st.error("Nenhuma luta válida pra salvar (preencha lutador 1 e 2).")
+            else:
+                try:
+                    # apaga tudo e reinsere
+                    sb.table("resultados").delete().neq("luta_id", 0).execute()
+                    sb.table("palpites").delete().neq("id", 0).execute()
+                    sb.table("lutas").delete().neq("id", 0).execute()
+                    sb.table("lutas").insert(validas).execute()
+                    # reset bônus
+                    sb.table("config").update({
+                        "fotn_1": "", "fotn_2": "", "potn_1": "", "potn_2": "",
+                    }).eq("id", 1).execute()
+                    invalidate_cache()
+                    del st.session_state.card_editor
+                    st.success(f"✅ Card salvo! {len(validas)} lutas. Palpites antigos foram zerados.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro: {e}")
+
+        st.markdown("---")
+
         # ----- Resultados das lutas -----
         st.markdown('<div class="admin-section">🏁 Resultados</div>', unsafe_allow_html=True)
         resultados_novos = []

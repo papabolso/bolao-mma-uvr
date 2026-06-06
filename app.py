@@ -305,7 +305,7 @@ st.markdown("""
 <div class="nfx-hero">
   <p class="nfx-brand">🥊 Ultimate Fighting Championship</p>
   <h1 class="nfx-title">BOLÃO <span style="color:var(--mm-red)">UFC</span></h1>
-  <p class="nfx-subtitle">Bolão Friendly · UVR</p>
+  <p class="nfx-subtitle">Bolão UFC · UVR</p>
   <span class="nfx-badge">It's Time! · Quem leva a bolada?</span>
 </div>
 """, unsafe_allow_html=True)

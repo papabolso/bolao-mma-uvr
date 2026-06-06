@@ -710,6 +710,83 @@ with tab_admin:
         st.markdown('<div class="admin-section">✏️ Editar Card do Evento</div>', unsafe_allow_html=True)
         st.caption("⚠️ Alterar lutas APAGA todos os palpites e resultados antigos.")
 
+        # ===== IMPORT VIA CSV/COLA =====
+        with st.expander("📋 Importar card via CSV (cola rápida)", expanded=False):
+            st.markdown("""
+**Formato (uma luta por linha):**
+```
+Lutador 1, Lutador 2, tipo
+```
+**Tipos válidos:** `F1` (main/title, 2pts), `F2` (co-main), `PRINCIPAL`, `PRELIM` (default).
+Se omitir o tipo, vira `PRELIM`. Separador: vírgula `,` ou ponto-e-vírgula `;`.
+
+**Exemplo:**
+```
+Ilia Topuria, Justin Gaethje, F1
+Alex Pereira, Ciryl Gane, F2
+Sean O'Malley, Aiemann Zahabi
+Michael Chandler, Mauricio Ruffy
+```
+            """)
+            csv_text = st.text_area(
+                "Cole aqui",
+                height=200,
+                placeholder="Lutador 1, Lutador 2, F1\nLutador 3, Lutador 4, PRELIM\n...",
+                key="csv_import",
+            )
+            cb1, cb2 = st.columns(2)
+            with cb1:
+                if st.button("👁️ Preview"):
+                    parsed_preview = []
+                    for ln in csv_text.strip().splitlines():
+                        if not ln.strip(): continue
+                        parts = [p.strip() for p in ln.replace(";", ",").split(",")]
+                        if len(parts) < 2: continue
+                        l1, l2 = parts[0], parts[1]
+                        tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
+                        if tp not in ("F1","F2","PRINCIPAL","PRELIM"): tp = "PRELIM"
+                        parsed_preview.append({"Lutador 1": l1, "Lutador 2": l2, "Tipo": tp})
+                    if parsed_preview:
+                        st.dataframe(pd.DataFrame(parsed_preview), hide_index=True, use_container_width=True)
+                    else:
+                        st.warning("Nada válido pra processar.")
+            with cb2:
+                if st.button("🚀 IMPORTAR e SALVAR"):
+                    validas = []
+                    for idx, ln in enumerate(csv_text.strip().splitlines()):
+                        if not ln.strip(): continue
+                        parts = [p.strip() for p in ln.replace(";", ",").split(",")]
+                        if len(parts) < 2 or not parts[0] or not parts[1]: continue
+                        tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
+                        if tp not in ("F1","F2","PRINCIPAL","PRELIM"): tp = "PRELIM"
+                        validas.append({
+                            "id": len(validas)+1,
+                            "lutador_1": parts[0],
+                            "lutador_2": parts[1],
+                            "tipo": tp,
+                            "ordem": len(validas)+1,
+                        })
+                    if not validas:
+                        st.error("Nada válido pra importar.")
+                    else:
+                        try:
+                            sb.table("resultados").delete().neq("luta_id", 0).execute()
+                            sb.table("palpites").delete().neq("id", 0).execute()
+                            sb.table("lutas").delete().neq("id", 0).execute()
+                            sb.table("lutas").insert(validas).execute()
+                            sb.table("config").update({
+                                "fotn_1":"", "fotn_2":"", "potn_1":"", "potn_2":"",
+                            }).eq("id", 1).execute()
+                            invalidate_cache()
+                            if "card_editor" in st.session_state:
+                                del st.session_state.card_editor
+                            st.success(f"✅ Importado! {len(validas)} lutas. Palpites antigos zerados.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro: {e}")
+
+        st.markdown("**OU edite manualmente abaixo:**")
+
         if "card_editor" not in st.session_state:
             # carrega lutas atuais no editor
             st.session_state.card_editor = [

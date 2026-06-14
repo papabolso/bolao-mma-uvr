@@ -455,7 +455,7 @@ st.markdown("""
     The White House
     <span class="nfx-title-accent">UFC · Bolão UVR</span>
   </h1>
-  <p class="nfx-subtitle">Fight Night Histórico · 1600 Pennsylvania Ave</p>
+  <p class="nfx-subtitle">Evento Histórico · 1600 Pennsylvania Ave</p>
   <span class="nfx-badge">It's Time, Mr. President</span>
 </div>
 """, unsafe_allow_html=True)

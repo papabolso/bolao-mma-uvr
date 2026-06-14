@@ -507,6 +507,24 @@ li[role="option"][aria-selected="true"]{
   color:var(--mm-purple)!important;
   font-family:'Cinzel',serif!important;
 }
+/* Texto interno do dataframe (st.dataframe) — força preto */
+[data-testid="stDataFrame"] div,
+[data-testid="stDataFrame"] span,
+[data-testid="stDataFrame"] td,
+[data-testid="stDataFrame"] [role="gridcell"],
+[data-testid="stDataFrame"] [role="columnheader"]{
+  color:var(--text)!important;
+  background:var(--surface)!important;
+}
+[data-testid="stDataFrame"] [role="columnheader"]{
+  background:var(--surface-2)!important;
+  color:var(--mm-purple)!important;
+}
+/* Glide data grid (engine novo do Streamlit) */
+.gdg-wmyidgi, .gdg-d2etrhh{
+  background:var(--surface)!important;
+  color:var(--text)!important;
+}
 
 /* Alerts (info, success, warning, error) — fundo claro */
 [data-testid="stAlert"]{
@@ -901,9 +919,20 @@ with tab_ranking:
                 on="luta_id", how="left",
             )
             var_df["Combate"] = var_df["lutador_1"] + " vs " + var_df["lutador_2"]
-            st.dataframe(
-                var_df[["Combate","palpite"]].rename(columns={"palpite":"Vencedor Escolhido"}),
-                hide_index=True, use_container_width=True,
+            # Tabela HTML estilizada (em vez de st.dataframe)
+            hist_rows = ""
+            for _, hr in var_df.iterrows():
+                hist_rows += (
+                    f'<tr>'
+                    f'<td>{hr["Combate"]}</td>'
+                    f'<td style="font-weight:600; color:var(--mm-red)">{hr["palpite"]}</td>'
+                    f'</tr>'
+                )
+            st.markdown(
+                f'<table class="rank-table">'
+                f'<thead><tr><th>COMBATE</th><th>VENCEDOR ESCOLHIDO</th></tr></thead>'
+                f'<tbody>{hist_rows}</tbody></table>',
+                unsafe_allow_html=True,
             )
             primeira = user_p.iloc[0]
             f1 = str(primeira.get("fotn_1","")).strip()
@@ -1016,12 +1045,21 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                 if st.button("👁️ Preview"):
                     parsed = parse_csv(csv_text)
                     if parsed:
-                        st.dataframe(
-                            pd.DataFrame([{
-                                "#": i+1, "Lutador 1": p["l1"],
-                                "Lutador 2": p["l2"], "Tipo": p["tipo"]
-                            } for i, p in enumerate(parsed)]),
-                            hide_index=True, use_container_width=True,
+                        rows_pv = ""
+                        for i, p in enumerate(parsed):
+                            rows_pv += (
+                                f'<tr>'
+                                f'<td>{i+1}</td>'
+                                f'<td>{p["l1"]}</td>'
+                                f'<td>{p["l2"]}</td>'
+                                f'<td style="font-weight:600; color:var(--mm-red)">{p["tipo"]}</td>'
+                                f'</tr>'
+                            )
+                        st.markdown(
+                            f'<table class="rank-table">'
+                            f'<thead><tr><th>#</th><th>LUTADOR 1</th><th>LUTADOR 2</th><th>TIPO</th></tr></thead>'
+                            f'<tbody>{rows_pv}</tbody></table>',
+                            unsafe_allow_html=True,
                         )
                         st.caption(f"{len(parsed)} lutas detectadas.")
                     else:

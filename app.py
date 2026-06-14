@@ -307,6 +307,35 @@ div[data-testid="stTextInput"] input:focus,
   box-shadow:0 0 0 2px rgba(201,162,39,.2)!important;
 }
 
+/* DROPDOWNS (selectbox/multiselect aberto) — popup tema claro */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[role="listbox"]{
+  background:#ffffff!important;
+  border:1px solid var(--mm-gold)!important;
+  border-radius:2px!important;
+  box-shadow:0 8px 24px rgba(60,59,110,.18)!important;
+}
+[data-baseweb="menu"] li,
+[role="option"]{
+  background:#ffffff!important;
+  color:var(--text)!important;
+  font-family:'Inter',sans-serif!important;
+  border-bottom:1px solid #F0EBDC!important;
+}
+[data-baseweb="menu"] li:hover,
+[role="option"]:hover,
+[role="option"][aria-selected="true"]{
+  background:rgba(201,162,39,.12)!important;
+  color:var(--mm-purple)!important;
+}
+[data-baseweb="select"] [data-baseweb="tag"]{
+  background:var(--mm-gold)!important;
+  color:var(--mm-purple)!important;
+}
+/* Texto exibido no select fechado */
+[data-baseweb="select"] *{color:var(--text)!important}
+
 /* BOTÕES — estilo presidencial */
 div[data-testid="stButton"]>button{
   background:linear-gradient(180deg, var(--mm-purple) 0%, var(--mm-purple-dark) 100%)!important;
@@ -441,6 +470,51 @@ p, li, span, div{color:var(--text)}
   border-radius:2px!important;
   border-left:4px solid var(--mm-gold)!important;
 }
+/* Dropdowns abertos (menu de opções) — força tema claro */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="select-dropdown"],
+ul[role="listbox"]{
+  background:var(--surface)!important;
+  border:1px solid var(--mm-gold)!important;
+  box-shadow:0 4px 20px rgba(60,59,110,.15)!important;
+}
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+ul[role="listbox"] *{
+  background:transparent!important;
+  color:var(--text)!important;
+  font-family:'Inter',sans-serif!important;
+}
+li[role="option"]{
+  background:transparent!important;
+  color:var(--text)!important;
+  padding:.5rem .8rem!important;
+}
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"]{
+  background:rgba(201,162,39,.15)!important;
+  color:var(--mm-purple)!important;
+}
+
+/* Dataframes (VAR / Histórico) */
+[data-testid="stDataFrame"], [data-testid="stDataFrame"] *{
+  background:var(--surface)!important;
+  color:var(--text)!important;
+}
+[data-testid="stDataFrame"] th{
+  background:var(--surface-2)!important;
+  color:var(--mm-purple)!important;
+  font-family:'Cinzel',serif!important;
+}
+
+/* Alerts (info, success, warning, error) — fundo claro */
+[data-testid="stAlert"]{
+  background:var(--surface)!important;
+  color:var(--text)!important;
+}
+[data-testid="stAlert"] *{color:var(--text)!important}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -455,7 +529,7 @@ st.markdown("""
     The White House
     <span class="nfx-title-accent">UFC · Bolão UVR</span>
   </h1>
-  <p class="nfx-subtitle">Evento Histórico · 1600 Pennsylvania Ave</p>
+  <p class="nfx-subtitle">Fight Night Histórico · 1600 Pennsylvania Ave</p>
   <span class="nfx-badge">It's Time, Mr. President</span>
 </div>
 """, unsafe_allow_html=True)

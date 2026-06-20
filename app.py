@@ -1,5 +1,5 @@
 """
-UFC White House — Bolão UVR
+Bolão UFC — UVR
 Streamlit + Supabase
 """
 import pandas as pd
@@ -12,158 +12,127 @@ from supabase import create_client, Client
 # PAGE CONFIG
 # ──────────────────────────────────────────────
 st.set_page_config(
-    page_title="UFC White House · Bolão UVR",
-    page_icon="🦅",
+    page_title="Bolão UFC · UVR",
+    page_icon="🥊",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
 # ──────────────────────────────────────────────
-# CSS — UFC White House theme (marfim + navy + vermelho + dourado)
+# CSS — UFC genérico (preto + vermelho UFC + dourado)
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cinzel:wght@600;700;900&family=Oswald:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  --mm-red:#B22234;          /* US flag red */
-  --mm-red-dark:#7a0c1f;
-  --mm-purple:#3C3B6E;       /* US flag navy */
-  --mm-purple-dark:#1f1e4a;
-  --mm-gold:#C9A227;         /* dourado presidencial */
-  --mm-gold-bright:#E8C547;
-  --bg:#F5F1E8;              /* marfim/cream */
-  --bg-dark:#EBE5D4;
-  --surface:#ffffff;
-  --surface-2:#FAF6EC;
-  --border:#D4C9A8;
-  --text:#1A1A2E;            /* navy escuro pro texto */
-  --muted:#6B6450;
+  --mm-red:#D20A0A;
+  --mm-red-dark:#8a0606;
+  --mm-purple:#1a1a1a;
+  --mm-purple-dark:#0d0d0d;
+  --mm-gold:#FFD700;
+  --mm-gold-bright:#FFE552;
+  --bg:#000000;
+  --bg-dark:#0a0a0a;
+  --surface:#0e0e0e;
+  --surface-2:#171717;
+  --border:#2a2a2a;
+  --text:#ffffff;
+  --muted:#888888;
 }
 
 html,body,[data-testid="stAppViewContainer"]{
-  background:
-    linear-gradient(180deg, rgba(245,241,232,1) 0%, rgba(235,229,212,1) 100%) fixed !important;
+  background:var(--bg)!important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
 #MainMenu,footer,header{visibility:hidden}
 
-/* HERO — Casa Branca presidencial */
+/* HERO */
 .nfx-hero{
   position:relative;
   text-align:center;
-  padding:3rem 1rem 2rem;
+  padding:2.6rem 1rem 1.8rem;
   background:
-    linear-gradient(180deg, #ffffff 0%, #FAF6EC 100%);
-  border-bottom:6px double var(--mm-gold);
-  margin:-1rem -1rem 1.5rem;
+    radial-gradient(ellipse at top, rgba(210,10,10,.35) 0%, transparent 55%),
+    linear-gradient(180deg, #000 0%, #0a0a0a 100%);
+  border-bottom:3px solid var(--mm-red);
+  margin:-1rem -1rem 1.2rem;
   overflow:hidden;
-  box-shadow:0 4px 30px rgba(60,59,110,.08);
 }
-/* Listras vermelhas no topo (bandeira USA stylized) */
 .nfx-hero::before{
-  content:"";
+  content:"UFC";
   position:absolute;
-  top:0; left:0; right:0;
-  height:8px;
-  background:repeating-linear-gradient(
-    90deg,
-    var(--mm-red) 0 60px,
-    #ffffff 60px 120px
-  );
+  top:-30px; right:-30px;
+  font-family:'Anton',sans-serif;
+  font-size:13rem;
+  color:var(--mm-red);
+  opacity:.12;
+  line-height:1;
+  pointer-events:none;
+  letter-spacing:-.05em;
+  transform:skew(-8deg);
 }
-/* Estrelas no fundo */
 .nfx-hero::after{
-  content:"★ ★ ★";
+  content:"🥊";
   position:absolute;
-  top:20px; left:50%;
-  transform:translateX(-50%);
-  font-size:1rem;
-  color:var(--mm-gold);
-  letter-spacing:1.2em;
-  opacity:.6;
+  bottom:-15px; left:-10px;
+  font-size:7rem;
+  opacity:.07;
+  pointer-events:none;
 }
-
 .nfx-brand{
-  font-family:'Cinzel',serif;
+  font-family:'Oswald',sans-serif;
   font-size:.85rem;
-  letter-spacing:.45em;
-  color:var(--mm-purple);
-  margin:1.5rem 0 0;
+  letter-spacing:.4em;
+  color:var(--mm-red);
+  margin:0;
   text-transform:uppercase;
-  font-weight:600;
+  font-weight:500;
 }
 .nfx-title{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(2.4rem, 8vw, 4rem);
-  letter-spacing:.01em;
-  font-weight:900;
-  color:var(--mm-purple);
-  margin:.5rem 0 0;
-  line-height:1;
+  font-family:'Anton',sans-serif;
+  font-size:clamp(2.8rem, 10vw, 5rem);
+  letter-spacing:.02em;
+  color:#fff;
+  margin:.3rem 0 0;
+  line-height:.95;
+  text-shadow:0 4px 30px rgba(210,10,10,.6), 0 0 80px rgba(210,10,10,.3);
   text-transform:uppercase;
 }
 .nfx-title-accent{
   display:block;
-  font-family:'Cinzel',serif;
-  font-size:.55em;
-  letter-spacing:.3em;
-  color:var(--mm-red);
-  margin-top:.3rem;
-  font-weight:700;
+  font-family:'Oswald',sans-serif;
+  font-size:.35em;
+  letter-spacing:.25em;
+  color:var(--mm-gold);
+  margin-top:.4rem;
+  font-weight:500;
 }
 .nfx-subtitle{
-  font-family:'Inter',sans-serif;
-  font-size:1rem;
-  letter-spacing:.08em;
+  font-family:'Oswald',sans-serif;
+  font-size:1.05rem;
+  letter-spacing:.15em;
   color:var(--muted);
-  margin:.7rem 0 0;
+  margin:.6rem 0 0;
   text-transform:uppercase;
-  font-weight:500;
 }
 .nfx-badge{
   display:inline-block;
-  font-family:'Cinzel',serif;
-  font-size:.7rem;
-  letter-spacing:.25em;
-  padding:6px 18px;
-  background:transparent;
-  color:var(--mm-purple);
-  border:1.5px solid var(--mm-gold);
-  border-radius:0;
-  margin-top:1rem;
+  font-family:'Oswald',sans-serif;
+  font-size:.75rem;
+  letter-spacing:.22em;
+  padding:5px 15px;
+  background:var(--mm-red);
+  color:#fff;
+  margin-top:.9rem;
   text-transform:uppercase;
-  font-weight:600;
-}
-
-/* SELO DOURADO (águia/eagle vibe) */
-.seal{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:80px; height:80px;
-  border:3px solid var(--mm-gold);
-  border-radius:50%;
-  background:linear-gradient(135deg, var(--mm-gold-bright), var(--mm-gold));
-  font-size:2.2rem;
-  margin:0 auto 1rem;
-  box-shadow:0 4px 20px rgba(201,162,39,.4), inset 0 -3px 8px rgba(0,0,0,.15);
-  position:relative;
-}
-.seal::before{
-  content:"";
-  position:absolute;
-  inset:-8px;
-  border:1px solid var(--mm-gold);
-  border-radius:50%;
-  opacity:.5;
 }
 
 /* TABS */
 [data-testid="stTabs"] [role="tablist"]{
   gap:0;
-  border-bottom:2px solid var(--mm-gold);
+  border-bottom:1px solid var(--border);
   background:transparent;
 }
 [data-testid="stTabs"] button[role="tab"]{
@@ -172,121 +141,95 @@ html,body,[data-testid="stAppViewContainer"]{
   border:none;
   border-bottom:3px solid transparent;
   border-radius:0;
-  font-family:'Cinzel',serif;
-  font-weight:600;
-  letter-spacing:.15em;
+  font-family:'Oswald',sans-serif;
+  font-weight:500;
+  letter-spacing:.12em;
   text-transform:uppercase;
   padding:.7rem 1.2rem;
-  font-size:.85rem;
   transition:all .2s;
-  margin-bottom:-2px;
 }
-[data-testid="stTabs"] button[role="tab"]:hover{color:var(--mm-purple)}
+[data-testid="stTabs"] button[role="tab"]:hover{color:#fff}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"]{
-  color:var(--mm-purple);
+  color:#fff;
   border-bottom-color:var(--mm-red);
   background:transparent;
 }
 
 /* CARDS de luta */
 .fight-card{
-  background:var(--surface);
+  background:linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
   border:1px solid var(--border);
-  border-left:5px solid var(--mm-red);
-  border-radius:2px;
-  padding:1.1rem 1.3rem;
-  margin-bottom:.9rem;
+  border-left:4px solid var(--mm-red);
+  border-radius:4px;
+  padding:1rem 1.2rem;
+  margin-bottom:.85rem;
   position:relative;
   overflow:hidden;
-  transition:transform .15s, box-shadow .15s;
-  box-shadow:0 2px 8px rgba(60,59,110,.06);
+  transition:transform .15s, border-color .15s;
 }
-.fight-card:hover{
-  transform:translateX(2px);
-  box-shadow:0 4px 16px rgba(60,59,110,.12);
-}
-/* Lutas MAIN/CO-MAIN — destaque dourado/navy */
+.fight-card:hover{transform:translateX(2px); border-left-color:var(--mm-gold)}
 .fight-card.main{
   border-left-color:var(--mm-gold);
-  background:linear-gradient(135deg, #ffffff 0%, #FAF6EC 100%);
-  border-color:var(--mm-gold);
-  box-shadow:0 4px 20px rgba(201,162,39,.18);
+  background:linear-gradient(135deg, #1a1206 0%, #251a08 100%);
+  border-color:#5a3a0e;
+  box-shadow:0 0 25px rgba(255,215,0,.15);
 }
 .fight-card.co-main{
-  border-left-color:var(--mm-purple);
-  background:linear-gradient(135deg, #ffffff 0%, #F5F2F8 100%);
+  border-left-color:var(--mm-gold);
+  background:linear-gradient(135deg, #150f04 0%, #1f1606 100%);
+  border-color:#4a3010;
 }
 
 .fight-tag{
   display:inline-block;
-  font-family:'Cinzel',serif;
+  font-family:'Oswald',sans-serif;
   font-size:.65rem;
   font-weight:700;
-  letter-spacing:.25em;
-  padding:4px 12px;
+  letter-spacing:.22em;
+  padding:3px 10px;
   background:var(--mm-red);
   color:#fff;
-  margin-bottom:.7rem;
+  margin-bottom:.6rem;
   text-transform:uppercase;
-  border-radius:0;
 }
-.fight-tag.main{background:var(--mm-gold); color:var(--mm-purple)}
-.fight-tag.co-main{background:var(--mm-purple); color:var(--mm-gold)}
-.fight-tag.prelim{
-  background:transparent;
-  color:var(--muted);
-  border:1px solid var(--border);
-}
+.fight-tag.main{background:var(--mm-gold); color:#000}
+.fight-tag.co-main{background:var(--mm-gold); color:#000}
+.fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border)}
 
 .fight-vs{
-  font-family:'Playfair Display',serif;
-  font-size:1.4rem;
-  font-weight:700;
-  letter-spacing:.005em;
-  color:var(--text);
+  font-family:'Anton',sans-serif;
+  font-size:1.45rem;
+  letter-spacing:.02em;
+  color:#fff;
   line-height:1.2;
+  text-transform:uppercase;
 }
-.fight-vs .vs{
-  color:var(--mm-red);
-  margin:0 .5em;
-  font-size:.75em;
-  font-style:italic;
-  font-family:'Cinzel',serif;
-  letter-spacing:.15em;
-}
+.fight-vs .vs{color:var(--mm-red); margin:0 .4em; font-size:.9em}
 .fight-card.main .fight-vs .vs{color:var(--mm-gold)}
 
 /* RANKING */
-.rank-table{
-  width:100%;
-  border-collapse:collapse;
-  background:var(--surface);
-  border:1px solid var(--border);
-  box-shadow:0 2px 12px rgba(60,59,110,.08);
-}
+.rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border)}
 .rank-table th{
-  font-family:'Cinzel',serif;
-  font-size:.7rem;
-  letter-spacing:.2em;
-  color:var(--mm-purple);
-  border-bottom:2px solid var(--mm-gold);
-  padding:.8rem .6rem;
+  font-family:'Oswald',sans-serif;
+  font-size:.75rem;
+  letter-spacing:.18em;
+  color:var(--muted);
+  border-bottom:1px solid var(--border);
+  padding:.7rem .5rem;
   text-align:left;
   text-transform:uppercase;
-  font-weight:700;
-  background:var(--surface-2);
 }
 .rank-table td{
-  padding:.8rem .6rem;
-  border-bottom:1px solid var(--border);
+  padding:.7rem .5rem;
+  border-bottom:1px solid #1a1a1a;
   font-family:'Inter',sans-serif;
   color:var(--text);
 }
 .rank-table tr:last-child td{border-bottom:none}
-.rank-table tr.top-1 td{color:var(--mm-gold); font-weight:700; background:rgba(201,162,39,.05)}
-.rank-table tr.top-2 td{color:#7a7a7a; font-weight:700}
-.rank-table tr.top-3 td{color:#a16832; font-weight:700}
-.rank-table tr:hover td{background:rgba(178,34,52,.04)}
+.rank-table tr.top-1 td{color:var(--mm-gold); font-weight:600}
+.rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
+.rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
+.rank-table tr:hover td{background:rgba(210,10,10,.06)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -298,186 +241,17 @@ div[data-testid="stNumberInput"] input{
   background:var(--surface)!important;
   color:var(--text)!important;
   border:1px solid var(--border)!important;
-  border-radius:2px!important;
+  border-radius:4px!important;
   font-family:'Inter',sans-serif!important;
 }
-div[data-testid="stTextInput"] input:focus,
-[data-baseweb="input"] input:focus{
-  border-color:var(--mm-gold)!important;
-  box-shadow:0 0 0 2px rgba(201,162,39,.2)!important;
-}
 
-/* DROPDOWNS (selectbox/multiselect aberto) — popup tema claro */
+/* Dropdowns abertos */
 [data-baseweb="popover"],
 [data-baseweb="menu"],
-[role="listbox"]{
-  background:#ffffff!important;
-  border:1px solid var(--mm-gold)!important;
-  border-radius:2px!important;
-  box-shadow:0 8px 24px rgba(60,59,110,.18)!important;
-}
-[data-baseweb="menu"] li,
-[role="option"]{
-  background:#ffffff!important;
-  color:var(--text)!important;
-  font-family:'Inter',sans-serif!important;
-  border-bottom:1px solid #F0EBDC!important;
-}
-[data-baseweb="menu"] li:hover,
-[role="option"]:hover,
-[role="option"][aria-selected="true"]{
-  background:rgba(201,162,39,.12)!important;
-  color:var(--mm-purple)!important;
-}
-[data-baseweb="select"] [data-baseweb="tag"]{
-  background:var(--mm-gold)!important;
-  color:var(--mm-purple)!important;
-}
-/* Texto exibido no select fechado */
-[data-baseweb="select"] *{color:var(--text)!important}
-
-/* BOTÕES — estilo presidencial */
-div[data-testid="stButton"]>button{
-  background:linear-gradient(180deg, var(--mm-purple) 0%, var(--mm-purple-dark) 100%)!important;
-  color:#fff!important;
-  border:1px solid var(--mm-gold)!important;
-  border-radius:2px!important;
-  font-family:'Cinzel',serif!important;
-  font-size:.9rem!important;
-  font-weight:700!important;
-  letter-spacing:.18em!important;
-  text-transform:uppercase!important;
-  width:100%;
-  padding:.75rem 1rem!important;
-  transition:all .2s!important;
-  box-shadow:0 2px 6px rgba(60,59,110,.2)!important;
-}
-div[data-testid="stButton"]>button:hover{
-  background:linear-gradient(180deg, #4a497f 0%, #2a2a5e 100%)!important;
-  transform:translateY(-1px);
-  box-shadow:0 4px 14px rgba(201,162,39,.3)!important;
-  border-color:var(--mm-gold-bright)!important;
-}
-
-/* RADIO buttons (pills) */
-div[data-testid="stRadio"] > div{gap:.5rem}
-div[data-testid="stRadio"] label{
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:2px;
-  padding:.55rem 1rem;
-  transition:all .2s;
-}
-div[data-testid="stRadio"] label:hover{
-  border-color:var(--mm-gold);
-  background:rgba(201,162,39,.05);
-}
-
-hr{border:none; border-top:2px double var(--mm-gold)!important; margin:1.8rem 0!important; opacity:.5}
-
-.section-title{
-  font-family:'Cinzel',serif;
-  font-size:1.2rem;
-  letter-spacing:.2em;
-  color:var(--mm-purple);
-  margin:1.6rem 0 .9rem;
-  padding-bottom:.5rem;
-  border-bottom:2px solid var(--mm-gold);
-  display:inline-block;
-  text-transform:uppercase;
-  font-weight:700;
-}
-.admin-section{
-  font-family:'Cinzel',serif;
-  font-size:1rem;
-  letter-spacing:.2em;
-  color:var(--mm-red);
-  margin:1.6rem 0 .6rem;
-  padding-bottom:.4rem;
-  border-bottom:1px solid var(--border);
-  text-transform:uppercase;
-  font-weight:700;
-}
-.event-info{
-  background:var(--surface);
-  border:1px solid var(--mm-gold);
-  border-radius:2px;
-  padding:1.1rem;
-  margin-bottom:1.2rem;
-  text-align:center;
-  font-family:'Cinzel',serif;
-  letter-spacing:.1em;
-  box-shadow:0 2px 12px rgba(201,162,39,.1);
-  position:relative;
-}
-.event-info::before, .event-info::after{
-  content:"★";
-  color:var(--mm-gold);
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:.9rem;
-}
-.event-info::before{left:1rem}
-.event-info::after{right:1rem}
-.event-info .venue{
-  color:var(--mm-purple);
-  font-size:.8rem;
-  text-transform:uppercase;
-  letter-spacing:.25em;
-  font-weight:600;
-}
-.event-info .date{
-  color:var(--mm-red);
-  font-size:1.3rem;
-  margin-top:.4rem;
-  font-family:'Playfair Display',serif;
-  font-weight:900;
-  letter-spacing:.05em;
-}
-
-/* Captions e texto secundário */
-.stCaption, [data-testid="stCaptionContainer"], small{
-  color:var(--muted)!important;
-}
-
-/* Markdown geral */
-p, li, span, div{color:var(--text)}
-
-/* Tabs container — fundo */
-[data-testid="stTabs"]{background:transparent}
-
-/* Expanders */
-[data-testid="stExpander"]{
-  border:1px solid var(--border)!important;
-  border-radius:2px!important;
-  background:var(--surface)!important;
-}
-[data-testid="stExpander"] summary{
-  font-family:'Cinzel',serif!important;
-  letter-spacing:.1em;
-  color:var(--mm-purple)!important;
-}
-
-/* Dataframes */
-[data-testid="stDataFrame"]{
-  border:1px solid var(--border);
-  border-radius:2px;
-}
-
-/* Alerts */
-[data-testid="stAlert"]{
-  border-radius:2px!important;
-  border-left:4px solid var(--mm-gold)!important;
-}
-/* Dropdowns abertos (menu de opções) — força tema claro */
-[data-baseweb="popover"],
-[data-baseweb="menu"],
-[data-baseweb="select-dropdown"],
 ul[role="listbox"]{
   background:var(--surface)!important;
-  border:1px solid var(--mm-gold)!important;
-  box-shadow:0 4px 20px rgba(60,59,110,.15)!important;
+  border:1px solid var(--mm-red)!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)!important;
 }
 [data-baseweb="popover"] *,
 [data-baseweb="menu"] *,
@@ -486,53 +260,111 @@ ul[role="listbox"] *{
   color:var(--text)!important;
   font-family:'Inter',sans-serif!important;
 }
-li[role="option"]{
-  background:transparent!important;
-  color:var(--text)!important;
-  padding:.5rem .8rem!important;
-}
+li[role="option"]{background:transparent!important; color:var(--text)!important; padding:.5rem .8rem!important}
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"]{
-  background:rgba(201,162,39,.15)!important;
-  color:var(--mm-purple)!important;
+  background:rgba(210,10,10,.2)!important;
+  color:#fff!important;
 }
 
-/* Dataframes (VAR / Histórico) */
+/* BOTÕES */
+div[data-testid="stButton"]>button{
+  background:var(--mm-red)!important;
+  color:#fff!important;
+  border:none!important;
+  border-radius:4px!important;
+  font-family:'Oswald',sans-serif!important;
+  font-size:1rem!important;
+  font-weight:600!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase!important;
+  width:100%;
+  padding:.75rem 1rem!important;
+  transition:all .2s!important;
+}
+div[data-testid="stButton"]>button:hover{
+  background:#f00d0d!important;
+  transform:translateY(-1px);
+  box-shadow:0 4px 20px rgba(210,10,10,.4);
+}
+
+/* RADIO buttons */
+div[data-testid="stRadio"] > div{gap:.5rem}
+div[data-testid="stRadio"] label{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:.55rem 1rem;
+  transition:all .2s;
+}
+div[data-testid="stRadio"] label:hover{border-color:var(--mm-red)}
+
+hr{border-color:var(--border)!important; margin:1.6rem 0!important}
+
+.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.5rem;
+  letter-spacing:.1em;
+  color:#fff;
+  margin:1.5rem 0 .8rem;
+  padding-bottom:.4rem;
+  border-bottom:2px solid var(--mm-red);
+  display:inline-block;
+}
+.admin-section{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem;
+  letter-spacing:.1em;
+  color:var(--mm-red);
+  margin:1.5rem 0 .5rem;
+  padding-bottom:.3rem;
+  border-bottom:1px solid var(--border);
+}
+.event-info{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--mm-red);
+  border-radius:4px;
+  padding:1rem;
+  margin-bottom:1rem;
+  text-align:center;
+  font-family:'Oswald',sans-serif;
+  letter-spacing:.05em;
+}
+.event-info .venue{color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.2em}
+.event-info .date{color:#fff; font-size:1.1rem; margin-top:.3rem}
+
+/* Dataframes — fundo escuro */
 [data-testid="stDataFrame"], [data-testid="stDataFrame"] *{
   background:var(--surface)!important;
   color:var(--text)!important;
 }
 [data-testid="stDataFrame"] th{
   background:var(--surface-2)!important;
-  color:var(--mm-purple)!important;
-  font-family:'Cinzel',serif!important;
-}
-/* Texto interno do dataframe (st.dataframe) — força preto */
-[data-testid="stDataFrame"] div,
-[data-testid="stDataFrame"] span,
-[data-testid="stDataFrame"] td,
-[data-testid="stDataFrame"] [role="gridcell"],
-[data-testid="stDataFrame"] [role="columnheader"]{
-  color:var(--text)!important;
-  background:var(--surface)!important;
-}
-[data-testid="stDataFrame"] [role="columnheader"]{
-  background:var(--surface-2)!important;
-  color:var(--mm-purple)!important;
-}
-/* Glide data grid (engine novo do Streamlit) */
-.gdg-wmyidgi, .gdg-d2etrhh{
-  background:var(--surface)!important;
-  color:var(--text)!important;
+  color:var(--muted)!important;
+  font-family:'Oswald',sans-serif!important;
 }
 
-/* Alerts (info, success, warning, error) — fundo claro */
+/* Expanders */
+[data-testid="stExpander"]{
+  border:1px solid var(--border)!important;
+  border-radius:4px!important;
+  background:var(--surface)!important;
+}
+[data-testid="stExpander"] summary{
+  font-family:'Oswald',sans-serif!important;
+  letter-spacing:.1em;
+  color:#fff!important;
+}
+
+/* Alerts */
 [data-testid="stAlert"]{
+  border-radius:4px!important;
+  border-left:4px solid var(--mm-red)!important;
   background:var(--surface)!important;
   color:var(--text)!important;
 }
 [data-testid="stAlert"] *{color:var(--text)!important}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -541,16 +373,16 @@ li[role="option"][aria-selected="true"]{
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <div class="seal">🦅</div>
-  <p class="nfx-brand">★ Ultimate Fighting Championship ★</p>
+  <p class="nfx-brand">Ultimate Fighting Championship</p>
   <h1 class="nfx-title">
-    The White House
-    <span class="nfx-title-accent">UFC · Bolão UVR</span>
+    Bolão <span style="color:var(--mm-red)">UFC</span>
+    <span class="nfx-title-accent">UVR · Friendly Edition</span>
   </h1>
-  <p class="nfx-subtitle">Fight Night Histórico · 1600 Pennsylvania Ave</p>
-  <span class="nfx-badge">It's Time, Mr. President</span>
+  <p class="nfx-subtitle">Quem cravar mais leva a glória</p>
+  <span class="nfx-badge">It's Time!</span>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ──────────────────────────────────────────────
 # SUPABASE
@@ -685,21 +517,21 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
 # ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
-def render_timer(target_str: str, title: str, color="#B22234", end_text="ENCERRADO"):
+def render_timer(target_str: str, title: str, color="#D20A0A", end_text="ENCERRADO"):
     try:
         dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
         iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
         html = f"""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Cinzel:wght@600&display=swap');
-        .tbox{{background:#ffffff;border:2px solid #C9A227;border-radius:2px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(201,162,39,.15)}}
-        .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}10,transparent);animation:sweep 3s infinite}}
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&display=swap');
+        .tbox{{background:#0a0a0a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden}}
+        .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}25,transparent);animation:sweep 3s infinite}}
         @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
-        .ttitle{{font-family:'Cinzel',serif;color:#3C3B6E;font-size:.8rem;letter-spacing:.25em;text-transform:uppercase;position:relative;font-weight:600}}
-        .ttime{{font-family:'Playfair Display',serif;font-size:2.4rem;color:{color};letter-spacing:.03em;margin-top:2px;position:relative;font-weight:900}}
+        .ttitle{{font-family:'Oswald',sans-serif;color:#888;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;position:relative}}
+        .ttime{{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:{color};letter-spacing:.05em;margin-top:-2px;position:relative;text-shadow:0 0 20px {color}50}}
         </style>
         <div class="tbox">
-          <div class="ttitle">★ {title} ★</div>
+          <div class="ttitle">{title}</div>
           <div class="ttime" id="clk">CALCULANDO...</div>
         </div>
         <script>

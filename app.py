@@ -1,5 +1,5 @@
 """
-UFC 329 — McGregor vs Holloway 2 — Bolão UVR
+Bolão UFC — UVR
 Streamlit + Supabase
 """
 import pandas as pd
@@ -12,211 +12,122 @@ from supabase import create_client, Client
 # PAGE CONFIG
 # ──────────────────────────────────────────────
 st.set_page_config(
-    page_title="UFC 329 · McGregor vs Holloway · Bolão UVR",
-    page_icon="☘️",
+    page_title="Bolão UFC · UVR",
+    page_icon="🥊",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
 # ──────────────────────────────────────────────
-# CSS — UFC 329: McGregor (☘️ verde) vs Holloway (🌺 azul) + dourado GOAT
+# CSS — UFC genérico (preto + vermelho UFC + dourado)
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;700&family=Anton&family=Cinzel:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  --mcgregor-green:#169B62;      /* verde bandeira Irlanda */
-  --mcgregor-green-dark:#0d6e44;
-  --holloway-blue:#00538C;       /* azul havaiano/BMF */
-  --holloway-blue-dark:#003559;
-  --gold:#FFD700;
-  --gold-bright:#FFE552;
-  --gold-dark:#c9a300;
-  --ufc-red:#D20A0A;
+  --mm-red:#D20A0A;
+  --mm-red-dark:#8a0606;
+  --mm-purple:#1a1a1a;
+  --mm-purple-dark:#0d0d0d;
+  --mm-gold:#FFD700;
+  --mm-gold-bright:#FFE552;
   --bg:#000000;
-  --bg-dark:#050505;
+  --bg-dark:#0a0a0a;
   --surface:#0e0e0e;
   --surface-2:#171717;
   --border:#2a2a2a;
   --text:#ffffff;
   --muted:#888888;
-  /* aliases pro código legado */
-  --mm-red:var(--ufc-red);
-  --mm-purple:#1a1a1a;
-  --mm-purple-dark:#0d0d0d;
-  --mm-gold:var(--gold);
-  --mm-gold-bright:var(--gold-bright);
 }
 
 html,body,[data-testid="stAppViewContainer"]{
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(22,155,98,.10) 0%, transparent 40%),
-    radial-gradient(ellipse at 80% 60%, rgba(0,83,140,.10) 0%, transparent 40%),
-    #000000 !important;
+  background:var(--bg)!important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
 #MainMenu,footer,header{visibility:hidden}
 
-/* HERO — split McGregor vs Holloway */
+/* HERO */
 .nfx-hero{
   position:relative;
   text-align:center;
-  padding:2.8rem 1rem 2rem;
+  padding:2.6rem 1rem 1.8rem;
   background:
-    linear-gradient(135deg,
-      rgba(22,155,98,.18) 0%,
-      rgba(0,0,0,.6) 45%,
-      rgba(0,0,0,.6) 55%,
-      rgba(0,83,140,.18) 100%),
-    linear-gradient(180deg, #0a0a0a 0%, #000 100%);
-  border-top:3px solid var(--gold);
-  border-bottom:3px solid var(--gold);
+    radial-gradient(ellipse at top, rgba(210,10,10,.35) 0%, transparent 55%),
+    linear-gradient(180deg, #000 0%, #0a0a0a 100%);
+  border-bottom:3px solid var(--mm-red);
   margin:-1rem -1rem 1.2rem;
   overflow:hidden;
-  box-shadow:inset 0 0 60px rgba(0,0,0,.8);
 }
-/* Trevo gigante (McGregor) na esquerda */
 .nfx-hero::before{
-  content:"☘";
+  content:"UFC";
   position:absolute;
-  top:-20px; left:-30px;
-  font-size:12rem;
-  color:var(--mcgregor-green);
-  opacity:.15;
-  line-height:1;
-  pointer-events:none;
-  transform:rotate(-15deg);
-}
-/* Flor havaiana / hibisco (Holloway) direita */
-.nfx-hero::after{
-  content:"329";
-  position:absolute;
-  top:-10px; right:-25px;
+  top:-30px; right:-30px;
   font-family:'Anton',sans-serif;
-  font-size:11rem;
-  color:var(--gold);
-  opacity:.10;
+  font-size:13rem;
+  color:var(--mm-red);
+  opacity:.12;
   line-height:1;
-  letter-spacing:-.05em;
   pointer-events:none;
+  letter-spacing:-.05em;
   transform:skew(-8deg);
 }
+.nfx-hero::after{
+  content:"🥊";
+  position:absolute;
+  bottom:-15px; left:-10px;
+  font-size:7rem;
+  opacity:.07;
+  pointer-events:none;
+}
 .nfx-brand{
-  font-family:'Cinzel',serif;
-  font-size:.75rem;
-  letter-spacing:.5em;
-  color:var(--gold);
+  font-family:'Oswald',sans-serif;
+  font-size:.85rem;
+  letter-spacing:.4em;
+  color:var(--mm-red);
   margin:0;
   text-transform:uppercase;
-  font-weight:700;
-  position:relative;
+  font-weight:500;
 }
 .nfx-title{
   font-family:'Anton',sans-serif;
-  font-size:clamp(2.6rem, 9.5vw, 4.6rem);
-  letter-spacing:.01em;
-  color:#fff;
-  margin:.4rem 0 0;
-  line-height:.95;
-  text-shadow:
-    0 0 30px rgba(255,215,0,.5),
-    0 0 60px rgba(255,215,0,.25);
-  text-transform:uppercase;
-  position:relative;
-}
-.nfx-title .num{
-  color:var(--gold);
-  text-shadow:0 0 25px rgba(255,215,0,.8);
-}
-.nfx-mainevent{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:.6rem;
-  margin:1.2rem 0 .5rem;
-  flex-wrap:wrap;
-  position:relative;
-}
-.fighter-name{
-  font-family:'Anton',sans-serif;
-  font-size:clamp(1.4rem, 5vw, 2.2rem);
+  font-size:clamp(2.8rem, 10vw, 5rem);
   letter-spacing:.02em;
+  color:#fff;
+  margin:.3rem 0 0;
+  line-height:.95;
+  text-shadow:0 4px 30px rgba(210,10,10,.6), 0 0 80px rgba(210,10,10,.3);
   text-transform:uppercase;
-  line-height:1;
-  padding:.3rem .8rem;
-  border-radius:2px;
 }
-.fighter-name.mcg{
-  color:var(--mcgregor-green);
-  text-shadow:0 0 20px rgba(22,155,98,.6);
-  border-left:3px solid var(--mcgregor-green);
-}
-.fighter-name.hol{
-  color:#3ba9e0;
-  text-shadow:0 0 20px rgba(0,83,140,.7);
-  border-right:3px solid var(--holloway-blue);
-}
-.fighter-name.mcg small, .fighter-name.hol small{
+.nfx-title-accent{
   display:block;
   font-family:'Oswald',sans-serif;
-  font-size:.5em;
-  letter-spacing:.3em;
-  opacity:.7;
-  margin-top:.1em;
-  font-weight:400;
-}
-.vs-crown{
-  font-family:'Cinzel',serif;
-  font-size:1.3rem;
-  color:var(--gold);
-  font-style:italic;
-  letter-spacing:.15em;
-  text-shadow:0 0 15px rgba(255,215,0,.6);
-  padding:0 .3rem;
+  font-size:.35em;
+  letter-spacing:.25em;
+  color:var(--mm-gold);
+  margin-top:.4rem;
+  font-weight:500;
 }
 .nfx-subtitle{
   font-family:'Oswald',sans-serif;
-  font-size:.95rem;
-  letter-spacing:.2em;
+  font-size:1.05rem;
+  letter-spacing:.15em;
   color:var(--muted);
-  margin:.7rem 0 0;
+  margin:.6rem 0 0;
   text-transform:uppercase;
-  position:relative;
 }
 .nfx-badge{
   display:inline-block;
-  font-family:'Cinzel',serif;
-  font-size:.7rem;
-  letter-spacing:.3em;
-  padding:6px 18px;
-  background:linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-dark));
-  color:#000;
-  margin-top:1rem;
-  text-transform:uppercase;
-  font-weight:700;
-  border:1px solid var(--gold-bright);
-  position:relative;
-  box-shadow:0 0 20px rgba(255,215,0,.35);
-}
-
-/* Info do evento */
-.event-info{
-  background:var(--surface);
-  border:1px solid var(--gold);
-  border-left:4px solid var(--gold);
-  border-right:4px solid var(--gold);
-  border-radius:2px;
-  padding:1rem;
-  margin-bottom:1.2rem;
-  text-align:center;
   font-family:'Oswald',sans-serif;
-  letter-spacing:.08em;
-  box-shadow:0 0 25px rgba(255,215,0,.1);
+  font-size:.75rem;
+  letter-spacing:.22em;
+  padding:5px 15px;
+  background:var(--mm-red);
+  color:#fff;
+  margin-top:.9rem;
+  text-transform:uppercase;
 }
-.event-info .venue{color:var(--gold); font-size:.8rem; text-transform:uppercase; letter-spacing:.28em; font-weight:600}
-.event-info .date{color:#fff; font-size:1.15rem; margin-top:.35rem; font-family:'Anton',sans-serif; letter-spacing:.05em}
 
 /* TABS */
 [data-testid="stTabs"] [role="tablist"]{
@@ -232,15 +143,15 @@ html,body,[data-testid="stAppViewContainer"]{
   border-radius:0;
   font-family:'Oswald',sans-serif;
   font-weight:500;
-  letter-spacing:.14em;
+  letter-spacing:.12em;
   text-transform:uppercase;
   padding:.7rem 1.2rem;
   transition:all .2s;
 }
 [data-testid="stTabs"] button[role="tab"]:hover{color:#fff}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"]{
-  color:var(--gold);
-  border-bottom-color:var(--gold);
+  color:#fff;
+  border-bottom-color:var(--mm-red);
   background:transparent;
 }
 
@@ -248,7 +159,7 @@ html,body,[data-testid="stAppViewContainer"]{
 .fight-card{
   background:linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
   border:1px solid var(--border);
-  border-left:4px solid var(--ufc-red);
+  border-left:4px solid var(--mm-red);
   border-radius:4px;
   padding:1rem 1.2rem;
   margin-bottom:.85rem;
@@ -256,26 +167,17 @@ html,body,[data-testid="stAppViewContainer"]{
   overflow:hidden;
   transition:transform .15s, border-color .15s;
 }
-.fight-card:hover{transform:translateX(2px); border-left-color:var(--gold)}
-/* MAIN (McGregor vs Holloway) — split verde/dourado/azul */
+.fight-card:hover{transform:translateX(2px); border-left-color:var(--mm-gold)}
 .fight-card.main{
-  border-left:none;
-  border-top:2px solid var(--gold);
-  border-bottom:2px solid var(--gold);
-  background:
-    linear-gradient(90deg,
-      rgba(22,155,98,.15) 0%,
-      rgba(0,0,0,.4) 50%,
-      rgba(0,83,140,.15) 100%),
-    linear-gradient(135deg, #150e04 0%, #1a1206 100%);
-  box-shadow:0 0 30px rgba(255,215,0,.20), inset 0 0 30px rgba(0,0,0,.4);
-  padding:1.2rem 1.2rem;
+  border-left-color:var(--mm-gold);
+  background:linear-gradient(135deg, #1a1206 0%, #251a08 100%);
+  border-color:#5a3a0e;
+  box-shadow:0 0 25px rgba(255,215,0,.15);
 }
 .fight-card.co-main{
-  border-left-color:var(--gold);
+  border-left-color:var(--mm-gold);
   background:linear-gradient(135deg, #150f04 0%, #1f1606 100%);
   border-color:#4a3010;
-  box-shadow:0 0 15px rgba(255,215,0,.08);
 }
 
 .fight-tag{
@@ -285,17 +187,13 @@ html,body,[data-testid="stAppViewContainer"]{
   font-weight:700;
   letter-spacing:.22em;
   padding:3px 10px;
-  background:var(--ufc-red);
+  background:var(--mm-red);
   color:#fff;
   margin-bottom:.6rem;
   text-transform:uppercase;
 }
-.fight-tag.main{
-  background:linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-dark));
-  color:#000;
-  border:1px solid var(--gold-bright);
-}
-.fight-tag.co-main{background:var(--gold); color:#000}
+.fight-tag.main{background:var(--mm-gold); color:#000}
+.fight-tag.co-main{background:var(--mm-gold); color:#000}
 .fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border)}
 
 .fight-vs{
@@ -306,17 +204,8 @@ html,body,[data-testid="stAppViewContainer"]{
   line-height:1.2;
   text-transform:uppercase;
 }
-.fight-vs .vs{color:var(--ufc-red); margin:0 .4em; font-size:.9em}
-.fight-card.main .fight-vs{
-  font-size:1.6rem;
-  text-shadow:0 0 15px rgba(255,215,0,.4);
-}
-.fight-card.main .fight-vs .vs{
-  color:var(--gold);
-  font-family:'Cinzel',serif;
-  font-style:italic;
-  font-size:.75em;
-}
+.fight-vs .vs{color:var(--mm-red); margin:0 .4em; font-size:.9em}
+.fight-card.main .fight-vs .vs{color:var(--mm-gold)}
 
 /* RANKING */
 .rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border)}
@@ -324,12 +213,11 @@ html,body,[data-testid="stAppViewContainer"]{
   font-family:'Oswald',sans-serif;
   font-size:.75rem;
   letter-spacing:.18em;
-  color:var(--gold);
-  border-bottom:2px solid var(--gold);
+  color:var(--muted);
+  border-bottom:1px solid var(--border);
   padding:.7rem .5rem;
   text-align:left;
   text-transform:uppercase;
-  background:var(--surface-2);
 }
 .rank-table td{
   padding:.7rem .5rem;
@@ -338,10 +226,10 @@ html,body,[data-testid="stAppViewContainer"]{
   color:var(--text);
 }
 .rank-table tr:last-child td{border-bottom:none}
-.rank-table tr.top-1 td{color:var(--gold); font-weight:700; background:rgba(255,215,0,.05)}
+.rank-table tr.top-1 td{color:var(--mm-gold); font-weight:600}
 .rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
 .rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
-.rank-table tr:hover td{background:rgba(255,215,0,.05)}
+.rank-table tr:hover td{background:rgba(210,10,10,.06)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -362,8 +250,8 @@ div[data-testid="stNumberInput"] input{
 [data-baseweb="menu"],
 ul[role="listbox"]{
   background:var(--surface)!important;
-  border:1px solid var(--gold)!important;
-  box-shadow:0 4px 25px rgba(0,0,0,.7)!important;
+  border:1px solid var(--mm-red)!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)!important;
 }
 [data-baseweb="popover"] *,
 [data-baseweb="menu"] *,
@@ -375,30 +263,29 @@ ul[role="listbox"] *{
 li[role="option"]{background:transparent!important; color:var(--text)!important; padding:.5rem .8rem!important}
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"]{
-  background:rgba(255,215,0,.15)!important;
-  color:var(--gold)!important;
+  background:rgba(210,10,10,.2)!important;
+  color:#fff!important;
 }
 
-/* BOTÕES — dourado presidencial UFC */
+/* BOTÕES */
 div[data-testid="stButton"]>button{
-  background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%)!important;
-  color:#000!important;
-  border:1px solid var(--gold-bright)!important;
+  background:var(--mm-red)!important;
+  color:#fff!important;
+  border:none!important;
   border-radius:4px!important;
-  font-family:'Anton',sans-serif!important;
-  font-size:1.05rem!important;
+  font-family:'Oswald',sans-serif!important;
+  font-size:1rem!important;
   font-weight:600!important;
-  letter-spacing:.15em!important;
+  letter-spacing:.12em!important;
   text-transform:uppercase!important;
   width:100%;
-  padding:.8rem 1rem!important;
+  padding:.75rem 1rem!important;
   transition:all .2s!important;
-  box-shadow:0 2px 10px rgba(255,215,0,.2)!important;
 }
 div[data-testid="stButton"]>button:hover{
-  background:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%)!important;
+  background:#f00d0d!important;
   transform:translateY(-1px);
-  box-shadow:0 4px 20px rgba(255,215,0,.5)!important;
+  box-shadow:0 4px 20px rgba(210,10,10,.4);
 }
 
 /* RADIO buttons */
@@ -410,40 +297,51 @@ div[data-testid="stRadio"] label{
   padding:.55rem 1rem;
   transition:all .2s;
 }
-div[data-testid="stRadio"] label:hover{border-color:var(--gold)}
+div[data-testid="stRadio"] label:hover{border-color:var(--mm-red)}
 
-hr{border:none; border-top:1px solid var(--gold)!important; margin:1.7rem 0!important; opacity:.4}
+hr{border-color:var(--border)!important; margin:1.6rem 0!important}
 
 .section-title{
-  font-family:'Anton',sans-serif;
+  font-family:'Bebas Neue',sans-serif;
   font-size:1.5rem;
   letter-spacing:.1em;
-  color:var(--gold);
+  color:#fff;
   margin:1.5rem 0 .8rem;
   padding-bottom:.4rem;
-  border-bottom:2px solid var(--gold);
+  border-bottom:2px solid var(--mm-red);
   display:inline-block;
-  text-transform:uppercase;
 }
 .admin-section{
-  font-family:'Anton',sans-serif;
+  font-family:'Bebas Neue',sans-serif;
   font-size:1.3rem;
   letter-spacing:.1em;
-  color:var(--ufc-red);
+  color:var(--mm-red);
   margin:1.5rem 0 .5rem;
   padding-bottom:.3rem;
   border-bottom:1px solid var(--border);
-  text-transform:uppercase;
 }
+.event-info{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--mm-red);
+  border-radius:4px;
+  padding:1rem;
+  margin-bottom:1rem;
+  text-align:center;
+  font-family:'Oswald',sans-serif;
+  letter-spacing:.05em;
+}
+.event-info .venue{color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.2em}
+.event-info .date{color:#fff; font-size:1.1rem; margin-top:.3rem}
 
-/* Dataframes */
+/* Dataframes — fundo escuro */
 [data-testid="stDataFrame"], [data-testid="stDataFrame"] *{
   background:var(--surface)!important;
   color:var(--text)!important;
 }
 [data-testid="stDataFrame"] th{
   background:var(--surface-2)!important;
-  color:var(--gold)!important;
+  color:var(--muted)!important;
   font-family:'Oswald',sans-serif!important;
 }
 
@@ -456,13 +354,13 @@ hr{border:none; border-top:1px solid var(--gold)!important; margin:1.7rem 0!impo
 [data-testid="stExpander"] summary{
   font-family:'Oswald',sans-serif!important;
   letter-spacing:.1em;
-  color:var(--gold)!important;
+  color:#fff!important;
 }
 
 /* Alerts */
 [data-testid="stAlert"]{
   border-radius:4px!important;
-  border-left:4px solid var(--gold)!important;
+  border-left:4px solid var(--mm-red)!important;
   background:var(--surface)!important;
   color:var(--text)!important;
 }
@@ -475,25 +373,13 @@ hr{border:none; border-top:1px solid var(--gold)!important; margin:1.7rem 0!impo
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <p class="nfx-brand">★ International Fight Week ★</p>
-  <h1 class="nfx-title">UFC <span class="num">329</span></h1>
-  <div class="nfx-mainevent">
-    <div class="fighter-name mcg">
-      McGregor
-      <small>The Notorious ☘</small>
-    </div>
-    <span class="vs-crown">vs</span>
-    <div class="fighter-name hol">
-      Holloway
-      <small>Blessed 🌺</small>
-    </div>
-  </div>
-  <p class="nfx-subtitle">The Mac is Back · Bolão UVR</p>
-  <span class="nfx-badge">Rematch · 13 Years Later</span>
-</div>
-<div class="event-info">
-  <div class="venue">T-Mobile Arena · Las Vegas, NV</div>
-  <div class="date">11 · 07 · 2026</div>
+  <p class="nfx-brand">Ultimate Fighting Championship</p>
+  <h1 class="nfx-title">
+    Bolão <span style="color:var(--mm-red)">UFC</span>
+    <span class="nfx-title-accent">UVR · Friendly Edition</span>
+  </h1>
+  <p class="nfx-subtitle">Quem cravar mais leva a glória</p>
+  <span class="nfx-badge">It's Time!</span>
 </div>
 """, unsafe_allow_html=True)
 

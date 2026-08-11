@@ -26,136 +26,158 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600;700&display=swap');
 
 :root{
-  --dwcs-blue:#0066FF;          /* azul elétrico DWCS */
-  --dwcs-blue-dark:#003D99;
-  --dwcs-blue-deep:#001F4D;
-  --dwcs-blue-bright:#3388FF;
+  --dwcs-blue:#2AB6E3;          /* azul ciano oficial DWCS */
+  --dwcs-blue-dark:#1a8ab0;
+  --dwcs-blue-deep:#0f5670;
+  --dwcs-blue-bright:#4fcaf0;
   --gold:#FFD700;
   --gold-bright:#FFE552;
   --gold-dark:#c9a300;
   --ufc-red:#D20A0A;
-  --bg:#000000;
-  --bg-dark:#040810;
-  --surface:#0a0f1a;
-  --surface-2:#12192a;
-  --border:#1e2a44;
-  --border-blue:#1a3a7a;
+  --bg:#1a1a1a;                 /* cinza escuro DWCS */
+  --bg-dark:#0f0f0f;
+  --surface:#1e1e1e;
+  --surface-2:#252525;
+  --border:#333333;
+  --border-blue:#2AB6E3;
   --text:#ffffff;
-  --muted:#7a8ba8;
+  --muted:#8a8a8a;
   /* aliases */
   --mm-red:var(--ufc-red);
-  --mm-purple:#0a0f1a;
-  --mm-purple-dark:#040810;
+  --mm-purple:#1e1e1e;
+  --mm-purple-dark:#0f0f0f;
   --mm-gold:var(--gold);
   --mm-gold-bright:var(--gold-bright);
 }
 
 html,body,[data-testid="stAppViewContainer"]{
   background:
-    radial-gradient(ellipse at 15% 0%, rgba(0,102,255,.18) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 60%, rgba(0,61,153,.12) 0%, transparent 50%),
-    linear-gradient(180deg, #000 0%, #040810 100%) !important;
+    radial-gradient(ellipse at 20% 10%, rgba(42,182,227,.06) 0%, transparent 55%),
+    linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
 #MainMenu,footer,header{visibility:hidden}
 
-/* HERO — DWCS billboard estilo transmissão */
+/* HERO — DWCS estilo cartaz oficial */
 .nfx-hero{
   position:relative;
   text-align:center;
-  padding:2.6rem 1rem 1.9rem;
+  padding:3rem 1rem 2.2rem;
   background:
-    linear-gradient(135deg, rgba(0,102,255,.25) 0%, transparent 60%),
-    linear-gradient(180deg, #001F4D 0%, #000814 60%, #000 100%);
-  border-top:4px solid var(--dwcs-blue);
-  border-bottom:4px solid var(--dwcs-blue);
+    linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+  border:none;
   margin:-1rem -1rem 1.2rem;
   overflow:hidden;
-  box-shadow:inset 0 0 60px rgba(0,102,255,.15);
+  min-height:250px;
 }
-/* Grid tech no fundo (vibe transmissão broadcast) */
+/* Formas geométricas ciano quebradas nos cantos */
 .nfx-hero::before{
-  content:"";
+  content:"D";
   position:absolute;
-  inset:0;
-  background:
-    linear-gradient(rgba(0,102,255,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,102,255,.06) 1px, transparent 1px);
-  background-size:40px 40px;
-  pointer-events:none;
-  opacity:.5;
-}
-/* Letras DWCS gigantes fantasma */
-.nfx-hero::after{
-  content:"DWCS";
-  position:absolute;
-  top:-25px; right:-30px;
+  top:-20px; left:-15px;
   font-family:'Anton',sans-serif;
-  font-size:12rem;
+  font-size:11rem;
   color:var(--dwcs-blue);
-  opacity:.08;
+  opacity:.12;
   line-height:1;
-  letter-spacing:-.05em;
   pointer-events:none;
-  transform:skew(-8deg);
+  font-weight:900;
 }
+.nfx-hero::after{
+  content:"W";
+  position:absolute;
+  top:-10px; right:-10px;
+  font-family:'Anton',sans-serif;
+  font-size:11rem;
+  color:var(--dwcs-blue);
+  opacity:.12;
+  line-height:1;
+  pointer-events:none;
+  font-weight:900;
+}
+/* CS embaixo */
+.nfx-hero .cs-bg{
+  position:absolute;
+  bottom:-30px; right:20px;
+  font-family:'Anton',sans-serif;
+  font-size:9rem;
+  color:var(--dwcs-blue);
+  opacity:.10;
+  line-height:1;
+  pointer-events:none;
+  font-weight:900;
+  letter-spacing:-.05em;
+}
+
 .nfx-brand{
   font-family:'Oswald',sans-serif;
-  font-size:.75rem;
-  letter-spacing:.5em;
-  color:var(--gold);
-  margin:0;
+  font-size:.85rem;
+  letter-spacing:.35em;
+  color:#fff;
+  margin:0 0 .3rem;
   text-transform:uppercase;
   font-weight:600;
   position:relative;
+  display:inline-block;
 }
+/* Traços ciano flanqueando o brand (elemento icônico DWCS) */
+.nfx-brand::before, .nfx-brand::after{
+  content:"";
+  display:inline-block;
+  width:35px;
+  height:3px;
+  background:var(--dwcs-blue);
+  vertical-align:middle;
+  margin:0 12px;
+}
+
 .nfx-title{
   font-family:'Anton',sans-serif;
-  font-size:clamp(2.4rem, 8.5vw, 4.2rem);
-  letter-spacing:.02em;
-  color:#fff;
-  margin:.4rem 0 0;
+  font-size:clamp(2.4rem, 8.5vw, 3.8rem);
+  letter-spacing:.01em;
+  color:var(--dwcs-blue);
+  margin:.5rem 0 0;
   line-height:.95;
-  text-shadow:
-    0 0 30px rgba(0,102,255,.7),
-    0 0 60px rgba(0,102,255,.35);
   text-transform:uppercase;
+  font-weight:900;
   position:relative;
 }
-.nfx-title .accent{color:var(--dwcs-blue-bright); text-shadow:0 0 25px rgba(0,102,255,1)}
+.nfx-title .accent{color:var(--dwcs-blue)}
 .nfx-title-sub{
   display:block;
   font-family:'Oswald',sans-serif;
-  font-size:.28em;
+  font-size:.32em;
   letter-spacing:.35em;
-  color:var(--gold);
-  margin-top:.4rem;
+  color:#fff;
+  margin-top:.6rem;
   font-weight:500;
+  opacity:.85;
 }
 .nfx-subtitle{
   font-family:'Oswald',sans-serif;
-  font-size:1rem;
-  letter-spacing:.2em;
+  font-size:.85rem;
+  letter-spacing:.25em;
   color:var(--muted);
-  margin:.9rem 0 0;
+  margin:1rem 0 0;
   text-transform:uppercase;
   position:relative;
+  font-weight:500;
 }
 .nfx-badge{
   display:inline-block;
   font-family:'Oswald',sans-serif;
-  font-size:.72rem;
-  letter-spacing:.25em;
+  font-size:.7rem;
+  letter-spacing:.28em;
   padding:6px 18px;
-  background:linear-gradient(90deg, var(--dwcs-blue-dark), var(--dwcs-blue), var(--dwcs-blue-dark));
-  color:#fff;
+  background:var(--dwcs-blue);
+  color:#000;
   margin-top:1rem;
   text-transform:uppercase;
-  font-weight:600;
-  border:1px solid var(--dwcs-blue-bright);
-  box-shadow:0 0 20px rgba(0,102,255,.45);
+  font-weight:700;
+  border:none;
   position:relative;
+  box-shadow:none;
 }
 
 /* Info do evento */
@@ -450,12 +472,13 @@ hr{border:none; border-top:1px solid var(--dwcs-blue)!important; margin:1.7rem 0
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <p class="nfx-brand">◆ Dana White\'s ◆</p>
+  <span class="cs-bg">CS</span>
+  <p class="nfx-brand">Dana White\'s</p>
   <h1 class="nfx-title">
-    Contender <span class="accent">Series</span>
-    <span class="nfx-title-sub">Look Like a Million Bucks</span>
+    Contender Series
+    <span class="nfx-title-sub">Bolão UVR</span>
   </h1>
-  <p class="nfx-subtitle">Fight for your UFC Contract · Bolão UVR</p>
+  <p class="nfx-subtitle">Fight For Your UFC Contract</p>
   <span class="nfx-badge">Tuesday Night Fights</span>
 </div>
 <div class="event-info">

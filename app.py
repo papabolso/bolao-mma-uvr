@@ -1,5 +1,5 @@
 """
-Bolão UFC — UVR
+Dana White's Contender Series — Bolão UVR
 Streamlit + Supabase
 """
 import pandas as pd
@@ -12,127 +12,173 @@ from supabase import create_client, Client
 # PAGE CONFIG
 # ──────────────────────────────────────────────
 st.set_page_config(
-    page_title="Bolão UFC · UVR",
-    page_icon="🥊",
+    page_title="DWCS · Bolão UVR",
+    page_icon="🏆",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
 # ──────────────────────────────────────────────
-# CSS — UFC genérico (preto + vermelho UFC + dourado)
+# CSS — Dana White's Contender Series (azul elétrico + preto + dourado)
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600;700&display=swap');
 
 :root{
-  --mm-red:#D20A0A;
-  --mm-red-dark:#8a0606;
-  --mm-purple:#1a1a1a;
-  --mm-purple-dark:#0d0d0d;
-  --mm-gold:#FFD700;
-  --mm-gold-bright:#FFE552;
+  --dwcs-blue:#0066FF;          /* azul elétrico DWCS */
+  --dwcs-blue-dark:#003D99;
+  --dwcs-blue-deep:#001F4D;
+  --dwcs-blue-bright:#3388FF;
+  --gold:#FFD700;
+  --gold-bright:#FFE552;
+  --gold-dark:#c9a300;
+  --ufc-red:#D20A0A;
   --bg:#000000;
-  --bg-dark:#0a0a0a;
-  --surface:#0e0e0e;
-  --surface-2:#171717;
-  --border:#2a2a2a;
+  --bg-dark:#040810;
+  --surface:#0a0f1a;
+  --surface-2:#12192a;
+  --border:#1e2a44;
+  --border-blue:#1a3a7a;
   --text:#ffffff;
-  --muted:#888888;
+  --muted:#7a8ba8;
+  /* aliases */
+  --mm-red:var(--ufc-red);
+  --mm-purple:#0a0f1a;
+  --mm-purple-dark:#040810;
+  --mm-gold:var(--gold);
+  --mm-gold-bright:var(--gold-bright);
 }
 
 html,body,[data-testid="stAppViewContainer"]{
-  background:var(--bg)!important;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(0,102,255,.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 60%, rgba(0,61,153,.12) 0%, transparent 50%),
+    linear-gradient(180deg, #000 0%, #040810 100%) !important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
 #MainMenu,footer,header{visibility:hidden}
 
-/* HERO */
+/* HERO — DWCS billboard estilo transmissão */
 .nfx-hero{
   position:relative;
   text-align:center;
-  padding:2.6rem 1rem 1.8rem;
+  padding:2.6rem 1rem 1.9rem;
   background:
-    radial-gradient(ellipse at top, rgba(210,10,10,.35) 0%, transparent 55%),
-    linear-gradient(180deg, #000 0%, #0a0a0a 100%);
-  border-bottom:3px solid var(--mm-red);
+    linear-gradient(135deg, rgba(0,102,255,.25) 0%, transparent 60%),
+    linear-gradient(180deg, #001F4D 0%, #000814 60%, #000 100%);
+  border-top:4px solid var(--dwcs-blue);
+  border-bottom:4px solid var(--dwcs-blue);
   margin:-1rem -1rem 1.2rem;
   overflow:hidden;
+  box-shadow:inset 0 0 60px rgba(0,102,255,.15);
 }
+/* Grid tech no fundo (vibe transmissão broadcast) */
 .nfx-hero::before{
-  content:"UFC";
+  content:"";
   position:absolute;
-  top:-30px; right:-30px;
-  font-family:'Anton',sans-serif;
-  font-size:13rem;
-  color:var(--mm-red);
-  opacity:.12;
-  line-height:1;
+  inset:0;
+  background:
+    linear-gradient(rgba(0,102,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,102,255,.06) 1px, transparent 1px);
+  background-size:40px 40px;
   pointer-events:none;
-  letter-spacing:-.05em;
-  transform:skew(-8deg);
+  opacity:.5;
 }
+/* Letras DWCS gigantes fantasma */
 .nfx-hero::after{
-  content:"🥊";
+  content:"DWCS";
   position:absolute;
-  bottom:-15px; left:-10px;
-  font-size:7rem;
-  opacity:.07;
+  top:-25px; right:-30px;
+  font-family:'Anton',sans-serif;
+  font-size:12rem;
+  color:var(--dwcs-blue);
+  opacity:.08;
+  line-height:1;
+  letter-spacing:-.05em;
   pointer-events:none;
+  transform:skew(-8deg);
 }
 .nfx-brand{
   font-family:'Oswald',sans-serif;
-  font-size:.85rem;
-  letter-spacing:.4em;
-  color:var(--mm-red);
+  font-size:.75rem;
+  letter-spacing:.5em;
+  color:var(--gold);
   margin:0;
   text-transform:uppercase;
-  font-weight:500;
+  font-weight:600;
+  position:relative;
 }
 .nfx-title{
   font-family:'Anton',sans-serif;
-  font-size:clamp(2.8rem, 10vw, 5rem);
+  font-size:clamp(2.4rem, 8.5vw, 4.2rem);
   letter-spacing:.02em;
   color:#fff;
-  margin:.3rem 0 0;
+  margin:.4rem 0 0;
   line-height:.95;
-  text-shadow:0 4px 30px rgba(210,10,10,.6), 0 0 80px rgba(210,10,10,.3);
+  text-shadow:
+    0 0 30px rgba(0,102,255,.7),
+    0 0 60px rgba(0,102,255,.35);
   text-transform:uppercase;
+  position:relative;
 }
-.nfx-title-accent{
+.nfx-title .accent{color:var(--dwcs-blue-bright); text-shadow:0 0 25px rgba(0,102,255,1)}
+.nfx-title-sub{
   display:block;
   font-family:'Oswald',sans-serif;
-  font-size:.35em;
-  letter-spacing:.25em;
-  color:var(--mm-gold);
+  font-size:.28em;
+  letter-spacing:.35em;
+  color:var(--gold);
   margin-top:.4rem;
   font-weight:500;
 }
 .nfx-subtitle{
   font-family:'Oswald',sans-serif;
-  font-size:1.05rem;
-  letter-spacing:.15em;
+  font-size:1rem;
+  letter-spacing:.2em;
   color:var(--muted);
-  margin:.6rem 0 0;
+  margin:.9rem 0 0;
   text-transform:uppercase;
+  position:relative;
 }
 .nfx-badge{
   display:inline-block;
   font-family:'Oswald',sans-serif;
-  font-size:.75rem;
-  letter-spacing:.22em;
-  padding:5px 15px;
-  background:var(--mm-red);
+  font-size:.72rem;
+  letter-spacing:.25em;
+  padding:6px 18px;
+  background:linear-gradient(90deg, var(--dwcs-blue-dark), var(--dwcs-blue), var(--dwcs-blue-dark));
   color:#fff;
-  margin-top:.9rem;
+  margin-top:1rem;
   text-transform:uppercase;
+  font-weight:600;
+  border:1px solid var(--dwcs-blue-bright);
+  box-shadow:0 0 20px rgba(0,102,255,.45);
+  position:relative;
 }
+
+/* Info do evento */
+.event-info{
+  background:var(--surface);
+  border:1px solid var(--border-blue);
+  border-left:4px solid var(--dwcs-blue);
+  border-right:4px solid var(--gold);
+  border-radius:2px;
+  padding:1rem;
+  margin-bottom:1.2rem;
+  text-align:center;
+  font-family:'Oswald',sans-serif;
+  letter-spacing:.08em;
+  box-shadow:0 0 25px rgba(0,102,255,.10);
+}
+.event-info .venue{color:var(--dwcs-blue-bright); font-size:.8rem; text-transform:uppercase; letter-spacing:.28em; font-weight:600}
+.event-info .date{color:#fff; font-size:1.15rem; margin-top:.35rem; font-family:'Anton',sans-serif; letter-spacing:.05em}
 
 /* TABS */
 [data-testid="stTabs"] [role="tablist"]{
   gap:0;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--border-blue);
   background:transparent;
 }
 [data-testid="stTabs"] button[role="tab"]{
@@ -143,7 +189,7 @@ html,body,[data-testid="stAppViewContainer"]{
   border-radius:0;
   font-family:'Oswald',sans-serif;
   font-weight:500;
-  letter-spacing:.12em;
+  letter-spacing:.14em;
   text-transform:uppercase;
   padding:.7rem 1.2rem;
   transition:all .2s;
@@ -151,33 +197,45 @@ html,body,[data-testid="stAppViewContainer"]{
 [data-testid="stTabs"] button[role="tab"]:hover{color:#fff}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"]{
   color:#fff;
-  border-bottom-color:var(--mm-red);
+  border-bottom-color:var(--dwcs-blue);
   background:transparent;
 }
 
 /* CARDS de luta */
 .fight-card{
   background:linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
-  border:1px solid var(--border);
-  border-left:4px solid var(--mm-red);
+  border:1px solid var(--border-blue);
+  border-left:4px solid var(--dwcs-blue);
   border-radius:4px;
   padding:1rem 1.2rem;
   margin-bottom:.85rem;
   position:relative;
   overflow:hidden;
-  transition:transform .15s, border-color .15s;
+  transition:transform .15s, border-color .15s, box-shadow .15s;
 }
-.fight-card:hover{transform:translateX(2px); border-left-color:var(--mm-gold)}
+.fight-card:hover{
+  transform:translateX(2px);
+  border-left-color:var(--gold);
+  box-shadow:0 0 20px rgba(0,102,255,.15);
+}
+/* MAIN (luta principal Wint vs Adams) — glow azul intenso */
 .fight-card.main{
-  border-left-color:var(--mm-gold);
-  background:linear-gradient(135deg, #1a1206 0%, #251a08 100%);
-  border-color:#5a3a0e;
-  box-shadow:0 0 25px rgba(255,215,0,.15);
+  border-left:none;
+  border-top:2px solid var(--dwcs-blue);
+  border-bottom:2px solid var(--dwcs-blue);
+  background:
+    linear-gradient(90deg,
+      rgba(0,102,255,.15) 0%,
+      rgba(0,0,0,.4) 50%,
+      rgba(0,102,255,.15) 100%),
+    linear-gradient(135deg, #001F4D 0%, #050e20 100%);
+  box-shadow:0 0 30px rgba(0,102,255,.25), inset 0 0 30px rgba(0,0,0,.4);
+  padding:1.2rem;
 }
 .fight-card.co-main{
-  border-left-color:var(--mm-gold);
-  background:linear-gradient(135deg, #150f04 0%, #1f1606 100%);
-  border-color:#4a3010;
+  border-left-color:var(--gold);
+  background:linear-gradient(135deg, var(--surface) 0%, #101a30 100%);
+  border-color:var(--border-blue);
 }
 
 .fight-tag{
@@ -187,14 +245,18 @@ html,body,[data-testid="stAppViewContainer"]{
   font-weight:700;
   letter-spacing:.22em;
   padding:3px 10px;
-  background:var(--mm-red);
+  background:var(--dwcs-blue);
   color:#fff;
   margin-bottom:.6rem;
   text-transform:uppercase;
 }
-.fight-tag.main{background:var(--mm-gold); color:#000}
-.fight-tag.co-main{background:var(--mm-gold); color:#000}
-.fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border)}
+.fight-tag.main{
+  background:linear-gradient(90deg, var(--dwcs-blue-dark), var(--dwcs-blue-bright), var(--dwcs-blue-dark));
+  color:#fff;
+  border:1px solid var(--gold);
+}
+.fight-tag.co-main{background:var(--gold); color:#000}
+.fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border-blue)}
 
 .fight-vs{
   font-family:'Anton',sans-serif;
@@ -204,32 +266,48 @@ html,body,[data-testid="stAppViewContainer"]{
   line-height:1.2;
   text-transform:uppercase;
 }
-.fight-vs .vs{color:var(--mm-red); margin:0 .4em; font-size:.9em}
-.fight-card.main .fight-vs .vs{color:var(--mm-gold)}
+.fight-vs .vs{color:var(--dwcs-blue-bright); margin:0 .4em; font-size:.9em}
+.fight-card.main .fight-vs{
+  font-size:1.6rem;
+  text-shadow:0 0 15px rgba(0,102,255,.5);
+}
+.fight-card.main .fight-vs .vs{color:var(--gold)}
+
+/* Peso/categoria abaixo do nome (aproveita fight-tag pra prelim mostrar categoria) */
+.weight-label{
+  display:block;
+  font-family:'Oswald',sans-serif;
+  font-size:.7rem;
+  letter-spacing:.3em;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-top:.3rem;
+}
 
 /* RANKING */
-.rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border)}
+.rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border-blue)}
 .rank-table th{
   font-family:'Oswald',sans-serif;
   font-size:.75rem;
   letter-spacing:.18em;
-  color:var(--muted);
-  border-bottom:1px solid var(--border);
+  color:var(--dwcs-blue-bright);
+  border-bottom:2px solid var(--dwcs-blue);
   padding:.7rem .5rem;
   text-align:left;
   text-transform:uppercase;
+  background:var(--surface-2);
 }
 .rank-table td{
   padding:.7rem .5rem;
-  border-bottom:1px solid #1a1a1a;
+  border-bottom:1px solid #101a30;
   font-family:'Inter',sans-serif;
   color:var(--text);
 }
 .rank-table tr:last-child td{border-bottom:none}
-.rank-table tr.top-1 td{color:var(--mm-gold); font-weight:600}
+.rank-table tr.top-1 td{color:var(--gold); font-weight:700; background:rgba(255,215,0,.06)}
 .rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
 .rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
-.rank-table tr:hover td{background:rgba(210,10,10,.06)}
+.rank-table tr:hover td{background:rgba(0,102,255,.08)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -240,9 +318,14 @@ div[data-testid="stSelectbox"] select,
 div[data-testid="stNumberInput"] input{
   background:var(--surface)!important;
   color:var(--text)!important;
-  border:1px solid var(--border)!important;
+  border:1px solid var(--border-blue)!important;
   border-radius:4px!important;
   font-family:'Inter',sans-serif!important;
+}
+div[data-testid="stTextInput"] input:focus,
+[data-baseweb="input"] input:focus{
+  border-color:var(--dwcs-blue)!important;
+  box-shadow:0 0 0 2px rgba(0,102,255,.25)!important;
 }
 
 /* Dropdowns abertos */
@@ -250,8 +333,8 @@ div[data-testid="stNumberInput"] input{
 [data-baseweb="menu"],
 ul[role="listbox"]{
   background:var(--surface)!important;
-  border:1px solid var(--mm-red)!important;
-  box-shadow:0 4px 20px rgba(0,0,0,.6)!important;
+  border:1px solid var(--dwcs-blue)!important;
+  box-shadow:0 4px 25px rgba(0,102,255,.3)!important;
 }
 [data-baseweb="popover"] *,
 [data-baseweb="menu"] *,
@@ -263,104 +346,98 @@ ul[role="listbox"] *{
 li[role="option"]{background:transparent!important; color:var(--text)!important; padding:.5rem .8rem!important}
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"]{
-  background:rgba(210,10,10,.2)!important;
+  background:rgba(0,102,255,.2)!important;
   color:#fff!important;
 }
 
-/* BOTÕES */
+/* BOTÕES — azul elétrico DWCS */
 div[data-testid="stButton"]>button{
-  background:var(--mm-red)!important;
+  background:linear-gradient(180deg, var(--dwcs-blue) 0%, var(--dwcs-blue-dark) 100%)!important;
   color:#fff!important;
-  border:none!important;
+  border:1px solid var(--dwcs-blue-bright)!important;
   border-radius:4px!important;
   font-family:'Oswald',sans-serif!important;
   font-size:1rem!important;
-  font-weight:600!important;
-  letter-spacing:.12em!important;
+  font-weight:700!important;
+  letter-spacing:.15em!important;
   text-transform:uppercase!important;
   width:100%;
-  padding:.75rem 1rem!important;
+  padding:.8rem 1rem!important;
   transition:all .2s!important;
+  box-shadow:0 2px 15px rgba(0,102,255,.3)!important;
 }
 div[data-testid="stButton"]>button:hover{
-  background:#f00d0d!important;
+  background:linear-gradient(180deg, var(--dwcs-blue-bright) 0%, var(--dwcs-blue) 100%)!important;
   transform:translateY(-1px);
-  box-shadow:0 4px 20px rgba(210,10,10,.4);
+  box-shadow:0 4px 25px rgba(0,102,255,.6)!important;
+  border-color:var(--gold)!important;
 }
 
 /* RADIO buttons */
 div[data-testid="stRadio"] > div{gap:.5rem}
 div[data-testid="stRadio"] label{
   background:var(--surface);
-  border:1px solid var(--border);
+  border:1px solid var(--border-blue);
   border-radius:4px;
   padding:.55rem 1rem;
   transition:all .2s;
 }
-div[data-testid="stRadio"] label:hover{border-color:var(--mm-red)}
+div[data-testid="stRadio"] label:hover{
+  border-color:var(--dwcs-blue);
+  background:rgba(0,102,255,.05);
+}
 
-hr{border-color:var(--border)!important; margin:1.6rem 0!important}
+hr{border:none; border-top:1px solid var(--dwcs-blue)!important; margin:1.7rem 0!important; opacity:.4}
 
 .section-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:'Anton',sans-serif;
   font-size:1.5rem;
   letter-spacing:.1em;
   color:#fff;
   margin:1.5rem 0 .8rem;
   padding-bottom:.4rem;
-  border-bottom:2px solid var(--mm-red);
+  border-bottom:2px solid var(--dwcs-blue);
   display:inline-block;
+  text-transform:uppercase;
 }
 .admin-section{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:'Anton',sans-serif;
   font-size:1.3rem;
   letter-spacing:.1em;
-  color:var(--mm-red);
+  color:var(--dwcs-blue-bright);
   margin:1.5rem 0 .5rem;
   padding-bottom:.3rem;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--border-blue);
+  text-transform:uppercase;
 }
-.event-info{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-left:3px solid var(--mm-red);
-  border-radius:4px;
-  padding:1rem;
-  margin-bottom:1rem;
-  text-align:center;
-  font-family:'Oswald',sans-serif;
-  letter-spacing:.05em;
-}
-.event-info .venue{color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.2em}
-.event-info .date{color:#fff; font-size:1.1rem; margin-top:.3rem}
 
-/* Dataframes — fundo escuro */
+/* Dataframes */
 [data-testid="stDataFrame"], [data-testid="stDataFrame"] *{
   background:var(--surface)!important;
   color:var(--text)!important;
 }
 [data-testid="stDataFrame"] th{
   background:var(--surface-2)!important;
-  color:var(--muted)!important;
+  color:var(--dwcs-blue-bright)!important;
   font-family:'Oswald',sans-serif!important;
 }
 
 /* Expanders */
 [data-testid="stExpander"]{
-  border:1px solid var(--border)!important;
+  border:1px solid var(--border-blue)!important;
   border-radius:4px!important;
   background:var(--surface)!important;
 }
 [data-testid="stExpander"] summary{
   font-family:'Oswald',sans-serif!important;
   letter-spacing:.1em;
-  color:#fff!important;
+  color:var(--dwcs-blue-bright)!important;
 }
 
 /* Alerts */
 [data-testid="stAlert"]{
   border-radius:4px!important;
-  border-left:4px solid var(--mm-red)!important;
+  border-left:4px solid var(--dwcs-blue)!important;
   background:var(--surface)!important;
   color:var(--text)!important;
 }
@@ -373,15 +450,20 @@ hr{border-color:var(--border)!important; margin:1.6rem 0!important}
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <p class="nfx-brand">Ultimate Fighting Championship</p>
+  <p class="nfx-brand">◆ Dana White\'s ◆</p>
   <h1 class="nfx-title">
-    Bolão <span style="color:var(--mm-red)">UFC</span>
-    <span class="nfx-title-accent">UVR · Friendly Edition</span>
+    Contender <span class="accent">Series</span>
+    <span class="nfx-title-sub">Look Like a Million Bucks</span>
   </h1>
-  <p class="nfx-subtitle">Quem cravar mais leva a glória</p>
-  <span class="nfx-badge">It's Time!</span>
+  <p class="nfx-subtitle">Fight for your UFC Contract · Bolão UVR</p>
+  <span class="nfx-badge">Tuesday Night Fights</span>
+</div>
+<div class="event-info">
+  <div class="venue">UFC APEX · Las Vegas, NV</div>
+  <div class="date">Season · Live</div>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 # ──────────────────────────────────────────────
@@ -517,21 +599,21 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
 # ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
-def render_timer(target_str: str, title: str, color="#D20A0A", end_text="ENCERRADO"):
+def render_timer(target_str: str, title: str, color="#0066FF", end_text="ENCERRADO"):
     try:
         dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
         iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
         html = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&display=swap');
-        .tbox{{background:#0a0a0a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden}}
-        .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}25,transparent);animation:sweep 3s infinite}}
+        .tbox{{background:#0a0f1a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(0,102,255,.2)}}
+        .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}30,transparent);animation:sweep 3s infinite}}
         @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
-        .ttitle{{font-family:'Oswald',sans-serif;color:#888;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;position:relative}}
-        .ttime{{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:{color};letter-spacing:.05em;margin-top:-2px;position:relative;text-shadow:0 0 20px {color}50}}
+        .ttitle{{font-family:'Oswald',sans-serif;color:#7a8ba8;font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
+        .ttime{{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:{color};letter-spacing:.05em;margin-top:-2px;position:relative;text-shadow:0 0 25px {color}80}}
         </style>
         <div class="tbox">
-          <div class="ttitle">{title}</div>
+          <div class="ttitle">◆ {title} ◆</div>
           <div class="ttime" id="clk">CALCULANDO...</div>
         </div>
         <script>

@@ -19,188 +19,232 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────
-# CSS — Dana White's Contender Series (azul elétrico + preto + dourado)
+# CSS — UFC CHAMPIONSHIP EDITION (preto + dourado cinturão + vermelho)
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Cinzel:wght@700;900&family=Inter:wght@400;500;600;700&display=swap');
 
 :root{
-  --dwcs-blue:#2AB6E3;          /* azul ciano oficial DWCS */
-  --dwcs-blue-dark:#1a8ab0;
-  --dwcs-blue-deep:#0f5670;
-  --dwcs-blue-bright:#4fcaf0;
-  --gold:#FFD700;
-  --gold-bright:#FFE552;
-  --gold-dark:#c9a300;
+  --gold:#D4AF37;              /* dourado cinturão real */
+  --gold-bright:#F4D45C;
+  --gold-deep:#9C7A1E;
+  --gold-glow:rgba(212,175,55,.5);
   --ufc-red:#D20A0A;
-  --bg:#1a1a1a;                 /* cinza escuro DWCS */
-  --bg-dark:#0f0f0f;
-  --surface:#1e1e1e;
-  --surface-2:#252525;
-  --border:#333333;
-  --border-blue:#2AB6E3;
+  --ufc-red-bright:#FF1A1A;
+  --bg:#000000;
+  --bg-dark:#050505;
+  --surface:#0c0c0c;
+  --surface-2:#151310;
+  --border:#2a2418;
+  --border-gold:#4a3d1e;
   --text:#ffffff;
-  --muted:#8a8a8a;
+  --muted:#8f8878;
   /* aliases */
   --mm-red:var(--ufc-red);
-  --mm-purple:#1e1e1e;
-  --mm-purple-dark:#0f0f0f;
+  --mm-purple:#0c0c0c;
+  --mm-purple-dark:#050505;
   --mm-gold:var(--gold);
   --mm-gold-bright:var(--gold-bright);
+  --dwcs-blue:var(--gold);
+  --dwcs-blue-bright:var(--gold-bright);
+  --border-blue:var(--border-gold);
 }
 
 html,body,[data-testid="stAppViewContainer"]{
   background:
-    radial-gradient(ellipse at 20% 10%, rgba(42,182,227,.06) 0%, transparent 55%),
-    linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+    radial-gradient(ellipse at 50% -10%, rgba(212,175,55,.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 110%, rgba(210,10,10,.08) 0%, transparent 50%),
+    #000000 !important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
 #MainMenu,footer,header{visibility:hidden}
 
-/* HERO — DWCS estilo cartaz oficial */
+/* HERO — Championship Gold */
 .nfx-hero{
   position:relative;
   text-align:center;
   padding:3rem 1rem 2.2rem;
   background:
-    linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
-  border:none;
+    radial-gradient(ellipse at 50% 0%, rgba(212,175,55,.22) 0%, transparent 55%),
+    linear-gradient(180deg, #0d0b06 0%, #000 100%);
+  border-top:1px solid var(--gold);
+  border-bottom:3px solid transparent;
+  border-image:linear-gradient(90deg, transparent, var(--gold), transparent) 1;
   margin:-1rem -1rem 1.2rem;
   overflow:hidden;
-  min-height:250px;
 }
-/* Formas geométricas ciano quebradas nos cantos */
+/* Cinturão gigante fantasma */
 .nfx-hero::before{
-  content:"D";
+  content:"🏆";
   position:absolute;
-  top:-20px; left:-15px;
-  font-family:'Anton',sans-serif;
+  top:-30px; left:-25px;
   font-size:11rem;
-  color:var(--dwcs-blue);
-  opacity:.12;
+  opacity:.06;
   line-height:1;
   pointer-events:none;
-  font-weight:900;
+  transform:rotate(-12deg);
 }
 .nfx-hero::after{
-  content:"W";
+  content:"322";
   position:absolute;
-  top:-10px; right:-10px;
+  top:-15px; right:-25px;
   font-family:'Anton',sans-serif;
-  font-size:11rem;
-  color:var(--dwcs-blue);
-  opacity:.12;
+  font-size:12rem;
+  color:var(--gold);
+  opacity:.07;
   line-height:1;
-  pointer-events:none;
-  font-weight:900;
-}
-/* CS embaixo */
-.nfx-hero .cs-bg{
-  position:absolute;
-  bottom:-30px; right:20px;
-  font-family:'Anton',sans-serif;
-  font-size:9rem;
-  color:var(--dwcs-blue);
-  opacity:.10;
-  line-height:1;
-  pointer-events:none;
-  font-weight:900;
   letter-spacing:-.05em;
+  pointer-events:none;
+  transform:skew(-6deg);
 }
-
+/* Raios de luz championship */
+.nfx-hero .rays{
+  position:absolute;
+  top:0; left:50%;
+  transform:translateX(-50%);
+  width:600px; height:100%;
+  background:
+    conic-gradient(from 180deg at 50% -20%,
+      transparent 40%, rgba(212,175,55,.08) 45%, transparent 50%,
+      rgba(212,175,55,.08) 55%, transparent 60%);
+  pointer-events:none;
+}
 .nfx-brand{
-  font-family:'Oswald',sans-serif;
-  font-size:.85rem;
-  letter-spacing:.35em;
-  color:#fff;
-  margin:0 0 .3rem;
+  font-family:'Cinzel',serif;
+  font-size:.72rem;
+  letter-spacing:.55em;
+  color:var(--gold);
+  margin:0;
   text-transform:uppercase;
-  font-weight:600;
+  font-weight:700;
   position:relative;
-  display:inline-block;
 }
-/* Traços ciano flanqueando o brand (elemento icônico DWCS) */
 .nfx-brand::before, .nfx-brand::after{
   content:"";
   display:inline-block;
-  width:35px;
-  height:3px;
-  background:var(--dwcs-blue);
+  width:40px; height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold));
   vertical-align:middle;
-  margin:0 12px;
+  margin:0 14px;
 }
-
+.nfx-brand::after{background:linear-gradient(90deg, var(--gold), transparent)}
 .nfx-title{
   font-family:'Anton',sans-serif;
-  font-size:clamp(2.4rem, 8.5vw, 3.8rem);
+  font-size:clamp(2.4rem, 8.5vw, 4.2rem);
   letter-spacing:.01em;
-  color:var(--dwcs-blue);
   margin:.5rem 0 0;
   line-height:.95;
   text-transform:uppercase;
-  font-weight:900;
+  position:relative;
+  background:linear-gradient(180deg, #fff 20%, var(--gold-bright) 65%, var(--gold-deep) 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  filter:drop-shadow(0 0 25px var(--gold-glow));
+}
+.nfx-mainevent{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:.6rem;
+  margin:1.3rem 0 .4rem;
+  flex-wrap:wrap;
   position:relative;
 }
-.nfx-title .accent{color:var(--dwcs-blue)}
-.nfx-title-sub{
+.fighter-name{
+  font-family:'Anton',sans-serif;
+  font-size:clamp(1.3rem, 4.8vw, 2rem);
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  line-height:1;
+  padding:.35rem .9rem;
+  color:#fff;
+}
+.fighter-name.champ{
+  border-left:3px solid var(--gold);
+  text-shadow:0 0 18px var(--gold-glow);
+}
+.fighter-name.chall{
+  border-right:3px solid var(--ufc-red);
+  text-shadow:0 0 18px rgba(210,10,10,.5);
+}
+.fighter-name small{
   display:block;
   font-family:'Oswald',sans-serif;
-  font-size:.32em;
-  letter-spacing:.35em;
-  color:#fff;
-  margin-top:.6rem;
-  font-weight:500;
-  opacity:.85;
+  font-size:.42em;
+  letter-spacing:.32em;
+  margin-top:.25em;
+  font-weight:400;
+}
+.fighter-name.champ small{color:var(--gold)}
+.fighter-name.chall small{color:var(--ufc-red-bright)}
+.vs-crown{
+  font-family:'Cinzel',serif;
+  font-size:1.2rem;
+  color:var(--gold);
+  font-style:italic;
+  letter-spacing:.12em;
+  text-shadow:0 0 15px var(--gold-glow);
+  padding:0 .3rem;
 }
 .nfx-subtitle{
   font-family:'Oswald',sans-serif;
-  font-size:.85rem;
-  letter-spacing:.25em;
+  font-size:.88rem;
+  letter-spacing:.28em;
   color:var(--muted);
-  margin:1rem 0 0;
+  margin:.8rem 0 0;
   text-transform:uppercase;
   position:relative;
-  font-weight:500;
 }
 .nfx-badge{
   display:inline-block;
-  font-family:'Oswald',sans-serif;
-  font-size:.7rem;
-  letter-spacing:.28em;
-  padding:6px 18px;
-  background:var(--dwcs-blue);
+  font-family:'Cinzel',serif;
+  font-size:.68rem;
+  letter-spacing:.32em;
+  padding:7px 20px;
+  background:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 45%, var(--gold-deep) 100%);
   color:#000;
   margin-top:1rem;
   text-transform:uppercase;
-  font-weight:700;
-  border:none;
+  font-weight:900;
+  border:1px solid var(--gold-bright);
+  box-shadow:0 0 30px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,.4);
   position:relative;
-  box-shadow:none;
 }
 
 /* Info do evento */
 .event-info{
   background:var(--surface);
-  border:1px solid var(--border-blue);
-  border-left:4px solid var(--dwcs-blue);
-  border-right:4px solid var(--gold);
+  border:1px solid var(--border-gold);
   border-radius:2px;
   padding:1rem;
   margin-bottom:1.2rem;
   text-align:center;
   font-family:'Oswald',sans-serif;
   letter-spacing:.08em;
-  box-shadow:0 0 25px rgba(0,102,255,.10);
+  box-shadow:0 0 25px rgba(212,175,55,.08);
+  position:relative;
 }
-.event-info .venue{color:var(--dwcs-blue-bright); font-size:.8rem; text-transform:uppercase; letter-spacing:.28em; font-weight:600}
-.event-info .date{color:#fff; font-size:1.15rem; margin-top:.35rem; font-family:'Anton',sans-serif; letter-spacing:.05em}
+.event-info::before, .event-info::after{
+  content:"★";
+  color:var(--gold);
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:.85rem;
+  opacity:.7;
+}
+.event-info::before{left:1.1rem}
+.event-info::after{right:1.1rem}
+.event-info .venue{color:var(--gold); font-size:.78rem; text-transform:uppercase; letter-spacing:.3em; font-weight:600}
+.event-info .date{color:#fff; font-size:1.15rem; margin-top:.35rem; font-family:'Anton',sans-serif; letter-spacing:.06em}
 
 /* TABS */
 [data-testid="stTabs"] [role="tablist"]{
   gap:0;
-  border-bottom:1px solid var(--border-blue);
+  border-bottom:1px solid var(--border-gold);
   background:transparent;
 }
 [data-testid="stTabs"] button[role="tab"]{
@@ -216,18 +260,18 @@ html,body,[data-testid="stAppViewContainer"]{
   padding:.7rem 1.2rem;
   transition:all .2s;
 }
-[data-testid="stTabs"] button[role="tab"]:hover{color:#fff}
+[data-testid="stTabs"] button[role="tab"]:hover{color:var(--gold-bright)}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"]{
-  color:#fff;
-  border-bottom-color:var(--dwcs-blue);
+  color:var(--gold);
+  border-bottom-color:var(--gold);
   background:transparent;
 }
 
 /* CARDS de luta */
 .fight-card{
   background:linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
-  border:1px solid var(--border-blue);
-  border-left:4px solid var(--dwcs-blue);
+  border:1px solid var(--border);
+  border-left:4px solid var(--ufc-red);
   border-radius:4px;
   padding:1rem 1.2rem;
   margin-bottom:.85rem;
@@ -238,26 +282,40 @@ html,body,[data-testid="stAppViewContainer"]{
 .fight-card:hover{
   transform:translateX(2px);
   border-left-color:var(--gold);
-  box-shadow:0 0 20px rgba(0,102,255,.15);
+  box-shadow:0 0 18px rgba(212,175,55,.15);
 }
-/* MAIN (luta principal Wint vs Adams) — glow azul intenso */
+/* TITLE FIGHTS (F1/F2) — moldura championship */
 .fight-card.main{
-  border-left:none;
-  border-top:2px solid var(--dwcs-blue);
-  border-bottom:2px solid var(--dwcs-blue);
+  border:1px solid var(--gold);
+  border-left:5px solid var(--gold);
   background:
-    linear-gradient(90deg,
-      rgba(0,102,255,.15) 0%,
-      rgba(0,0,0,.4) 50%,
-      rgba(0,102,255,.15) 100%),
-    linear-gradient(135deg, #001F4D 0%, #050e20 100%);
-  box-shadow:0 0 30px rgba(0,102,255,.25), inset 0 0 30px rgba(0,0,0,.4);
+    radial-gradient(ellipse at 0% 0%, rgba(212,175,55,.15) 0%, transparent 55%),
+    linear-gradient(135deg, #171204 0%, #0d0a04 100%);
+  box-shadow:0 0 35px rgba(212,175,55,.22), inset 0 1px 0 rgba(212,175,55,.15);
   padding:1.2rem;
 }
+.fight-card.main::after{
+  content:"🏆";
+  position:absolute;
+  top:.6rem; right:.8rem;
+  font-size:1.4rem;
+  opacity:.75;
+  filter:drop-shadow(0 0 8px var(--gold-glow));
+}
 .fight-card.co-main{
-  border-left-color:var(--gold);
-  background:linear-gradient(135deg, var(--surface) 0%, #101a30 100%);
-  border-color:var(--border-blue);
+  border:1px solid var(--border-gold);
+  border-left:5px solid var(--gold-deep);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(212,175,55,.10) 0%, transparent 50%),
+    linear-gradient(135deg, #12100a 0%, #0a0906 100%);
+  box-shadow:0 0 20px rgba(212,175,55,.12);
+}
+.fight-card.co-main::after{
+  content:"👑";
+  position:absolute;
+  top:.6rem; right:.8rem;
+  font-size:1.2rem;
+  opacity:.6;
 }
 
 .fight-tag{
@@ -267,18 +325,24 @@ html,body,[data-testid="stAppViewContainer"]{
   font-weight:700;
   letter-spacing:.22em;
   padding:3px 10px;
-  background:var(--dwcs-blue);
+  background:var(--ufc-red);
   color:#fff;
   margin-bottom:.6rem;
   text-transform:uppercase;
 }
 .fight-tag.main{
-  background:linear-gradient(90deg, var(--dwcs-blue-dark), var(--dwcs-blue-bright), var(--dwcs-blue-dark));
-  color:#fff;
-  border:1px solid var(--gold);
+  background:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 60%, var(--gold-deep) 100%);
+  color:#000;
+  border:1px solid var(--gold-bright);
+  font-weight:900;
+  box-shadow:0 0 12px rgba(212,175,55,.3);
 }
-.fight-tag.co-main{background:var(--gold); color:#000}
-.fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border-blue)}
+.fight-tag.co-main{
+  background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+  color:#000;
+  font-weight:900;
+}
+.fight-tag.prelim{background:transparent; color:var(--muted); border:1px solid var(--border)}
 
 .fight-vs{
   font-family:'Anton',sans-serif;
@@ -288,48 +352,49 @@ html,body,[data-testid="stAppViewContainer"]{
   line-height:1.2;
   text-transform:uppercase;
 }
-.fight-vs .vs{color:var(--dwcs-blue-bright); margin:0 .4em; font-size:.9em}
+.fight-vs .vs{color:var(--ufc-red); margin:0 .4em; font-size:.9em}
 .fight-card.main .fight-vs{
   font-size:1.6rem;
-  text-shadow:0 0 15px rgba(0,102,255,.5);
+  text-shadow:0 0 15px rgba(212,175,55,.35);
 }
-.fight-card.main .fight-vs .vs{color:var(--gold)}
-
-/* Peso/categoria abaixo do nome (aproveita fight-tag pra prelim mostrar categoria) */
-.weight-label{
-  display:block;
-  font-family:'Oswald',sans-serif;
-  font-size:.7rem;
-  letter-spacing:.3em;
-  color:var(--muted);
-  text-transform:uppercase;
-  margin-top:.3rem;
+.fight-card.main .fight-vs .vs,
+.fight-card.co-main .fight-vs .vs{
+  color:var(--gold);
+  font-family:'Cinzel',serif;
+  font-style:italic;
+  font-size:.72em;
 }
 
 /* RANKING */
-.rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border-blue)}
+.rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border-gold)}
 .rank-table th{
-  font-family:'Oswald',sans-serif;
-  font-size:.75rem;
-  letter-spacing:.18em;
-  color:var(--dwcs-blue-bright);
-  border-bottom:2px solid var(--dwcs-blue);
-  padding:.7rem .5rem;
+  font-family:'Cinzel',serif;
+  font-size:.7rem;
+  letter-spacing:.22em;
+  color:var(--gold);
+  border-bottom:2px solid var(--gold);
+  padding:.75rem .5rem;
   text-align:left;
   text-transform:uppercase;
   background:var(--surface-2);
+  font-weight:700;
 }
 .rank-table td{
   padding:.7rem .5rem;
-  border-bottom:1px solid #101a30;
+  border-bottom:1px solid #171408;
   font-family:'Inter',sans-serif;
   color:var(--text);
 }
 .rank-table tr:last-child td{border-bottom:none}
-.rank-table tr.top-1 td{color:var(--gold); font-weight:700; background:rgba(255,215,0,.06)}
+.rank-table tr.top-1 td{
+  color:var(--gold-bright);
+  font-weight:700;
+  background:linear-gradient(90deg, rgba(212,175,55,.12), rgba(212,175,55,.03));
+  text-shadow:0 0 10px rgba(212,175,55,.3);
+}
 .rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
 .rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
-.rank-table tr:hover td{background:rgba(0,102,255,.08)}
+.rank-table tr:hover td{background:rgba(212,175,55,.06)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -340,14 +405,14 @@ div[data-testid="stSelectbox"] select,
 div[data-testid="stNumberInput"] input{
   background:var(--surface)!important;
   color:var(--text)!important;
-  border:1px solid var(--border-blue)!important;
-  border-radius:4px!important;
+  border:1px solid var(--border-gold)!important;
+  border-radius:3px!important;
   font-family:'Inter',sans-serif!important;
 }
 div[data-testid="stTextInput"] input:focus,
 [data-baseweb="input"] input:focus{
-  border-color:var(--dwcs-blue)!important;
-  box-shadow:0 0 0 2px rgba(0,102,255,.25)!important;
+  border-color:var(--gold)!important;
+  box-shadow:0 0 0 2px rgba(212,175,55,.25)!important;
 }
 
 /* Dropdowns abertos */
@@ -355,8 +420,8 @@ div[data-testid="stTextInput"] input:focus,
 [data-baseweb="menu"],
 ul[role="listbox"]{
   background:var(--surface)!important;
-  border:1px solid var(--dwcs-blue)!important;
-  box-shadow:0 4px 25px rgba(0,102,255,.3)!important;
+  border:1px solid var(--gold)!important;
+  box-shadow:0 4px 30px rgba(0,0,0,.8), 0 0 20px rgba(212,175,55,.2)!important;
 }
 [data-baseweb="popover"] *,
 [data-baseweb="menu"] *,
@@ -368,69 +433,72 @@ ul[role="listbox"] *{
 li[role="option"]{background:transparent!important; color:var(--text)!important; padding:.5rem .8rem!important}
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"]{
-  background:rgba(0,102,255,.2)!important;
-  color:#fff!important;
+  background:rgba(212,175,55,.18)!important;
+  color:var(--gold-bright)!important;
 }
 
-/* BOTÕES — azul elétrico DWCS */
+/* BOTÕES — dourado championship */
 div[data-testid="stButton"]>button{
-  background:linear-gradient(180deg, var(--dwcs-blue) 0%, var(--dwcs-blue-dark) 100%)!important;
-  color:#fff!important;
-  border:1px solid var(--dwcs-blue-bright)!important;
-  border-radius:4px!important;
-  font-family:'Oswald',sans-serif!important;
-  font-size:1rem!important;
-  font-weight:700!important;
+  background:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 45%, var(--gold-deep) 100%)!important;
+  color:#000!important;
+  border:1px solid var(--gold-bright)!important;
+  border-radius:3px!important;
+  font-family:'Anton',sans-serif!important;
+  font-size:1.05rem!important;
   letter-spacing:.15em!important;
   text-transform:uppercase!important;
   width:100%;
-  padding:.8rem 1rem!important;
+  padding:.85rem 1rem!important;
   transition:all .2s!important;
-  box-shadow:0 2px 15px rgba(0,102,255,.3)!important;
+  box-shadow:0 2px 15px rgba(212,175,55,.3), inset 0 1px 0 rgba(255,255,255,.4)!important;
 }
 div[data-testid="stButton"]>button:hover{
-  background:linear-gradient(180deg, var(--dwcs-blue-bright) 0%, var(--dwcs-blue) 100%)!important;
+  background:linear-gradient(180deg, #fff2b8 0%, var(--gold-bright) 45%, var(--gold) 100%)!important;
   transform:translateY(-1px);
-  box-shadow:0 4px 25px rgba(0,102,255,.6)!important;
-  border-color:var(--gold)!important;
+  box-shadow:0 4px 28px rgba(212,175,55,.55)!important;
 }
 
 /* RADIO buttons */
 div[data-testid="stRadio"] > div{gap:.5rem}
 div[data-testid="stRadio"] label{
   background:var(--surface);
-  border:1px solid var(--border-blue);
-  border-radius:4px;
+  border:1px solid var(--border-gold);
+  border-radius:3px;
   padding:.55rem 1rem;
   transition:all .2s;
 }
 div[data-testid="stRadio"] label:hover{
-  border-color:var(--dwcs-blue);
-  background:rgba(0,102,255,.05);
+  border-color:var(--gold);
+  background:rgba(212,175,55,.06);
+  box-shadow:0 0 10px rgba(212,175,55,.15);
 }
 
-hr{border:none; border-top:1px solid var(--dwcs-blue)!important; margin:1.7rem 0!important; opacity:.4}
+hr{border:none; border-top:1px solid transparent!important;
+   border-image:linear-gradient(90deg, transparent, var(--gold), transparent) 1!important;
+   margin:1.8rem 0!important}
 
 .section-title{
-  font-family:'Anton',sans-serif;
-  font-size:1.5rem;
-  letter-spacing:.1em;
-  color:#fff;
-  margin:1.5rem 0 .8rem;
-  padding-bottom:.4rem;
-  border-bottom:2px solid var(--dwcs-blue);
+  font-family:'Cinzel',serif;
+  font-size:1.25rem;
+  letter-spacing:.18em;
+  color:var(--gold);
+  margin:1.6rem 0 .9rem;
+  padding-bottom:.45rem;
+  border-bottom:2px solid var(--gold);
   display:inline-block;
   text-transform:uppercase;
+  font-weight:900;
 }
 .admin-section{
-  font-family:'Anton',sans-serif;
-  font-size:1.3rem;
-  letter-spacing:.1em;
-  color:var(--dwcs-blue-bright);
-  margin:1.5rem 0 .5rem;
-  padding-bottom:.3rem;
-  border-bottom:1px solid var(--border-blue);
+  font-family:'Cinzel',serif;
+  font-size:1.05rem;
+  letter-spacing:.18em;
+  color:var(--ufc-red-bright);
+  margin:1.6rem 0 .5rem;
+  padding-bottom:.35rem;
+  border-bottom:1px solid var(--border-gold);
   text-transform:uppercase;
+  font-weight:700;
 }
 
 /* Dataframes */
@@ -440,26 +508,26 @@ hr{border:none; border-top:1px solid var(--dwcs-blue)!important; margin:1.7rem 0
 }
 [data-testid="stDataFrame"] th{
   background:var(--surface-2)!important;
-  color:var(--dwcs-blue-bright)!important;
+  color:var(--gold)!important;
   font-family:'Oswald',sans-serif!important;
 }
 
 /* Expanders */
 [data-testid="stExpander"]{
-  border:1px solid var(--border-blue)!important;
-  border-radius:4px!important;
+  border:1px solid var(--border-gold)!important;
+  border-radius:3px!important;
   background:var(--surface)!important;
 }
 [data-testid="stExpander"] summary{
   font-family:'Oswald',sans-serif!important;
   letter-spacing:.1em;
-  color:var(--dwcs-blue-bright)!important;
+  color:var(--gold)!important;
 }
 
 /* Alerts */
 [data-testid="stAlert"]{
-  border-radius:4px!important;
-  border-left:4px solid var(--dwcs-blue)!important;
+  border-radius:3px!important;
+  border-left:4px solid var(--gold)!important;
   background:var(--surface)!important;
   color:var(--text)!important;
 }
@@ -472,20 +540,29 @@ hr{border:none; border-top:1px solid var(--dwcs-blue)!important; margin:1.7rem 0
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <span class="cs-bg">CS</span>
-  <p class="nfx-brand">Dana White\'s</p>
-  <h1 class="nfx-title">
-    Contender Series
-    <span class="nfx-title-sub">Bolão UVR</span>
-  </h1>
-  <p class="nfx-subtitle">Fight For Your UFC Contract</p>
-  <span class="nfx-badge">Tuesday Night Fights</span>
+  <div class="rays"></div>
+  <p class="nfx-brand">Championship Doubleheader</p>
+  <h1 class="nfx-title">UFC 322</h1>
+  <div class="nfx-mainevent">
+    <div class="fighter-name champ">
+      Makhachev
+      <small>🏆 28-1 · Rússia</small>
+    </div>
+    <span class="vs-crown">vs</span>
+    <div class="fighter-name chall">
+      Machado Garry
+      <small>17-1 · Irlanda ☘</small>
+    </div>
+  </div>
+  <p class="nfx-subtitle">Cinturão Meio-Médio em Jogo · Bolão UVR</p>
+  <span class="nfx-badge">2 Title Fights · 1 Night</span>
 </div>
 <div class="event-info">
-  <div class="venue">UFC APEX · Las Vegas, NV</div>
-  <div class="date">Season · Live</div>
+  <div class="venue">Co-Main: Dern vs Robertson · Cinturão Palha</div>
+  <div class="date">Hoje · Ao Vivo</div>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
@@ -622,21 +699,21 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
 # ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
-def render_timer(target_str: str, title: str, color="#0066FF", end_text="ENCERRADO"):
+def render_timer(target_str: str, title: str, color="#D4AF37", end_text="ENCERRADO"):
     try:
         dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
         iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
         html = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&display=swap');
-        .tbox{{background:#0a0f1a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(0,102,255,.2)}}
+        .tbox{{background:#0c0c0c;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(212,175,55,.2)}}
         .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}30,transparent);animation:sweep 3s infinite}}
         @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
-        .ttitle{{font-family:'Oswald',sans-serif;color:#7a8ba8;font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
+        .ttitle{{font-family:'Oswald',sans-serif;color:#8f8878;font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
         .ttime{{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:{color};letter-spacing:.05em;margin-top:-2px;position:relative;text-shadow:0 0 25px {color}80}}
         </style>
         <div class="tbox">
-          <div class="ttitle">◆ {title} ◆</div>
+          <div class="ttitle">★ {title} ★</div>
           <div class="ttime" id="clk">CALCULANDO...</div>
         </div>
         <script>
@@ -706,10 +783,10 @@ with tab_votar:
         lista_lutas_fmt = []
 
         tag_map = {
-            "F1": ("main", "MAIN EVENT"),
-            "F2": ("co-main", "CO-MAIN"),
+            "F1": ("main", "🏆 TITLE FIGHT · MAIN EVENT"),
+            "F2": ("co-main", "👑 TITLE FIGHT · CO-MAIN"),
             "PRINCIPAL": ("", "MAIN CARD"),
-            "PRELIM": ("prelim", "MAIN CARD"),
+            "PRELIM": ("prelim", "PRELIMS"),
         }
 
         for _, luta in lutas.iterrows():

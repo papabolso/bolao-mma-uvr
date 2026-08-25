@@ -284,6 +284,71 @@ html,body,[data-testid="stAppViewContainer"]{
 .fight-card.main .fight-vs .vs,
 .fight-card.co-main .fight-vs .vs{color:var(--gold)}
 
+/* ── Avatares circulares ── */
+.fight-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:.2rem;
+}
+.fighter-block{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  flex:1;
+  min-width:0;
+}
+.fighter-avatar{
+  width:74px; height:74px;
+  border-radius:50%;
+  overflow:hidden;
+  border:3px solid var(--ufc-red);
+  background:#141414;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.fighter-avatar img{
+  width:100%; height:100%;
+  object-fit:cover;
+  object-position:center top;
+  display:block;
+}
+.av-ini{
+  font-family:'Anton',sans-serif;
+  font-size:1.5rem;
+  color:var(--muted);
+  letter-spacing:.02em;
+}
+.fighter-label{
+  font-family:'Anton',sans-serif;
+  font-size:.92rem;
+  letter-spacing:.02em;
+  color:#fff;
+  text-transform:uppercase;
+  margin-top:.5rem;
+  text-align:center;
+  line-height:1.15;
+  word-break:break-word;
+}
+.fight-vs-mid{
+  flex-shrink:0;
+  padding:0 4px;
+  margin-bottom:1.6rem;
+}
+.fight-vs-mid .vs{
+  font-family:'Anton',sans-serif;
+  font-size:1rem;
+  color:var(--ufc-red-bright);
+  letter-spacing:.06em;
+}
+.fight-card.main .fight-vs-mid .vs,
+.fight-card.co-main .fight-vs-mid .vs{color:var(--gold)}
+.fight-card.main .fighter-avatar{width:84px; height:84px}
+.fight-card.main .fighter-label{font-size:1rem}
+
 /* RANKING */
 .rank-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border)}
 .rank-table th{
@@ -687,6 +752,35 @@ with tab_votar:
             "PRELIM": ("prelim", "PRELIMS"),
         }
 
+        # ── Fotos dos lutadores (headshots oficiais UFC) ──
+        FOTOS = {
+            "ANTHONY HERNANDEZ": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/HERNANDEZ_ANTHONY_08-22.png",
+            "GREGORY RODRIGUES": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/RODRIGUES_GREGORY_08-22.png",
+            "SERGHEI SPIVAC": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/SPIVAC_SERGHEI_08-22.png",
+            "VITOR PETRINO": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/PETRINO_VITOR_08-22.png",
+            "REINIER DE RIDDER": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DE-RIDDER_REINIER_08-22.png",
+            "ROMAN DOLIDZE": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DOLIDZE_ROMAN_08-22.png",
+        }
+
+        def iniciais(nome):
+            partes = [p for p in nome.split() if p]
+            if len(partes) >= 2:
+                return (partes[0][0] + partes[-1][0]).upper()
+            return nome[:2].upper()
+
+        def avatar_html(nome, lado):
+            url = FOTOS.get(nome.strip().upper())
+            ini = iniciais(nome)
+            borda = "var(--gold)" if lado == "l" else "var(--ufc-red)"
+            if url:
+                return (
+                    f'<div class="fighter-avatar" style="border-color:{borda}">'
+                    f'<img src="{url}" alt="{nome}" '
+                    f'onerror="this.parentElement.innerHTML=\'<span class=&quot;av-ini&quot;>{ini}</span>\'">'
+                    f'</div>'
+                )
+            return f'<div class="fighter-avatar" style="border-color:{borda}"><span class="av-ini">{ini}</span></div>'
+
         for _, luta in lutas.iterrows():
             lid = int(luta["id"])
             l1, l2 = str(luta["lutador_1"]).strip(), str(luta["lutador_2"]).strip()
@@ -698,7 +792,17 @@ with tab_votar:
             st.markdown(f"""
             <div class="fight-card {tag_class}">
               <span class="fight-tag {tag_class}">{tag_label}</span>
-              <div class="fight-vs">{l1} <span class="vs">vs</span> {l2}</div>
+              <div class="fight-row">
+                <div class="fighter-block">
+                  {avatar_html(l1, "l")}
+                  <div class="fighter-label">{l1}</div>
+                </div>
+                <div class="fight-vs-mid"><span class="vs">VS</span></div>
+                <div class="fighter-block">
+                  {avatar_html(l2, "r")}
+                  <div class="fighter-label">{l2}</div>
+                </div>
+              </div>
             </div>
             """, unsafe_allow_html=True)
             escolha = st.radio(

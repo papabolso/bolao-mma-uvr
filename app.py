@@ -19,26 +19,115 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────
+# SUPABASE
+# ──────────────────────────────────────────────
+@st.cache_resource
+def get_client() -> Client:
+    return create_client(
+        st.secrets["supabase"]["url"],
+        st.secrets["supabase"]["key"],
+    )
+
+sb = get_client()
+
+@st.cache_data(ttl=30)
+def load_lutas() -> pd.DataFrame:
+    res = sb.table("lutas").select("*").order("ordem").execute()
+    df = pd.DataFrame(res.data or [])
+    if df.empty:
+        df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem","foto_1","foto_2"])
+    if "foto_1" not in df.columns: df["foto_1"] = ""
+    if "foto_2" not in df.columns: df["foto_2"] = ""
+    return df
+
+@st.cache_data(ttl=30)
+def load_palpites() -> pd.DataFrame:
+    res = sb.table("palpites").select("*").execute()
+    df = pd.DataFrame(res.data or [])
+    if df.empty:
+        df = pd.DataFrame(columns=["nome","luta_id","palpite","fotn_1","fotn_2","potn_1","potn_2"])
+    return df
+
+@st.cache_data(ttl=30)
+def load_resultados() -> pd.DataFrame:
+    res = sb.table("resultados").select("*").execute()
+    df = pd.DataFrame(res.data or [])
+    if df.empty:
+        df = pd.DataFrame(columns=["luta_id","vencedor_real","pontos"])
+    return df
+
+@st.cache_data(ttl=30)
+def load_config() -> dict:
+    res = sb.table("config").select("*").eq("id", 1).execute()
+    if res.data and len(res.data) > 0:
+        return res.data[0]
+    return {}
+
+def invalidate_cache():
+    load_lutas.clear()
+    load_palpites.clear()
+    load_resultados.clear()
+    load_config.clear()
+
+# ──────────────────────────────────────────────
+# TEMAS — paletas selecionáveis no Admin
+# ──────────────────────────────────────────────
+THEMES = {
+    "ufc": {
+        "label": "UFC Padrão",
+        "accent": "#D20A0A", "accent_bright": "#FF1A1A", "accent_dark": "#8a0606",
+        "gold": "#FFD700", "gold_bright": "#FFE552", "gold_dark": "#c9a300",
+        "bg": "#000000", "bg_dark": "#050505", "surface": "#0e0e0e", "surface_2": "#181818",
+        "border": "#2a2a2a", "text": "#ffffff", "muted": "#8a8a8a",
+        "hero_content": "UFC", "hero_glow": "rgba(210,10,10,.35)",
+    },
+    "dwcs": {
+        "label": "Contender Series (DWCS)",
+        "accent": "#2AB6E3", "accent_bright": "#4fcaf0", "accent_dark": "#1a8ab0",
+        "gold": "#2AB6E3", "gold_bright": "#4fcaf0", "gold_dark": "#1a8ab0",
+        "bg": "#1a1a1a", "bg_dark": "#0f0f0f", "surface": "#1e1e1e", "surface_2": "#252525",
+        "border": "#333333", "text": "#ffffff", "muted": "#8a8a8a",
+        "hero_content": "DW", "hero_glow": "rgba(42,182,227,.10)",
+    },
+    "numbered": {
+        "label": "Evento Numerado (Dourado)",
+        "accent": "#D20A0A", "accent_bright": "#FF1A1A", "accent_dark": "#8a0606",
+        "gold": "#D4AF37", "gold_bright": "#F4D45C", "gold_dark": "#9C7A1E",
+        "bg": "#000000", "bg_dark": "#050505", "surface": "#0c0c0c", "surface_2": "#151310",
+        "border": "#2a2418", "text": "#ffffff", "muted": "#8f8878",
+        "hero_content": "★", "hero_glow": "rgba(212,175,55,.22)",
+    },
+}
+_cfg_tema = {}
+try:
+    _cfg_tema = load_config()
+except Exception:
+    pass
+TEMA_ATUAL = _cfg_tema.get("tema") if isinstance(_cfg_tema, dict) else None
+if TEMA_ATUAL not in THEMES:
+    TEMA_ATUAL = "ufc"
+T = THEMES[TEMA_ATUAL]
+
+
+
+# ──────────────────────────────────────────────
 # CSS — UFC genérico (preto + vermelho + dourado)
 # ──────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
-
-:root{
-  --ufc-red:#2AB6E3;
-  --ufc-red-bright:#4fcaf0;
-  --ufc-red-dark:#1a8ab0;
-  --gold:#2AB6E3;
-  --gold-bright:#4fcaf0;
-  --gold-dark:#1a8ab0;
-  --bg:#1a1a1a;
-  --bg-dark:#0f0f0f;
-  --surface:#1e1e1e;
-  --surface-2:#252525;
-  --border:#333333;
-  --text:#ffffff;
-  --muted:#8a8a8a;
+_ROOT_VARS = f"""
+:root{{
+  --ufc-red:{T['accent']};
+  --ufc-red-bright:{T['accent_bright']};
+  --ufc-red-dark:{T['accent_dark']};
+  --gold:{T['gold']};
+  --gold-bright:{T['gold_bright']};
+  --gold-dark:{T['gold_dark']};
+  --bg:{T['bg']};
+  --bg-dark:{T['bg_dark']};
+  --surface:{T['surface']};
+  --surface-2:{T['surface_2']};
+  --border:{T['border']};
+  --text:{T['text']};
+  --muted:{T['muted']};
   /* aliases */
   --mm-red:var(--ufc-red);
   --mm-purple:#0e0e0e;
@@ -51,16 +140,22 @@ st.markdown("""
   --border-gold:var(--border);
   --gold-deep:var(--gold-dark);
   --gold-glow:rgba(255,215,0,.4);
-}
+}}
 
-html,body,[data-testid="stAppViewContainer"]{
+html,body,[data-testid="stAppViewContainer"]{{
   background:
-    radial-gradient(ellipse at 20% 10%, rgba(42,182,227,.06) 0%, transparent 55%),
-    linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+    radial-gradient(ellipse at 20% 10%, {T['hero_glow']} 0%, transparent 55%),
+    linear-gradient(180deg, {T['bg']} 0%, {T['bg_dark']} 100%) !important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
-}
-#MainMenu,footer,header{visibility:hidden}
+}}
+#MainMenu,footer,header{{visibility:hidden}}
+"""
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
+""" + _ROOT_VARS + """
 
 /* HERO */
 .nfx-hero{
@@ -554,57 +649,6 @@ st.markdown("""
 
 
 # ──────────────────────────────────────────────
-# SUPABASE
-# ──────────────────────────────────────────────
-@st.cache_resource
-def get_client() -> Client:
-    return create_client(
-        st.secrets["supabase"]["url"],
-        st.secrets["supabase"]["key"],
-    )
-
-sb = get_client()
-
-@st.cache_data(ttl=30)
-def load_lutas() -> pd.DataFrame:
-    res = sb.table("lutas").select("*").order("ordem").execute()
-    df = pd.DataFrame(res.data or [])
-    if df.empty:
-        df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem","foto_1","foto_2"])
-    if "foto_1" not in df.columns: df["foto_1"] = ""
-    if "foto_2" not in df.columns: df["foto_2"] = ""
-    return df
-
-@st.cache_data(ttl=30)
-def load_palpites() -> pd.DataFrame:
-    res = sb.table("palpites").select("*").execute()
-    df = pd.DataFrame(res.data or [])
-    if df.empty:
-        df = pd.DataFrame(columns=["nome","luta_id","palpite","fotn_1","fotn_2","potn_1","potn_2"])
-    return df
-
-@st.cache_data(ttl=30)
-def load_resultados() -> pd.DataFrame:
-    res = sb.table("resultados").select("*").execute()
-    df = pd.DataFrame(res.data or [])
-    if df.empty:
-        df = pd.DataFrame(columns=["luta_id","vencedor_real","pontos"])
-    return df
-
-@st.cache_data(ttl=30)
-def load_config() -> dict:
-    res = sb.table("config").select("*").eq("id", 1).execute()
-    if res.data and len(res.data) > 0:
-        return res.data[0]
-    return {}
-
-def invalidate_cache():
-    load_lutas.clear()
-    load_palpites.clear()
-    load_resultados.clear()
-    load_config.clear()
-
-# ──────────────────────────────────────────────
 # MOTOR DE PONTUAÇÃO (mesma lógica do original, adaptada pra Supabase)
 # ──────────────────────────────────────────────
 def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd.DataFrame, cfg: dict) -> pd.DataFrame:
@@ -813,7 +857,7 @@ with tab_votar:
         def avatar_html(nome, lado, url_direta=None):
             url = (url_direta or "").strip() or FOTOS.get(nome.strip().upper())
             ini = iniciais(nome)
-            borda = "#2AB6E3" if lado == "l" else "#4fcaf0"
+            borda = T["accent"] if lado == "l" else T["accent_bright"]
             if url:
                 from urllib.parse import quote
                 proxy = "https://images.weserv.nl/?url=" + quote(url.replace("https://", ""), safe="") + "&w=200"
@@ -826,56 +870,58 @@ with tab_votar:
                 )
             return f'<div class="av" style="border-color:{borda}"><span class="ini">{ini}</span></div>'
 
-        CARD_CSS = """
+        _c = T["accent"]; _cb = T["accent_bright"]; _sf = T["surface"]; _sf2 = T["surface_2"]
+        _bd = T["border"]; _mu = T["muted"]
+        CARD_CSS = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:transparent;font-family:'Oswald',sans-serif}
-        .fc{
-          background:linear-gradient(135deg,#1e1e1e 0%,#252525 100%);
-          border:1px solid #333333;
-          border-left:4px solid #2AB6E3;
+        *{{box-sizing:border-box;margin:0;padding:0}}
+        body{{background:transparent;font-family:'Oswald',sans-serif}}
+        .fc{{
+          background:linear-gradient(135deg,{_sf} 0%,{_sf2} 100%);
+          border:1px solid {_bd};
+          border-left:4px solid {_c};
           border-radius:4px;
           padding:.9rem 1.1rem;
           position:relative;
-        }
-        .fc.main{
-          border:1px solid #2AB6E3;
-          border-left:5px solid #2AB6E3;
-          background:linear-gradient(135deg,#10222b 0%,#14181c 100%);
-          box-shadow:0 0 25px rgba(42,182,227,.22);
-        }
-        .fc.co-main{
-          border-left-color:#4fcaf0;
-          background:linear-gradient(135deg,#14202a 0%,#171b1f 100%);
-          border-color:#2a3a44;
-        }
-        .tag{
+        }}
+        .fc.main{{
+          border:1px solid {_c};
+          border-left:5px solid {_c};
+          background:linear-gradient(135deg,{_sf} 0%,{_sf2} 100%);
+          box-shadow:0 0 25px {_c}38;
+        }}
+        .fc.co-main{{
+          border-left-color:{_cb};
+          background:linear-gradient(135deg,{_sf} 0%,{_sf2} 100%);
+          border-color:{_bd};
+        }}
+        .tag{{
           display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.22em;
-          padding:3px 10px;background:#2AB6E3;color:#000;text-transform:uppercase;
+          padding:3px 10px;background:{_c};color:#000;text-transform:uppercase;
           margin-bottom:.6rem;
-        }
-        .tag.main{background:#2AB6E3;color:#000;font-weight:700}
-        .tag.co-main{background:transparent;color:#4fcaf0;border:1px solid #2AB6E3;font-weight:700}
-        .tag.prelim{background:transparent;color:#8a8a8a;border:1px solid #333333}
-        .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-        .blk{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
-        .av{
+        }}
+        .tag.main{{background:{_c};color:#000;font-weight:700}}
+        .tag.co-main{{background:transparent;color:{_cb};border:1px solid {_c};font-weight:700}}
+        .tag.prelim{{background:transparent;color:{_mu};border:1px solid {_bd}}}
+        .row{{display:flex;align-items:center;justify-content:space-between;gap:8px}}
+        .blk{{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}}
+        .av{{
           width:74px;height:74px;border-radius:50%;overflow:hidden;
-          border:3px solid #2AB6E3;background:#141414;
+          border:3px solid {_c};background:#141414;
           display:flex;align-items:center;justify-content:center;flex-shrink:0;
-        }
-        .fc.main .av{width:84px;height:84px}
-        .av img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-        .ini{font-family:'Anton',sans-serif;font-size:1.5rem;color:#8a8a8a}
-        .nm{
+        }}
+        .fc.main .av{{width:84px;height:84px}}
+        .av img{{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}}
+        .ini{{font-family:'Anton',sans-serif;font-size:1.5rem;color:{_mu}}}
+        .nm{{
           font-family:'Anton',sans-serif;font-size:.9rem;letter-spacing:.02em;color:#fff;
           text-transform:uppercase;margin-top:.5rem;text-align:center;line-height:1.15;
-        }
-        .fc.main .nm{font-size:1rem}
-        .mid{flex-shrink:0;padding:0 4px;margin-bottom:1.6rem}
-        .mid span{font-family:'Anton',sans-serif;font-size:1rem;color:#4fcaf0;letter-spacing:.06em}
-        .fc.main .mid span,.fc.co-main .mid span{color:#2AB6E3}
+        }}
+        .fc.main .nm{{font-size:1rem}}
+        .mid{{flex-shrink:0;padding:0 4px;margin-bottom:1.6rem}}
+        .mid span{{font-family:'Anton',sans-serif;font-size:1rem;color:{_cb};letter-spacing:.06em}}
+        .fc.main .mid span,.fc.co-main .mid span{{color:{_c}}}
         </style>
         """
 
@@ -1085,6 +1131,31 @@ with tab_admin:
         lutas_adm = load_lutas()
         cfg_adm = load_config()
         res_adm = load_resultados()
+
+        # ----- Tema visual -----
+        st.markdown('<div class="admin-section">🎨 Tema Visual</div>', unsafe_allow_html=True)
+        tema_atual_cfg = cfg_adm.get("tema") or "ufc"
+        tema_keys = list(THEMES.keys())
+        tema_labels = [THEMES[k]["label"] for k in tema_keys]
+        idx_tema = tema_keys.index(tema_atual_cfg) if tema_atual_cfg in tema_keys else 0
+        tema_escolhido_label = st.selectbox(
+            "Paleta de cores do site", tema_labels, index=idx_tema, label_visibility="collapsed",
+        )
+        tema_escolhido = tema_keys[tema_labels.index(tema_escolhido_label)]
+        if st.button("💾 Aplicar tema"):
+            try:
+                sb.table("config").update({"tema": tema_escolhido}).eq("id", 1).execute()
+                invalidate_cache()
+                st.success(f"Tema alterado para {THEMES[tema_escolhido]['label']}.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao salvar tema: {e}")
+                st.caption(
+                    "Se o erro mencionar 'coluna tema não existe', roda a migração SQL "
+                    "(alter table config add column tema text default 'ufc';) e tenta de novo."
+                )
+
+        st.markdown("---")
 
         # ----- Configurações gerais -----
         st.markdown('<div class="admin-section">⚙️ Configurações</div>', unsafe_allow_html=True)

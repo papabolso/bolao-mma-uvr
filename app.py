@@ -1146,22 +1146,46 @@ with tab_admin:
                 if not evid:
                     st.error("Não achei o ID. Cole a URL completa ou só o número.")
                 else:
+                    import json as _j, urllib.request as _ur
+
+                    def _get(u):
+                        req = _ur.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+                        with _ur.urlopen(req, timeout=12) as r:
+                            return _j.loads(r.read().decode("utf-8"))
+
                     with st.spinner(f"Consultando evento {evid}…"):
                         url_ok, dados, erros = _espn_try(evid)
+
                     if dados is None:
                         st.error("Nenhum endpoint respondeu.")
                         for e in erros:
                             st.caption(f"• {e}")
                     else:
-                        st.success(f"Respondeu: `{url_ok}`")
-                        st.caption("Chaves no topo do JSON:")
-                        st.code(", ".join(list(dados.keys())[:25]) if isinstance(dados, dict) else type(dados).__name__)
-                        st.caption("Primeiros 3000 caracteres do retorno:")
-                        import json as _j
-                        st.code(_j.dumps(dados, ensure_ascii=False, indent=1)[:3000], language="json")
+                        st.success(f"Evento: **{dados.get('name','?')}**")
+
+                        competitions = dados.get("competitions", [])
+                        st.caption(f"{len(competitions)} lutas encontradas. Seguindo os $refs da 1ª luta…")
+
+                        try:
+                            comp0 = _get(competitions[0]["$ref"])
+                            st.markdown("**Luta 1 — dados completos (competition):**")
+                            st.code(_j.dumps(comp0, ensure_ascii=False, indent=1)[:2500], language="json")
+
+                            competitors = comp0.get("competitors", [])
+                            if competitors:
+                                ath_ref = competitors[0].get("athlete", {}).get("$ref")
+                                if ath_ref:
+                                    atleta = _get(ath_ref)
+                                    st.markdown("**Atleta 1 — dados completos:**")
+                                    st.code(_j.dumps(atleta, ensure_ascii=False, indent=1)[:2500], language="json")
+                                else:
+                                    st.warning("Competitor sem $ref de athlete.")
+                        except Exception as e:
+                            st.error(f"Erro ao seguir os $refs: {e}")
+
                         st.info(
-                            "Copie esse retorno e me mande — com o formato real em mãos "
-                            "eu escrevo o parser que popula o card e as fotos sozinho."
+                            "Copie os dois blocos (competition + atleta) e me manda — "
+                            "com o formato real eu escrevo o parser que popula o card e as fotos sozinho."
                         )
 
         # ===== IMPORT VIA CSV/COLA =====

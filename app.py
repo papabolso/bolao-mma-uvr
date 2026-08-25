@@ -773,10 +773,15 @@ with tab_votar:
             ini = iniciais(nome)
             borda = "var(--gold)" if lado == "l" else "var(--ufc-red)"
             if url:
+                proxy = "https://images.weserv.nl/?url=" + url.replace("https://", "") + "&w=200"
+                fallback_ini = (
+                    "this.parentElement.innerHTML='<span class=&quot;av-ini&quot;>" + ini + "</span>'"
+                )
+                # 1ª tentativa: URL direta do UFC. Se falhar, tenta pelo proxy. Se falhar, iniciais.
                 return (
                     f'<div class="fighter-avatar" style="border-color:{borda}">'
                     f'<img src="{url}" alt="{nome}" '
-                    f'onerror="this.parentElement.innerHTML=\'<span class=&quot;av-ini&quot;>{ini}</span>\'">'
+                    f'onerror="if(!this.dataset.p){{this.dataset.p=1;this.src=\'{proxy}\';}}else{{{fallback_ini}}}">'
                     f'</div>'
                 )
             return f'<div class="fighter-avatar" style="border-color:{borda}"><span class="av-ini">{ini}</span></div>'

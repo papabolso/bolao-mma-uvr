@@ -771,20 +771,70 @@ with tab_votar:
         def avatar_html(nome, lado):
             url = FOTOS.get(nome.strip().upper())
             ini = iniciais(nome)
-            borda = "var(--gold)" if lado == "l" else "var(--ufc-red)"
+            borda = "#FFD700" if lado == "l" else "#D20A0A"
             if url:
                 proxy = "https://images.weserv.nl/?url=" + url.replace("https://", "") + "&w=200"
-                fallback_ini = (
-                    "this.parentElement.innerHTML='<span class=&quot;av-ini&quot;>" + ini + "</span>'"
-                )
-                # 1ª tentativa: URL direta do UFC. Se falhar, tenta pelo proxy. Se falhar, iniciais.
+                fb = "this.parentElement.innerHTML='<span class=&quot;ini&quot;>" + ini + "</span>'"
                 return (
-                    f'<div class="fighter-avatar" style="border-color:{borda}">'
+                    f'<div class="av" style="border-color:{borda}">'
                     f'<img src="{url}" alt="{nome}" '
-                    f'onerror="if(!this.dataset.p){{this.dataset.p=1;this.src=\'{proxy}\';}}else{{{fallback_ini}}}">'
+                    f'onerror="if(!this.dataset.p){{this.dataset.p=1;this.src=\'{proxy}\';}}else{{{fb}}}">'
                     f'</div>'
                 )
-            return f'<div class="fighter-avatar" style="border-color:{borda}"><span class="av-ini">{ini}</span></div>'
+            return f'<div class="av" style="border-color:{borda}"><span class="ini">{ini}</span></div>'
+
+        CARD_CSS = """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:transparent;font-family:'Oswald',sans-serif}
+        .fc{
+          background:linear-gradient(135deg,#0e0e0e 0%,#181818 100%);
+          border:1px solid #2a2a2a;
+          border-left:4px solid #D20A0A;
+          border-radius:4px;
+          padding:.9rem 1.1rem;
+          position:relative;
+        }
+        .fc.main{
+          border:1px solid #FFD700;
+          border-left:5px solid #FFD700;
+          background:linear-gradient(135deg,#1a1206 0%,#251a08 100%);
+          box-shadow:0 0 28px rgba(255,215,0,.18);
+        }
+        .fc.co-main{
+          border-left-color:#c9a300;
+          background:linear-gradient(135deg,#150f04 0%,#1f1606 100%);
+          border-color:#3a2a0e;
+        }
+        .tag{
+          display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.22em;
+          padding:3px 10px;background:#D20A0A;color:#fff;text-transform:uppercase;
+          margin-bottom:.6rem;
+        }
+        .tag.main{background:#FFD700;color:#000;font-weight:700}
+        .tag.co-main{background:#c9a300;color:#000;font-weight:700}
+        .tag.prelim{background:transparent;color:#8a8a8a;border:1px solid #2a2a2a}
+        .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+        .blk{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+        .av{
+          width:74px;height:74px;border-radius:50%;overflow:hidden;
+          border:3px solid #D20A0A;background:#141414;
+          display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        }
+        .fc.main .av{width:84px;height:84px}
+        .av img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+        .ini{font-family:'Anton',sans-serif;font-size:1.5rem;color:#8a8a8a}
+        .nm{
+          font-family:'Anton',sans-serif;font-size:.9rem;letter-spacing:.02em;color:#fff;
+          text-transform:uppercase;margin-top:.5rem;text-align:center;line-height:1.15;
+        }
+        .fc.main .nm{font-size:1rem}
+        .mid{flex-shrink:0;padding:0 4px;margin-bottom:1.6rem}
+        .mid span{font-family:'Anton',sans-serif;font-size:1rem;color:#FF1A1A;letter-spacing:.06em}
+        .fc.main .mid span,.fc.co-main .mid span{color:#FFD700}
+        </style>
+        """
 
         for _, luta in lutas.iterrows():
             lid = int(luta["id"])
@@ -794,22 +844,26 @@ with tab_votar:
             lista_lutas_fmt.append(f"{l1} vs {l2}")
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
 
-            st.markdown(f"""
-            <div class="fight-card {tag_class}">
-              <span class="fight-tag {tag_class}">{tag_label}</span>
-              <div class="fight-row">
-                <div class="fighter-block">
-                  {avatar_html(l1, "l")}
-                  <div class="fighter-label">{l1}</div>
+            altura = 190 if tag_class == "main" else 180
+            components.html(
+                CARD_CSS + f"""
+                <div class="fc {tag_class}">
+                  <span class="tag {tag_class}">{tag_label}</span>
+                  <div class="row">
+                    <div class="blk">
+                      {avatar_html(l1, "l")}
+                      <div class="nm">{l1}</div>
+                    </div>
+                    <div class="mid"><span>VS</span></div>
+                    <div class="blk">
+                      {avatar_html(l2, "r")}
+                      <div class="nm">{l2}</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="fight-vs-mid"><span class="vs">VS</span></div>
-                <div class="fighter-block">
-                  {avatar_html(l2, "r")}
-                  <div class="fighter-label">{l2}</div>
-                </div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """,
+                height=altura,
+            )
             escolha = st.radio(
                 f"Vencedor da luta {lid}",
                 options=[l1, l2],
@@ -1230,7 +1284,3 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
         if st.button("🚪 SAIR"):
             st.session_state.admin_ok = False
             st.rerun()
-st.markdown(
-    '<img src="https://picsum.photos/80" width="80">',
-    unsafe_allow_html=True
-)

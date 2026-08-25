@@ -752,14 +752,23 @@ with tab_votar:
             "PRELIM": ("prelim", "PRELIMS"),
         }
 
-        # ── Fotos dos lutadores (headshots oficiais UFC) ──
+        # ── Fotos dos lutadores ──
+        # UFC: headshots oficiais (só quem já tem contrato)
+        # ESPN: https://a.espncdn.com/i/headshots/mma/players/full/{ID}.png
+        #   → pega o ID na URL do perfil: espn.com/mma/fighter/_/id/{ID}/nome
         FOTOS = {
+            # UFC Sacramento
             "ANTHONY HERNANDEZ": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/HERNANDEZ_ANTHONY_08-22.png",
             "GREGORY RODRIGUES": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/RODRIGUES_GREGORY_08-22.png",
             "SERGHEI SPIVAC": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/SPIVAC_SERGHEI_08-22.png",
             "VITOR PETRINO": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/PETRINO_VITOR_08-22.png",
             "REINIER DE RIDDER": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DE-RIDDER_REINIER_08-22.png",
             "ROMAN DOLIDZE": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DOLIDZE_ROMAN_08-22.png",
+            # DWCS S10 W3 (ESPN)
+            "BELLA MIR": "https://a.espncdn.com/i/headshots/mma/players/full/5369428.png",
+            "ALEX APODACA": "https://a.espncdn.com/i/headshots/mma/players/full/5394582.png",
+            "GUILHERME URIEL": "https://a.espncdn.com/i/headshots/mma/players/full/5220468.png",
+            "SEAN CLANCY JR.": "https://a.espncdn.com/i/headshots/mma/players/full/5364353.png",
         }
 
         def iniciais(nome):

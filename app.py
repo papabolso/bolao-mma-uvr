@@ -1230,3 +1230,7 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
         if st.button("🚪 SAIR"):
             st.session_state.admin_ok = False
             st.rerun()
+st.markdown(
+    '<img src="https://picsum.photos/80" width="80">',
+    unsafe_allow_html=True
+)

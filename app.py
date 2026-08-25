@@ -26,17 +26,17 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  --ufc-red:#D20A0A;
-  --ufc-red-bright:#FF1A1A;
-  --ufc-red-dark:#8a0606;
-  --gold:#FFD700;
-  --gold-bright:#FFE552;
-  --gold-dark:#c9a300;
-  --bg:#000000;
-  --bg-dark:#050505;
-  --surface:#0e0e0e;
-  --surface-2:#181818;
-  --border:#2a2a2a;
+  --ufc-red:#2AB6E3;
+  --ufc-red-bright:#4fcaf0;
+  --ufc-red-dark:#1a8ab0;
+  --gold:#2AB6E3;
+  --gold-bright:#4fcaf0;
+  --gold-dark:#1a8ab0;
+  --bg:#1a1a1a;
+  --bg-dark:#0f0f0f;
+  --surface:#1e1e1e;
+  --surface-2:#252525;
+  --border:#333333;
   --text:#ffffff;
   --muted:#8a8a8a;
   /* aliases */
@@ -55,8 +55,8 @@ st.markdown("""
 
 html,body,[data-testid="stAppViewContainer"]{
   background:
-    radial-gradient(ellipse at 50% -5%, rgba(210,10,10,.15) 0%, transparent 50%),
-    #000000 !important;
+    radial-gradient(ellipse at 20% 10%, rgba(42,182,227,.06) 0%, transparent 55%),
+    linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   color:var(--text)!important;
   font-family:'Inter',sans-serif;
 }
@@ -67,63 +67,82 @@ html,body,[data-testid="stAppViewContainer"]{
   position:relative;
   text-align:center;
   padding:2.8rem 1rem 2rem;
-  background:
-    radial-gradient(ellipse at top, rgba(210,10,10,.35) 0%, transparent 55%),
-    linear-gradient(180deg, #0a0a0a 0%, #000 100%);
-  border-bottom:3px solid var(--ufc-red);
+  background:linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+  border-bottom:none;
   margin:-1rem -1rem 1.2rem;
   overflow:hidden;
 }
 .nfx-hero::before{
-  content:"UFC";
+  content:"D";
   position:absolute;
-  top:-30px; right:-30px;
+  top:-20px; left:-15px;
   font-family:'Anton',sans-serif;
-  font-size:13rem;
+  font-size:11rem;
   color:var(--ufc-red);
   opacity:.12;
   line-height:1;
-  letter-spacing:-.05em;
   pointer-events:none;
-  transform:skew(-8deg);
 }
 .nfx-hero::after{
-  content:"🥊";
+  content:"W";
   position:absolute;
-  bottom:-15px; left:-10px;
-  font-size:7rem;
-  opacity:.07;
+  top:-10px; right:-10px;
+  font-family:'Anton',sans-serif;
+  font-size:11rem;
+  color:var(--ufc-red);
+  opacity:.12;
+  line-height:1;
   pointer-events:none;
 }
 .nfx-brand{
   font-family:'Oswald',sans-serif;
-  font-size:.8rem;
-  letter-spacing:.42em;
-  color:var(--ufc-red-bright);
-  margin:0;
+  font-size:.85rem;
+  letter-spacing:.35em;
+  color:#fff;
+  margin:0 0 .3rem;
   text-transform:uppercase;
   font-weight:600;
   position:relative;
+  display:inline-block;
+}
+.nfx-brand::before, .nfx-brand::after{
+  content:"";
+  display:inline-block;
+  width:35px; height:3px;
+  background:var(--ufc-red);
+  vertical-align:middle;
+  margin:0 12px;
+}
+.cs-bg{
+  position:absolute;
+  bottom:-30px; right:20px;
+  font-family:'Anton',sans-serif;
+  font-size:9rem;
+  color:var(--ufc-red);
+  opacity:.10;
+  line-height:1;
+  pointer-events:none;
+  letter-spacing:-.05em;
 }
 .nfx-title{
   font-family:'Anton',sans-serif;
   font-size:clamp(2.6rem, 9.5vw, 4.6rem);
   letter-spacing:.02em;
-  color:#fff;
-  margin:.35rem 0 0;
+  color:var(--ufc-red);
+  margin:.5rem 0 0;
   line-height:.95;
-  text-shadow:0 4px 30px rgba(210,10,10,.65), 0 0 80px rgba(210,10,10,.3);
   text-transform:uppercase;
   position:relative;
 }
 .nfx-title-sub{
   display:block;
   font-family:'Oswald',sans-serif;
-  font-size:.3em;
-  letter-spacing:.3em;
-  color:var(--gold);
-  margin-top:.5rem;
+  font-size:.32em;
+  letter-spacing:.35em;
+  color:#fff;
+  margin-top:.6rem;
   font-weight:500;
+  opacity:.85;
 }
 .nfx-mainevent{
   display:flex;
@@ -177,10 +196,10 @@ html,body,[data-testid="stAppViewContainer"]{
   letter-spacing:.25em;
   padding:6px 18px;
   background:var(--ufc-red);
-  color:#fff;
+  color:#000;
   margin-top:1rem;
   text-transform:uppercase;
-  font-weight:600;
+  font-weight:700;
   position:relative;
 }
 
@@ -240,19 +259,19 @@ html,body,[data-testid="stAppViewContainer"]{
 .fight-card:hover{
   transform:translateX(2px);
   border-left-color:var(--gold);
-  box-shadow:0 0 18px rgba(210,10,10,.2);
+  box-shadow:0 0 18px rgba(42,182,227,.2);
 }
 .fight-card.main{
   border:1px solid var(--gold);
   border-left:5px solid var(--gold);
-  background:linear-gradient(135deg, #1a1206 0%, #251a08 100%);
-  box-shadow:0 0 28px rgba(255,215,0,.18);
+  background:linear-gradient(135deg, #10222b 0%, #14181c 100%);
+  box-shadow:0 0 25px rgba(42,182,227,.22);
   padding:1.15rem;
 }
 .fight-card.co-main{
   border-left-color:var(--gold-dark);
-  background:linear-gradient(135deg, #150f04 0%, #1f1606 100%);
-  border-color:#3a2a0e;
+  background:linear-gradient(135deg, #14202a 0%, #171b1f 100%);
+  border-color:#2a3a44;
 }
 
 .fight-tag{
@@ -369,10 +388,10 @@ html,body,[data-testid="stAppViewContainer"]{
   color:var(--text);
 }
 .rank-table tr:last-child td{border-bottom:none}
-.rank-table tr.top-1 td{color:var(--gold); font-weight:700; background:rgba(255,215,0,.05)}
+.rank-table tr.top-1 td{color:#FFD700; font-weight:700; background:rgba(255,215,0,.05)}
 .rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
 .rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
-.rank-table tr:hover td{background:rgba(210,10,10,.07)}
+.rank-table tr:hover td{background:rgba(42,182,227,.07)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -390,7 +409,7 @@ div[data-testid="stNumberInput"] input{
 div[data-testid="stTextInput"] input:focus,
 [data-baseweb="input"] input:focus{
   border-color:var(--ufc-red)!important;
-  box-shadow:0 0 0 2px rgba(210,10,10,.25)!important;
+  box-shadow:0 0 0 2px rgba(42,182,227,.25)!important;
 }
 
 /* Dropdowns abertos */
@@ -411,14 +430,14 @@ ul[role="listbox"] *{
 li[role="option"]{background:transparent!important; color:var(--text)!important; padding:.5rem .8rem!important}
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"]{
-  background:rgba(210,10,10,.2)!important;
+  background:rgba(42,182,227,.2)!important;
   color:#fff!important;
 }
 
 /* BOTÕES */
 div[data-testid="stButton"]>button{
   background:var(--ufc-red)!important;
-  color:#fff!important;
+  color:#000!important;
   border:none!important;
   border-radius:3px!important;
   font-family:'Oswald',sans-serif!important;
@@ -433,7 +452,7 @@ div[data-testid="stButton"]>button{
 div[data-testid="stButton"]>button:hover{
   background:var(--ufc-red-bright)!important;
   transform:translateY(-1px);
-  box-shadow:0 4px 22px rgba(210,10,10,.5)!important;
+  box-shadow:0 4px 22px rgba(42,182,227,.5)!important;
 }
 
 /* RADIO buttons */
@@ -447,7 +466,7 @@ div[data-testid="stRadio"] label{
 }
 div[data-testid="stRadio"] label:hover{
   border-color:var(--ufc-red);
-  background:rgba(210,10,10,.05);
+  background:rgba(42,182,227,.05);
 }
 
 hr{border:none; border-top:1px solid var(--ufc-red)!important; margin:1.7rem 0!important; opacity:.35}
@@ -513,13 +532,18 @@ hr{border:none; border-top:1px solid var(--ufc-red)!important; margin:1.7rem 0!i
 # ──────────────────────────────────────────────
 st.markdown("""
 <div class="nfx-hero">
-  <p class="nfx-brand">Ultimate Fighting Championship</p>
+  <span class="cs-bg">CS</span>
+  <p class="nfx-brand">Dana White\'s</p>
   <h1 class="nfx-title">
-    Bolão UFC
-    <span class="nfx-title-sub">UVR · Friendly Edition</span>
+    Contender Series
+    <span class="nfx-title-sub">Bolão UVR</span>
   </h1>
-  <p class="nfx-subtitle">Quem cravar mais leva a glória</p>
-  <span class="nfx-badge">It\'s Time!</span>
+  <p class="nfx-subtitle">Fight For Your UFC Contract</p>
+  <span class="nfx-badge">Tuesday Night Fights</span>
+</div>
+<div class="event-info">
+  <div class="venue">Meta APEX · Las Vegas, NV</div>
+  <div class="date">Temporada 10 · Semana 3</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -662,14 +686,14 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
 # ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
-def render_timer(target_str: str, title: str, color="#D20A0A", end_text="ENCERRADO"):
+def render_timer(target_str: str, title: str, color="#2AB6E3", end_text="ENCERRADO"):
     try:
         dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
         iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
         html = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&display=swap');
-        .tbox{{background:#0a0a0a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(210,10,10,.2)}}
+        .tbox{{background:#0a0a0a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(42,182,227,.2)}}
         .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}30,transparent);animation:sweep 3s infinite}}
         @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
         .ttitle{{font-family:'Oswald',sans-serif;color:#8f8878;font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
@@ -746,10 +770,10 @@ with tab_votar:
         lista_lutas_fmt = []
 
         tag_map = {
-            "F1": ("main", "MAIN EVENT"),
+            "F1": ("main", "LUTA PRINCIPAL"),
             "F2": ("co-main", "CO-MAIN"),
-            "PRINCIPAL": ("", "MAIN CARD"),
-            "PRELIM": ("prelim", "PRELIMS"),
+            "PRINCIPAL": ("", "CARD PRINCIPAL"),
+            "PRELIM": ("prelim", "CARD PRINCIPAL"),
         }
 
         # ── Fotos dos lutadores ──
@@ -787,7 +811,7 @@ with tab_votar:
         def avatar_html(nome, lado):
             url = FOTOS.get(nome.strip().upper())
             ini = iniciais(nome)
-            borda = "#FFD700" if lado == "l" else "#D20A0A"
+            borda = "#2AB6E3" if lado == "l" else "#4fcaf0"
             if url:
                 from urllib.parse import quote
                 proxy = "https://images.weserv.nl/?url=" + quote(url.replace("https://", ""), safe="") + "&w=200"
@@ -806,37 +830,37 @@ with tab_votar:
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:transparent;font-family:'Oswald',sans-serif}
         .fc{
-          background:linear-gradient(135deg,#0e0e0e 0%,#181818 100%);
-          border:1px solid #2a2a2a;
-          border-left:4px solid #D20A0A;
+          background:linear-gradient(135deg,#1e1e1e 0%,#252525 100%);
+          border:1px solid #333333;
+          border-left:4px solid #2AB6E3;
           border-radius:4px;
           padding:.9rem 1.1rem;
           position:relative;
         }
         .fc.main{
-          border:1px solid #FFD700;
-          border-left:5px solid #FFD700;
-          background:linear-gradient(135deg,#1a1206 0%,#251a08 100%);
-          box-shadow:0 0 28px rgba(255,215,0,.18);
+          border:1px solid #2AB6E3;
+          border-left:5px solid #2AB6E3;
+          background:linear-gradient(135deg,#10222b 0%,#14181c 100%);
+          box-shadow:0 0 25px rgba(42,182,227,.22);
         }
         .fc.co-main{
-          border-left-color:#c9a300;
-          background:linear-gradient(135deg,#150f04 0%,#1f1606 100%);
-          border-color:#3a2a0e;
+          border-left-color:#4fcaf0;
+          background:linear-gradient(135deg,#14202a 0%,#171b1f 100%);
+          border-color:#2a3a44;
         }
         .tag{
           display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.22em;
-          padding:3px 10px;background:#D20A0A;color:#fff;text-transform:uppercase;
+          padding:3px 10px;background:#2AB6E3;color:#000;text-transform:uppercase;
           margin-bottom:.6rem;
         }
-        .tag.main{background:#FFD700;color:#000;font-weight:700}
-        .tag.co-main{background:#c9a300;color:#000;font-weight:700}
-        .tag.prelim{background:transparent;color:#8a8a8a;border:1px solid #2a2a2a}
+        .tag.main{background:#2AB6E3;color:#000;font-weight:700}
+        .tag.co-main{background:transparent;color:#4fcaf0;border:1px solid #2AB6E3;font-weight:700}
+        .tag.prelim{background:transparent;color:#8a8a8a;border:1px solid #333333}
         .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
         .blk{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
         .av{
           width:74px;height:74px;border-radius:50%;overflow:hidden;
-          border:3px solid #D20A0A;background:#141414;
+          border:3px solid #2AB6E3;background:#141414;
           display:flex;align-items:center;justify-content:center;flex-shrink:0;
         }
         .fc.main .av{width:84px;height:84px}
@@ -848,8 +872,8 @@ with tab_votar:
         }
         .fc.main .nm{font-size:1rem}
         .mid{flex-shrink:0;padding:0 4px;margin-bottom:1.6rem}
-        .mid span{font-family:'Anton',sans-serif;font-size:1rem;color:#FF1A1A;letter-spacing:.06em}
-        .fc.main .mid span,.fc.co-main .mid span{color:#FFD700}
+        .mid span{font-family:'Anton',sans-serif;font-size:1rem;color:#4fcaf0;letter-spacing:.06em}
+        .fc.main .mid span,.fc.co-main .mid span{color:#2AB6E3}
         </style>
         """
 

@@ -570,7 +570,9 @@ def load_lutas() -> pd.DataFrame:
     res = sb.table("lutas").select("*").order("ordem").execute()
     df = pd.DataFrame(res.data or [])
     if df.empty:
-        df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem"])
+        df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem","foto_1","foto_2"])
+    if "foto_1" not in df.columns: df["foto_1"] = ""
+    if "foto_2" not in df.columns: df["foto_2"] = ""
     return df
 
 @st.cache_data(ttl=30)
@@ -808,8 +810,8 @@ with tab_votar:
                 return (partes[0][0] + partes[-1][0]).upper()
             return nome[:2].upper()
 
-        def avatar_html(nome, lado):
-            url = FOTOS.get(nome.strip().upper())
+        def avatar_html(nome, lado, url_direta=None):
+            url = (url_direta or "").strip() or FOTOS.get(nome.strip().upper())
             ini = iniciais(nome)
             borda = "#2AB6E3" if lado == "l" else "#4fcaf0"
             if url:
@@ -881,6 +883,8 @@ with tab_votar:
             lid = int(luta["id"])
             l1, l2 = str(luta["lutador_1"]).strip(), str(luta["lutador_2"]).strip()
             tipo = str(luta["tipo"]).strip().upper()
+            f1_url = str(luta.get("foto_1", "") or "").strip()
+            f2_url = str(luta.get("foto_2", "") or "").strip()
             todos_lutadores.extend([l1, l2])
             lista_lutas_fmt.append(f"{l1} vs {l2}")
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
@@ -892,12 +896,12 @@ with tab_votar:
                   <span class="tag {tag_class}">{tag_label}</span>
                   <div class="row">
                     <div class="blk">
-                      {avatar_html(l1, "l")}
+                      {avatar_html(l1, "l", f1_url)}
                       <div class="nm">{l1}</div>
                     </div>
                     <div class="mid"><span>VS</span></div>
                     <div class="blk">
-                      {avatar_html(l2, "r")}
+                      {avatar_html(l2, "r", f2_url)}
                       <div class="nm">{l2}</div>
                     </div>
                   </div>
@@ -1128,14 +1132,13 @@ with tab_admin:
                     return json.loads(r.read().decode("utf-8"))
 
             def _buscar_card_espn(evid):
-                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas], fotos_dict) ou levanta erro."""
+                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto_1/foto_2 embutidas."""
                 base = f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}"
                 dados = _get(base)
                 nome_evento = dados.get("name", "Evento ESPN")
                 competitions = dados.get("competitions", [])
 
                 lutas = []
-                fotos = {}
                 for comp_ref in competitions:
                     comp = _get(comp_ref["$ref"])
                     tipo_peso = comp.get("type", {}).get("text", "")
@@ -1143,29 +1146,32 @@ with tab_admin:
                     if len(competitors) < 2:
                         continue
 
-                    nomes_luta = []
+                    nomes_luta, fotos_luta = [], []
                     for c in competitors[:2]:
                         ath_ref = c.get("athlete", {}).get("$ref")
-                        if not ath_ref:
-                            nomes_luta.append("?")
-                            continue
-                        atleta = _get(ath_ref)
-                        nome = atleta.get("fullName") or atleta.get("displayName") or "?"
+                        nome, foto = "?", ""
+                        if ath_ref:
+                            try:
+                                atleta = _get(ath_ref)
+                                nome = atleta.get("fullName") or atleta.get("displayName") or "?"
+                                foto = atleta.get("headshot", {}).get("href", "") or ""
+                            except Exception:
+                                pass  # segue sem foto pra não derrubar o card inteiro
                         nomes_luta.append(nome)
-                        headshot = atleta.get("headshot", {}).get("href")
-                        if headshot:
-                            fotos[nome.strip().upper()] = headshot
+                        fotos_luta.append(foto)
 
                     lutas.append({
                         "l1": nomes_luta[0],
                         "l2": nomes_luta[1] if len(nomes_luta) > 1 else "?",
+                        "foto_1": fotos_luta[0] if fotos_luta else "",
+                        "foto_2": fotos_luta[1] if len(fotos_luta) > 1 else "",
                         "peso": tipo_peso,
                         "data": comp.get("date", ""),
                     })
 
                 # ESPN lista em ordem crescente (prelim -> main). Invertemos p/ main event vir 1º.
                 lutas.reverse()
-                return nome_evento, lutas, fotos
+                return nome_evento, lutas
 
             cb1, cb2 = st.columns(2)
             with cb1:
@@ -1180,7 +1186,7 @@ with tab_admin:
                 else:
                     try:
                         with st.spinner(f"Consultando evento {evid} e seus lutadores…"):
-                            nome_evt, lutas_espn, fotos_espn = _buscar_card_espn(evid)
+                            nome_evt, lutas_espn = _buscar_card_espn(evid)
                     except Exception as e:
                         st.error(f"Erro ao consultar a ESPN: {e}")
                         lutas_espn = None
@@ -1189,12 +1195,15 @@ with tab_admin:
                         if not lutas_espn:
                             st.warning("Evento encontrado mas sem lutas listadas ainda.")
                         else:
-                            st.success(f"**{nome_evt}** — {len(lutas_espn)} lutas")
+                            n_fotos = sum(1 for l in lutas_espn if l["foto_1"]) + sum(1 for l in lutas_espn if l["foto_2"])
+                            st.success(f"**{nome_evt}** — {len(lutas_espn)} lutas · {n_fotos}/{len(lutas_espn)*2} fotos encontradas")
                             rows_pv = ""
                             for i, l in enumerate(lutas_espn):
                                 tipo_auto = "F1" if i == 0 else ("F2" if i == 1 else "PRELIM")
+                                f1_ok = "📷" if l["foto_1"] else "—"
+                                f2_ok = "📷" if l["foto_2"] else "—"
                                 rows_pv += (
-                                    f'<tr><td>{i+1}</td><td>{l["l1"]}</td><td>{l["l2"]}</td>'
+                                    f'<tr><td>{i+1}</td><td>{l["l1"]} {f1_ok}</td><td>{l["l2"]} {f2_ok}</td>'
                                     f'<td>{l["peso"]}</td><td>{tipo_auto}</td></tr>'
                                 )
                             st.markdown(
@@ -1203,7 +1212,6 @@ with tab_admin:
                                 f'</tr></thead><tbody>{rows_pv}</tbody></table>',
                                 unsafe_allow_html=True,
                             )
-                            st.caption(f"{len(fotos_espn)} fotos encontradas automaticamente.")
 
                             if importar:
                                 validas = [{
@@ -1212,6 +1220,8 @@ with tab_admin:
                                     "lutador_2": l["l2"],
                                     "tipo": "F1" if i == 0 else ("F2" if i == 1 else "PRELIM"),
                                     "ordem": i + 1,
+                                    "foto_1": l["foto_1"],
+                                    "foto_2": l["foto_2"],
                                 } for i, l in enumerate(lutas_espn)]
                                 try:
                                     sb.table("resultados").delete().neq("luta_id", 0).execute()
@@ -1223,21 +1233,16 @@ with tab_admin:
                                     }).eq("id", 1).execute()
                                     invalidate_cache()
                                     st.success(
-                                        f"✅ Importado do ESPN! {len(validas)} lutas. "
+                                        f"✅ Importado do ESPN! {len(validas)} lutas com fotos. "
                                         f"Palpites antigos zerados."
                                     )
-                                    st.info(
-                                        "⚠️ As fotos precisam ser coladas manualmente no dicionário `FOTOS` "
-                                        "do código por enquanto (ainda não conectado ao banco). "
-                                        "Copie a lista abaixo e me envie:"
-                                    )
-                                    linhas_fotos = "\n".join(
-                                        f'"{n}": "{u}",' for n, u in fotos_espn.items()
-                                    )
-                                    st.code(linhas_fotos, language="python")
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Erro ao salvar: {e}")
+                                    st.caption(
+                                        "Se o erro mencionar 'coluna foto_1 não existe', "
+                                        "roda o SQL de migração (veja abaixo) e tenta de novo."
+                                    )
 
         # ===== IMPORT VIA CSV/COLA =====
         with st.expander("📋 Importar card via CSV (cola rápida)", expanded=False):
@@ -1261,7 +1266,7 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
             """)
 
             def parse_csv(text):
-                """Parser flexível: detecta header, ID opcional"""
+                """Parser flexível: detecta header, ID opcional, Foto_1/Foto_2 opcionais"""
                 linhas = [ln for ln in text.strip().splitlines() if ln.strip()]
                 if not linhas:
                     return []
@@ -1284,15 +1289,18 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                     tp = (parts[2].upper() if len(parts) > 2 else "PRELIM")
                     if tp not in ("F1","F2","PRINCIPAL","PRELIM"):
                         tp = "PRELIM"
-                    resultado.append({"l1": l1, "l2": l2, "tipo": tp})
+                    foto1 = parts[3] if len(parts) > 3 else ""
+                    foto2 = parts[4] if len(parts) > 4 else ""
+                    resultado.append({"l1": l1, "l2": l2, "tipo": tp, "foto_1": foto1, "foto_2": foto2})
                 return resultado
 
             csv_text = st.text_area(
                 "Cole aqui",
                 height=240,
-                placeholder="ID,Lutador_1,Lutador_2,Tipo\n1,Lutador A,Lutador B,F1\n2,Lutador C,Lutador D,F2\n...",
+                placeholder="ID,Lutador_1,Lutador_2,Tipo,Foto_1,Foto_2\n1,Lutador A,Lutador B,F1,https://...,https://...\n2,Lutador C,Lutador D,F2\n...",
                 key="csv_import",
             )
+            st.caption("Colunas Foto_1/Foto_2 são opcionais — sem elas, cai no avatar com iniciais.")
             cb1, cb2 = st.columns(2)
             with cb1:
                 if st.button("👁️ Preview"):
@@ -1300,17 +1308,19 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                     if parsed:
                         rows_pv = ""
                         for i, p in enumerate(parsed):
+                            f_ok = "📷" if (p["foto_1"] or p["foto_2"]) else "—"
                             rows_pv += (
                                 f'<tr>'
                                 f'<td>{i+1}</td>'
                                 f'<td>{p["l1"]}</td>'
                                 f'<td>{p["l2"]}</td>'
                                 f'<td style="font-weight:600; color:var(--mm-red)">{p["tipo"]}</td>'
+                                f'<td>{f_ok}</td>'
                                 f'</tr>'
                             )
                         st.markdown(
                             f'<table class="rank-table">'
-                            f'<thead><tr><th>#</th><th>LUTADOR 1</th><th>LUTADOR 2</th><th>TIPO</th></tr></thead>'
+                            f'<thead><tr><th>#</th><th>LUTADOR 1</th><th>LUTADOR 2</th><th>TIPO</th><th>FOTO</th></tr></thead>'
                             f'<tbody>{rows_pv}</tbody></table>',
                             unsafe_allow_html=True,
                         )
@@ -1326,6 +1336,8 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                         "lutador_2": p["l2"],
                         "tipo": p["tipo"],
                         "ordem": i+1,
+                        "foto_1": p["foto_1"],
+                        "foto_2": p["foto_2"],
                     } for i, p in enumerate(parsed)]
                     if not validas:
                         st.error("Nada válido pra importar.")

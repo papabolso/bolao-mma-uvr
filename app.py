@@ -1104,7 +1104,7 @@ with tab_admin:
 
         # ===== IMPORT VIA CSV/COLA =====
         # ===== IMPORT VIA ESPN (experimental) =====
-        with st.expander("🌐 Importar da ESPN (experimental)", expanded=False):
+        with st.expander("🌐 Importar da ESPN", expanded=False):
             st.caption(
                 "Cole a URL do fightcenter ou só o ID do evento. "
                 "Ex: espn.com/mma/fightcenter/_/id/**600060734**/league/ufc"
@@ -1121,72 +1121,123 @@ with tab_admin:
                 m = re.search(r"/id/(\d+)", txt) or re.search(r"^\s*(\d+)\s*$", txt)
                 return m.group(1) if m else None
 
-            def _espn_try(evid):
-                """Tenta endpoints conhecidos. Retorna (url, dados) do primeiro que responder."""
+            def _get(u):
                 import json, urllib.request
-                cands = [
-                    f"https://site.api.espn.com/apis/site/v2/sports/mma/ufc/fightcenter/{evid}",
-                    f"https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/fightcenter/{evid}",
-                    f"https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard/{evid}",
-                    f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}",
-                    f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}/competitions",
-                ]
-                erros = []
-                for u in cands:
-                    try:
-                        req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
-                        with urllib.request.urlopen(req, timeout=12) as r:
-                            return u, json.loads(r.read().decode("utf-8")), erros
-                    except Exception as e:
-                        erros.append(f"{u.split('/apis/')[-1][:60]}… → {type(e).__name__}")
-                return None, None, erros
+                req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=12) as r:
+                    return json.loads(r.read().decode("utf-8"))
 
-            if st.button("🔎 Testar conexão"):
+            def _buscar_card_espn(evid):
+                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas], fotos_dict) ou levanta erro."""
+                base = f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}"
+                dados = _get(base)
+                nome_evento = dados.get("name", "Evento ESPN")
+                competitions = dados.get("competitions", [])
+
+                lutas = []
+                fotos = {}
+                for comp_ref in competitions:
+                    comp = _get(comp_ref["$ref"])
+                    tipo_peso = comp.get("type", {}).get("text", "")
+                    competitors = comp.get("competitors", [])
+                    if len(competitors) < 2:
+                        continue
+
+                    nomes_luta = []
+                    for c in competitors[:2]:
+                        ath_ref = c.get("athlete", {}).get("$ref")
+                        if not ath_ref:
+                            nomes_luta.append("?")
+                            continue
+                        atleta = _get(ath_ref)
+                        nome = atleta.get("fullName") or atleta.get("displayName") or "?"
+                        nomes_luta.append(nome)
+                        headshot = atleta.get("headshot", {}).get("href")
+                        if headshot:
+                            fotos[nome.strip().upper()] = headshot
+
+                    lutas.append({
+                        "l1": nomes_luta[0],
+                        "l2": nomes_luta[1] if len(nomes_luta) > 1 else "?",
+                        "peso": tipo_peso,
+                        "data": comp.get("date", ""),
+                    })
+
+                # ESPN lista em ordem crescente (prelim -> main). Invertemos p/ main event vir 1º.
+                lutas.reverse()
+                return nome_evento, lutas, fotos
+
+            cb1, cb2 = st.columns(2)
+            with cb1:
+                buscar = st.button("🔎 Buscar card")
+            with cb2:
+                importar = st.button("🚀 IMPORTAR (ESPN)")
+
+            if buscar or importar:
                 evid = _espn_id(espn_in or "")
                 if not evid:
                     st.error("Não achei o ID. Cole a URL completa ou só o número.")
                 else:
-                    import json as _j, urllib.request as _ur
+                    try:
+                        with st.spinner(f"Consultando evento {evid} e seus lutadores…"):
+                            nome_evt, lutas_espn, fotos_espn = _buscar_card_espn(evid)
+                    except Exception as e:
+                        st.error(f"Erro ao consultar a ESPN: {e}")
+                        lutas_espn = None
 
-                    def _get(u):
-                        req = _ur.Request(u, headers={"User-Agent": "Mozilla/5.0"})
-                        with _ur.urlopen(req, timeout=12) as r:
-                            return _j.loads(r.read().decode("utf-8"))
+                    if lutas_espn is not None:
+                        if not lutas_espn:
+                            st.warning("Evento encontrado mas sem lutas listadas ainda.")
+                        else:
+                            st.success(f"**{nome_evt}** — {len(lutas_espn)} lutas")
+                            rows_pv = ""
+                            for i, l in enumerate(lutas_espn):
+                                tipo_auto = "F1" if i == 0 else ("F2" if i == 1 else "PRELIM")
+                                rows_pv += (
+                                    f'<tr><td>{i+1}</td><td>{l["l1"]}</td><td>{l["l2"]}</td>'
+                                    f'<td>{l["peso"]}</td><td>{tipo_auto}</td></tr>'
+                                )
+                            st.markdown(
+                                '<table class="rank-table"><thead><tr>'
+                                '<th>#</th><th>Lutador 1</th><th>Lutador 2</th><th>Categoria</th><th>Tipo</th>'
+                                f'</tr></thead><tbody>{rows_pv}</tbody></table>',
+                                unsafe_allow_html=True,
+                            )
+                            st.caption(f"{len(fotos_espn)} fotos encontradas automaticamente.")
 
-                    with st.spinner(f"Consultando evento {evid}…"):
-                        url_ok, dados, erros = _espn_try(evid)
-
-                    if dados is None:
-                        st.error("Nenhum endpoint respondeu.")
-                        for e in erros:
-                            st.caption(f"• {e}")
-                    else:
-                        st.success(f"Evento: **{dados.get('name','?')}**")
-
-                        competitions = dados.get("competitions", [])
-                        st.caption(f"{len(competitions)} lutas encontradas. Seguindo os $refs da 1ª luta…")
-
-                        try:
-                            comp0 = _get(competitions[0]["$ref"])
-                            st.markdown("**Luta 1 — dados completos (competition):**")
-                            st.code(_j.dumps(comp0, ensure_ascii=False, indent=1)[:2500], language="json")
-
-                            competitors = comp0.get("competitors", [])
-                            if competitors:
-                                ath_ref = competitors[0].get("athlete", {}).get("$ref")
-                                if ath_ref:
-                                    atleta = _get(ath_ref)
-                                    st.markdown("**Atleta 1 — dados completos:**")
-                                    st.code(_j.dumps(atleta, ensure_ascii=False, indent=1)[:2500], language="json")
-                                else:
-                                    st.warning("Competitor sem $ref de athlete.")
-                        except Exception as e:
-                            st.error(f"Erro ao seguir os $refs: {e}")
-
-                        st.info(
-                            "Copie os dois blocos (competition + atleta) e me manda — "
-                            "com o formato real eu escrevo o parser que popula o card e as fotos sozinho."
-                        )
+                            if importar:
+                                validas = [{
+                                    "id": i + 1,
+                                    "lutador_1": l["l1"],
+                                    "lutador_2": l["l2"],
+                                    "tipo": "F1" if i == 0 else ("F2" if i == 1 else "PRELIM"),
+                                    "ordem": i + 1,
+                                } for i, l in enumerate(lutas_espn)]
+                                try:
+                                    sb.table("resultados").delete().neq("luta_id", 0).execute()
+                                    sb.table("palpites").delete().neq("id", 0).execute()
+                                    sb.table("lutas").delete().neq("id", 0).execute()
+                                    sb.table("lutas").insert(validas).execute()
+                                    sb.table("config").update({
+                                        "fotn_1": "", "fotn_2": "", "potn_1": "", "potn_2": "",
+                                    }).eq("id", 1).execute()
+                                    invalidate_cache()
+                                    st.success(
+                                        f"✅ Importado do ESPN! {len(validas)} lutas. "
+                                        f"Palpites antigos zerados."
+                                    )
+                                    st.info(
+                                        "⚠️ As fotos precisam ser coladas manualmente no dicionário `FOTOS` "
+                                        "do código por enquanto (ainda não conectado ao banco). "
+                                        "Copie a lista abaixo e me envie:"
+                                    )
+                                    linhas_fotos = "\n".join(
+                                        f'"{n}": "{u}",' for n, u in fotos_espn.items()
+                                    )
+                                    st.code(linhas_fotos, language="python")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao salvar: {e}")
 
         # ===== IMPORT VIA CSV/COLA =====
         with st.expander("📋 Importar card via CSV (cola rápida)", expanded=False):

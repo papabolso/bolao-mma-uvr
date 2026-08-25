@@ -1103,6 +1103,68 @@ with tab_admin:
         st.caption("⚠️ Alterar lutas APAGA todos os palpites e resultados antigos.")
 
         # ===== IMPORT VIA CSV/COLA =====
+        # ===== IMPORT VIA ESPN (experimental) =====
+        with st.expander("🌐 Importar da ESPN (experimental)", expanded=False):
+            st.caption(
+                "Cole a URL do fightcenter ou só o ID do evento. "
+                "Ex: espn.com/mma/fightcenter/_/id/**600060734**/league/ufc"
+            )
+            espn_in = st.text_input(
+                "URL ou ID do evento",
+                placeholder="600060734",
+                key="espn_evt",
+                label_visibility="collapsed",
+            )
+
+            def _espn_id(txt):
+                import re
+                m = re.search(r"/id/(\d+)", txt) or re.search(r"^\s*(\d+)\s*$", txt)
+                return m.group(1) if m else None
+
+            def _espn_try(evid):
+                """Tenta endpoints conhecidos. Retorna (url, dados) do primeiro que responder."""
+                import json, urllib.request
+                cands = [
+                    f"https://site.api.espn.com/apis/site/v2/sports/mma/ufc/fightcenter/{evid}",
+                    f"https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/fightcenter/{evid}",
+                    f"https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard/{evid}",
+                    f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}",
+                    f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}/competitions",
+                ]
+                erros = []
+                for u in cands:
+                    try:
+                        req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req, timeout=12) as r:
+                            return u, json.loads(r.read().decode("utf-8")), erros
+                    except Exception as e:
+                        erros.append(f"{u.split('/apis/')[-1][:60]}… → {type(e).__name__}")
+                return None, None, erros
+
+            if st.button("🔎 Testar conexão"):
+                evid = _espn_id(espn_in or "")
+                if not evid:
+                    st.error("Não achei o ID. Cole a URL completa ou só o número.")
+                else:
+                    with st.spinner(f"Consultando evento {evid}…"):
+                        url_ok, dados, erros = _espn_try(evid)
+                    if dados is None:
+                        st.error("Nenhum endpoint respondeu.")
+                        for e in erros:
+                            st.caption(f"• {e}")
+                    else:
+                        st.success(f"Respondeu: `{url_ok}`")
+                        st.caption("Chaves no topo do JSON:")
+                        st.code(", ".join(list(dados.keys())[:25]) if isinstance(dados, dict) else type(dados).__name__)
+                        st.caption("Primeiros 3000 caracteres do retorno:")
+                        import json as _j
+                        st.code(_j.dumps(dados, ensure_ascii=False, indent=1)[:3000], language="json")
+                        st.info(
+                            "Copie esse retorno e me mande — com o formato real em mãos "
+                            "eu escrevo o parser que popula o card e as fotos sozinho."
+                        )
+
+        # ===== IMPORT VIA CSV/COLA =====
         with st.expander("📋 Importar card via CSV (cola rápida)", expanded=False):
             st.markdown("""
 **Formato aceito** (com ou sem header, com ou sem ID):

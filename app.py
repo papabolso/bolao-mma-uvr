@@ -754,8 +754,9 @@ with tab_votar:
 
         # ── Fotos dos lutadores ──
         # UFC: headshots oficiais (só quem já tem contrato)
-        # ESPN: https://a.espncdn.com/i/headshots/mma/players/full/{ID}.png
+        # ESPN: https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{ID}.png&h=200&w=200&scale=crop
         #   → pega o ID na URL do perfil: espn.com/mma/fighter/_/id/{ID}/nome
+        _ESPN = "https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{}.png&h=200&w=200&scale=crop"
         FOTOS = {
             # UFC Sacramento
             "ANTHONY HERNANDEZ": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/HERNANDEZ_ANTHONY_08-22.png",
@@ -765,10 +766,16 @@ with tab_votar:
             "REINIER DE RIDDER": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DE-RIDDER_REINIER_08-22.png",
             "ROMAN DOLIDZE": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DOLIDZE_ROMAN_08-22.png",
             # DWCS S10 W3 (ESPN)
-            "BELLA MIR": "https://a.espncdn.com/i/headshots/mma/players/full/5369428.png",
-            "ALEX APODACA": "https://a.espncdn.com/i/headshots/mma/players/full/5394582.png",
-            "GUILHERME URIEL": "https://a.espncdn.com/i/headshots/mma/players/full/5220468.png",
-            "SEAN CLANCY JR.": "https://a.espncdn.com/i/headshots/mma/players/full/5364353.png",
+            "BELLA MIR":          _ESPN.format(5369428),
+            "ALEX APODACA":       _ESPN.format(5394582),
+            "MARIO PIAZZON":      _ESPN.format(5149190),
+            "GUILHERME URIEL":    _ESPN.format(5220468),
+            "GARY BALLETTO":      _ESPN.format(4351084),
+            "SEAN CLANCY JR.":    _ESPN.format(5364353),
+            "RONALD HUMPHREY":    _ESPN.format(5361909),
+            "ALEXIS MIRANDA":     _ESPN.format(5364354),
+            "CARLOS PETRUZZELLA": _ESPN.format(5264647),
+            "NICK GALANTI":       _ESPN.format(5296770),
         }
 
         def iniciais(nome):
@@ -782,7 +789,8 @@ with tab_votar:
             ini = iniciais(nome)
             borda = "#FFD700" if lado == "l" else "#D20A0A"
             if url:
-                proxy = "https://images.weserv.nl/?url=" + url.replace("https://", "") + "&w=200"
+                from urllib.parse import quote
+                proxy = "https://images.weserv.nl/?url=" + quote(url.replace("https://", ""), safe="") + "&w=200"
                 fb = "this.parentElement.innerHTML='<span class=&quot;ini&quot;>" + ini + "</span>'"
                 return (
                     f'<div class="av" style="border-color:{borda}">'

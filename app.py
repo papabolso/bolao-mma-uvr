@@ -73,13 +73,120 @@ def invalidate_cache():
 # TEMAS — paletas selecionáveis no Admin
 # ──────────────────────────────────────────────
 THEMES = {
+    "fightnight": {
+        "label": "UFC Fight Night",
+        "accent": "#D20A0A", "accent_bright": "#FF2B2B", "accent_dark": "#7d0505",
+        # prata no lugar do dourado: Fight Night nao e evento de cinturao
+        "gold": "#C8CDD6", "gold_bright": "#EAEEF3", "gold_dark": "#8C939E",
+        "bg": "#08090B", "bg_dark": "#000000", "surface": "#101216", "surface_2": "#171A20",
+        "border": "#252A33", "text": "#ffffff", "muted": "#79818F",
+        "hero_glow": "rgba(210,10,10,.28)",
+        "hero_bg": "linear-gradient(180deg,#101318 0%,#08090B 58%,#000 100%)",
+        "ghost_l": "", "ghost_l_size": "0", "ghost_l_op": "0",
+        "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "Ultimate Fighting Championship",
+        "title_a": "Fight", "title_b": "Night",
+        "title_sub": "Bol\u00e3o UVR",
+        "subtitle": "Quem cravar mais leva a gl\u00f3ria",
+        "badge": "It\u2019s Time!",
+        "venue": "", "date": "",
+        "extra_css": """
+/* ═══ UFC FIGHT NIGHT — octogono, grade e luz de arena ═══ */
+.nfx-hero{
+  padding:3.4rem 1rem 2.6rem;
+}
+/* malha da grade do octogono */
+.nfx-hero::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(45deg,  rgba(255,255,255,.035) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 1px, transparent 1px 15px);
+  opacity:1; z-index:0; pointer-events:none;
+}
+/* luz de arena descendo do teto */
+.nfx-hero::after{
+  content:"";
+  position:absolute;
+  top:-58%; left:50%;
+  width:140%; height:118%;
+  transform:translateX(-50%);
+  background:radial-gradient(ellipse at center,
+    rgba(210,10,10,.30) 0%, rgba(210,10,10,.07) 42%, transparent 68%);
+  z-index:0; pointer-events:none;
+}
+/* anel octogonal atras do titulo */
+.cs-bg{
+  position:absolute;
+  top:50%; left:50%; right:auto; bottom:auto;
+  width:min(372px,86vw); height:min(372px,86vw);
+  transform:translate(-50%,-50%);
+  background:rgba(210,10,10,.24);
+  clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%);
+  opacity:1; z-index:1; font-size:0;
+}
+.cs-bg::after{
+  content:"";
+  position:absolute; inset:7px;
+  background:rgba(8,9,11,.94);
+  clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%);
+}
+/* conteudo sempre acima dos graficos */
+.nfx-hero > *:not(.cs-bg){position:relative; z-index:2}
+
+/* tipografia */
+.nfx-brand{
+  font-size:.72rem;
+  letter-spacing:.44em;
+  color:var(--muted);
+}
+.nfx-brand::before,.nfx-brand::after{width:26px; height:2px}
+.nfx-title{
+  color:#fff;
+  letter-spacing:.005em;
+  filter:drop-shadow(0 6px 28px rgba(0,0,0,.95));
+}
+.nfx-title .outline{
+  color:transparent;
+  -webkit-text-stroke:2.5px var(--ufc-red);
+}
+.nfx-title-sub{
+  color:var(--gold);
+  opacity:1;
+  letter-spacing:.44em;
+  font-size:.30em;
+}
+.nfx-subtitle{letter-spacing:.24em}
+.nfx-badge{
+  background:var(--ufc-red);
+  color:#fff;
+  border:none;
+  border-radius:0;
+  font-weight:700;
+  letter-spacing:.3em;
+  box-shadow:0 0 28px rgba(210,10,10,.45);
+}
+""",
+    },
     "ufc": {
         "label": "UFC Padrão",
         "accent": "#D20A0A", "accent_bright": "#FF1A1A", "accent_dark": "#8a0606",
         "gold": "#FFD700", "gold_bright": "#FFE552", "gold_dark": "#c9a300",
         "bg": "#000000", "bg_dark": "#050505", "surface": "#0e0e0e", "surface_2": "#181818",
         "border": "#2a2a2a", "text": "#ffffff", "muted": "#8a8a8a",
-        "hero_content": "UFC", "hero_glow": "rgba(210,10,10,.35)",
+        "hero_glow": "rgba(210,10,10,.35)",
+        "hero_bg": "linear-gradient(180deg,#0a0a0a 0%,#000 100%)",
+        "ghost_l": "", "ghost_l_size": "0", "ghost_l_op": "0",
+        "ghost_r": "UFC", "ghost_r_size": "12rem", "ghost_r_op": ".12",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "Ultimate Fighting Championship",
+        "title_a": "Bolão", "title_b": "UFC",
+        "title_sub": "UVR · Friendly Edition",
+        "subtitle": "Quem cravar mais leva a glória",
+        "badge": "It's Time!",
+        "venue": "", "date": "",
+        "extra_css": "",
     },
     "dwcs": {
         "label": "Contender Series (DWCS)",
@@ -87,7 +194,18 @@ THEMES = {
         "gold": "#2AB6E3", "gold_bright": "#4fcaf0", "gold_dark": "#1a8ab0",
         "bg": "#1a1a1a", "bg_dark": "#0f0f0f", "surface": "#1e1e1e", "surface_2": "#252525",
         "border": "#333333", "text": "#ffffff", "muted": "#8a8a8a",
-        "hero_content": "DW", "hero_glow": "rgba(42,182,227,.10)",
+        "hero_glow": "rgba(42,182,227,.10)",
+        "hero_bg": "linear-gradient(180deg,#1a1a1a 0%,#141414 100%)",
+        "ghost_l": "D", "ghost_l_size": "11rem", "ghost_l_op": ".12",
+        "ghost_r": "W", "ghost_r_size": "11rem", "ghost_r_op": ".12",
+        "ghost_c": "CS", "ghost_c_size": "9rem", "ghost_c_op": ".10",
+        "brand": "Dana White's",
+        "title_a": "Contender", "title_b": "Series",
+        "title_sub": "Bolão UVR",
+        "subtitle": "Fight For Your UFC Contract",
+        "badge": "Tuesday Night Fights",
+        "venue": "Meta APEX · Las Vegas, NV", "date": "Temporada 10",
+        "extra_css": "",
     },
     "numbered": {
         "label": "Evento Numerado (Dourado)",
@@ -95,7 +213,18 @@ THEMES = {
         "gold": "#D4AF37", "gold_bright": "#F4D45C", "gold_dark": "#9C7A1E",
         "bg": "#000000", "bg_dark": "#050505", "surface": "#0c0c0c", "surface_2": "#151310",
         "border": "#2a2418", "text": "#ffffff", "muted": "#8f8878",
-        "hero_content": "★", "hero_glow": "rgba(212,175,55,.22)",
+        "hero_glow": "rgba(212,175,55,.22)",
+        "hero_bg": "linear-gradient(180deg,#0d0b06 0%,#000 100%)",
+        "ghost_l": "🏆", "ghost_l_size": "11rem", "ghost_l_op": ".06",
+        "ghost_r": "★", "ghost_r_size": "11rem", "ghost_r_op": ".07",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "Championship Night",
+        "title_a": "Bolão", "title_b": "UFC",
+        "title_sub": "UVR · Championship Edition",
+        "subtitle": "Cinturão em jogo",
+        "badge": "Title Fight",
+        "venue": "", "date": "",
+        "extra_css": "",
     },
 }
 _cfg_tema = {}
@@ -105,7 +234,7 @@ except Exception:
     pass
 TEMA_ATUAL = _cfg_tema.get("tema") if isinstance(_cfg_tema, dict) else None
 if TEMA_ATUAL not in THEMES:
-    TEMA_ATUAL = "ufc"
+    TEMA_ATUAL = "dwcs"  # tema em produção hoje — fallback seguro até a migração rodar
 T = THEMES[TEMA_ATUAL]
 
 
@@ -150,6 +279,52 @@ html,body,[data-testid="stAppViewContainer"]{{
   font-family:'Inter',sans-serif;
 }}
 #MainMenu,footer,header{{visibility:hidden}}
+
+/* ── HERO (dinâmico por tema) ── */
+.nfx-hero{{
+  position:relative;
+  text-align:center;
+  padding:2.8rem 1rem 2rem;
+  background:{T['hero_bg']};
+  border-bottom:none;
+  margin:-1rem -1rem 1.2rem;
+  overflow:hidden;
+}}
+.nfx-hero::before{{
+  content:"{T['ghost_l']}";
+  position:absolute;
+  top:-20px; left:-15px;
+  font-family:'Anton',sans-serif;
+  font-size:{T['ghost_l_size']};
+  color:var(--ufc-red);
+  opacity:{T['ghost_l_op']};
+  line-height:1;
+  pointer-events:none;
+}}
+.nfx-hero::after{{
+  content:"{T['ghost_r']}";
+  position:absolute;
+  top:-10px; right:-10px;
+  font-family:'Anton',sans-serif;
+  font-size:{T['ghost_r_size']};
+  color:var(--ufc-red);
+  opacity:{T['ghost_r_op']};
+  line-height:1;
+  pointer-events:none;
+}}
+.cs-bg{{
+  position:absolute;
+  bottom:-30px; right:20px;
+  font-family:'Anton',sans-serif;
+  font-size:{T['ghost_c_size']};
+  color:var(--ufc-red);
+  opacity:{T['ghost_c_op']};
+  line-height:1;
+  pointer-events:none;
+  letter-spacing:-.05em;
+}}
+
+{T.get('extra_css','')}
 """
 
 st.markdown("""
@@ -157,38 +332,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
 """ + _ROOT_VARS + """
 
-/* HERO */
-.nfx-hero{
-  position:relative;
-  text-align:center;
-  padding:2.8rem 1rem 2rem;
-  background:linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
-  border-bottom:none;
-  margin:-1rem -1rem 1.2rem;
-  overflow:hidden;
-}
-.nfx-hero::before{
-  content:"D";
-  position:absolute;
-  top:-20px; left:-15px;
-  font-family:'Anton',sans-serif;
-  font-size:11rem;
-  color:var(--ufc-red);
-  opacity:.12;
-  line-height:1;
-  pointer-events:none;
-}
-.nfx-hero::after{
-  content:"W";
-  position:absolute;
-  top:-10px; right:-10px;
-  font-family:'Anton',sans-serif;
-  font-size:11rem;
-  color:var(--ufc-red);
-  opacity:.12;
-  line-height:1;
-  pointer-events:none;
-}
 .nfx-brand{
   font-family:'Oswald',sans-serif;
   font-size:.85rem;
@@ -208,17 +351,6 @@ st.markdown("""
   vertical-align:middle;
   margin:0 12px;
 }
-.cs-bg{
-  position:absolute;
-  bottom:-30px; right:20px;
-  font-family:'Anton',sans-serif;
-  font-size:9rem;
-  color:var(--ufc-red);
-  opacity:.10;
-  line-height:1;
-  pointer-events:none;
-  letter-spacing:-.05em;
-}
 .nfx-title{
   font-family:'Anton',sans-serif;
   font-size:clamp(2.6rem, 9.5vw, 4.6rem);
@@ -229,6 +361,15 @@ st.markdown("""
   text-transform:uppercase;
   position:relative;
 }
+.nfx-title.alt{color:#fff}
+/* 2ª palavra do título em contorno vazado */
+.nfx-title .outline{
+  color:transparent;
+  -webkit-text-stroke:2px var(--ufc-red);
+  paint-order:stroke fill;
+}
+/* variante clara (usada no tema Fight Night) */
+.nfx-title .light{color:var(--gold)}
 .nfx-title-sub{
   display:block;
   font-family:'Oswald',sans-serif;
@@ -625,22 +766,30 @@ hr{border:none; border-top:1px solid var(--ufc-red)!important; margin:1.7rem 0!i
 # ──────────────────────────────────────────────
 # HERO
 # ──────────────────────────────────────────────
-st.markdown("""
+# 2ª palavra do título ganha destaque: contorno vazado no Fight Night,
+# cor de acento nos demais.
+_cls_b = "outline" if TEMA_ATUAL == "fightnight" else ""
+_cls_t = "alt" if TEMA_ATUAL == "fightnight" else ""
+_hero_html = f"""
 <div class="nfx-hero">
-  <span class="cs-bg">CS</span>
-  <p class="nfx-brand">Dana White\'s</p>
-  <h1 class="nfx-title">
-    Contender Series
-    <span class="nfx-title-sub">Bolão UVR</span>
+  <span class="cs-bg">{T['ghost_c']}</span>
+  <p class="nfx-brand">{T['brand']}</p>
+  <h1 class="nfx-title {_cls_t}">
+    {T['title_a']} <span class="{_cls_b}">{T['title_b']}</span>
+    <span class="nfx-title-sub">{T['title_sub']}</span>
   </h1>
-  <p class="nfx-subtitle">Fight For Your UFC Contract</p>
-  <span class="nfx-badge">Tuesday Night Fights</span>
+  <p class="nfx-subtitle">{T['subtitle']}</p>
+  <span class="nfx-badge">{T['badge']}</span>
 </div>
+"""
+if T.get("venue") or T.get("date"):
+    _hero_html += f"""
 <div class="event-info">
-  <div class="venue">Meta APEX · Las Vegas, NV</div>
-  <div class="date">Temporada 10 · Semana 3</div>
+  <div class="venue">{T.get('venue','')}</div>
+  <div class="date">{T.get('date','')}</div>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(_hero_html, unsafe_allow_html=True)
 
 
 
@@ -732,17 +881,18 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
 # ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
-def render_timer(target_str: str, title: str, color="#2AB6E3", end_text="ENCERRADO"):
+def render_timer(target_str: str, title: str, color=None, end_text="ENCERRADO"):
+    color = color or T["accent"]
     try:
         dt_obj = datetime.strptime(target_str, "%d/%m/%Y %H:%M")
         iso_str = dt_obj.strftime("%Y-%m-%dT%H:%M:00-03:00")
         html = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&display=swap');
-        .tbox{{background:#0a0a0a;border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(42,182,227,.2)}}
+        .tbox{{background:{T["surface"]};border:1px solid {color};border-radius:4px;padding:14px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 0 20px {color}33}}
         .tbox::before{{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,{color}30,transparent);animation:sweep 3s infinite}}
         @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
-        .ttitle{{font-family:'Oswald',sans-serif;color:#8f8878;font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
+        .ttitle{{font-family:'Oswald',sans-serif;color:{T['muted']};font-size:.85rem;letter-spacing:.22em;text-transform:uppercase;position:relative;font-weight:600}}
         .ttime{{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:{color};letter-spacing:.05em;margin-top:-2px;position:relative;text-shadow:0 0 25px {color}80}}
         </style>
         <div class="tbox">
@@ -805,7 +955,7 @@ with tab_votar:
         st.info("Acompanhe na aba Ranking. Boa sorte!")
     else:
         if fechamento_str:
-            render_timer(fechamento_str, "FECHA EM", color="#E50914", end_text="FECHADO!")
+            render_timer(fechamento_str, "FECHA EM", color=T["accent"], end_text="FECHADO!")
 
         st.markdown('<div class="section-title">Identifique-se</div>', unsafe_allow_html=True)
         nome_usuario = st.text_input("Nome", placeholder="Seu nome completo", label_visibility="collapsed")

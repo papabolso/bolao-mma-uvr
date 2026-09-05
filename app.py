@@ -42,7 +42,7 @@ def load_lutas() -> pd.DataFrame:
 
 @st.cache_data(ttl=30)
 def load_palpites() -> pd.DataFrame:
-    res = sb.table("palpites").select("*").execute()
+    res = sb.table("palpites").select("*").order("luta_id").execute()
     df = pd.DataFrame(res.data or [])
     if df.empty:
         df = pd.DataFrame(columns=["nome","luta_id","palpite","fotn_1","fotn_2","potn_1","potn_2"])
@@ -50,7 +50,7 @@ def load_palpites() -> pd.DataFrame:
 
 @st.cache_data(ttl=30)
 def load_resultados() -> pd.DataFrame:
-    res = sb.table("resultados").select("*").execute()
+    res = sb.table("resultados").select("*").order("luta_id").execute()
     df = pd.DataFrame(res.data or [])
     if df.empty:
         df = pd.DataFrame(columns=["luta_id","vencedor_real","pontos"])
@@ -1231,9 +1231,11 @@ with tab_ranking:
             user_p = palpites_df[palpites_df["nome"] == membro]
             var_df = pd.merge(
                 user_p,
-                lutas_df[["id","lutador_1","lutador_2"]].rename(columns={"id":"luta_id"}),
+                lutas_df[["id","lutador_1","lutador_2","ordem"]].rename(columns={"id":"luta_id"}),
                 on="luta_id", how="left",
             )
+            # ordem do card (ordem -> luta_id como desempate), nunca a ordem do banco
+            var_df = var_df.sort_values(["ordem","luta_id"], na_position="last").reset_index(drop=True)
             var_df["Combate"] = var_df["lutador_1"] + " vs " + var_df["lutador_2"]
             # Tabela HTML estilizada (em vez de st.dataframe)
             hist_rows = ""

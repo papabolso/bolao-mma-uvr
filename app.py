@@ -207,6 +207,178 @@ THEMES = {
         "venue": "Meta APEX · Las Vegas, NV", "date": "Temporada 10",
         "extra_css": "",
     },
+    "noche": {
+        "label": "Noche UFC (M\u00e9xico)",
+        "accent": "#B3323C", "accent_bright": "#D94452", "accent_dark": "#7A1F27",
+        "gold": "#E8A33D", "gold_bright": "#F5C46A", "gold_dark": "#A8701F",
+        "bg": "#140D07", "bg_dark": "#0A0604", "surface": "#1E140C", "surface_2": "#281B10",
+        "border": "#4A3520", "text": "#F5E6C8", "muted": "#A08C6E",
+        "hero_glow": "rgba(232,163,61,.12)",
+        "hero_bg": "transparent",
+        "ghost_l": "", "ghost_l_size": "0", "ghost_l_op": "0",
+        "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "La Pelea",
+        "title_a": "Noche", "title_b": "UFC",
+        "title_sub": "Bol\u00e3o UVR",
+        "subtitle": "Viva la pelea",
+        "badge": "Edici\u00f3n Especial",
+        "venue": "", "date": "",
+        "extra_css": """
+/* ═══════ NOCHE UFC — moldura talavera ═══════ */
+/* camada 1: faixa estampada (serape) verde/vermelho */
+.nfx-hero{
+  padding:0 38px !important;
+  margin:-1rem -1rem 1.2rem;
+  overflow:visible;
+  border:none;
+  background:
+    repeating-linear-gradient(45deg,  rgba(245,230,200,.13) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(-45deg, rgba(245,230,200,.13) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(90deg,  rgba(0,0,0,.10) 0 1px, transparent 1px 26px),
+    linear-gradient(90deg,#1B5E4A 0 50%, #B3323C 50% 100%);
+  clip-path:polygon(30px 0, calc(100% - 30px) 0, 100% 30px, 100% calc(100% - 30px),
+                    calc(100% - 30px) 100%, 30px 100%, 0 calc(100% - 30px), 0 30px);
+}
+/* camada 2: fio dourado da moldura */
+.nfx-hero::before{
+  content:"";
+  position:absolute; inset:16px;
+  background:linear-gradient(180deg,#F5C46A,#E8A33D 45%,#A8701F);
+  clip-path:polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px),
+                    calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+  z-index:0; pointer-events:none;
+}
+/* camada 3: painel interno escuro com pôr do sol no deserto */
+.nfx-hero::after{
+  content:"";
+  position:absolute; inset:19px;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% 78%, rgba(217,116,59,.40) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 55% at 50% 12%, rgba(232,163,61,.20) 0%, transparent 60%),
+    linear-gradient(180deg,#1A1108 0%, #140D07 45%, #241608 100%);
+  clip-path:polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px),
+                    calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  z-index:1; pointer-events:none;
+}
+/* roseta talavera atrás do título */
+.cs-bg{
+  position:absolute;
+  top:44%; left:50%;
+  width:min(310px,72vw); height:min(310px,72vw);
+  transform:translate(-50%,-50%);
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      #B3323C 0 14deg, #1B5E4A 14deg 28deg);
+  border-radius:50%;
+  opacity:.16; z-index:2; font-size:0; pointer-events:none;
+}
+.cs-bg::before{
+  content:"";
+  position:absolute; inset:17%;
+  border-radius:50%;
+  background:#F5E6C8;
+  opacity:.55;
+}
+.cs-bg::after{
+  content:"";
+  position:absolute; inset:30%;
+  border-radius:50%;
+  background:repeating-conic-gradient(from 9deg at 50% 50%,
+      #E8A33D 0 18deg, #7A1F27 18deg 36deg);
+}
+/* todo o conteúdo acima das camadas */
+.nfx-hero > *:not(.cs-bg){position:relative; z-index:3}
+
+/* ── banner creme no topo, estilo "THE FIGHT" ── */
+.nfx-brand{
+  display:inline-block;
+  margin:2.6rem 0 0;
+  padding:.42rem 2.4rem;
+  background:linear-gradient(180deg,#FBF1DC,#EFDCB8);
+  color:#1A1008;
+  font-family:'Anton',sans-serif;
+  font-size:1rem;
+  letter-spacing:.26em;
+  border-top:2px solid #E8A33D;
+  border-bottom:2px solid #E8A33D;
+  box-shadow:0 3px 14px rgba(0,0,0,.5);
+}
+.nfx-brand::before,.nfx-brand::after{
+  content:"\u2733";
+  width:auto; height:auto;
+  background:none;
+  color:#1A1008;
+  font-size:.85em;
+  margin:0 .85em;
+  vertical-align:middle;
+}
+
+/* ── tipografia display creme com contorno ── */
+.nfx-title{
+  margin-top:1.1rem;
+  font-size:clamp(2.9rem, 12vw, 5.4rem);
+  color:#F7EAD0;
+  letter-spacing:.005em;
+  line-height:.88;
+  -webkit-text-stroke:4px #1A1008;
+  paint-order:stroke fill;
+  text-shadow:0 7px 0 rgba(26,16,8,.9), 0 14px 26px rgba(0,0,0,.75);
+}
+.nfx-title .outline{
+  color:#E8A33D;
+  -webkit-text-stroke:4px #1A1008;
+  paint-order:stroke fill;
+}
+.nfx-title-sub{
+  color:#EFDCB8; opacity:1;
+  font-size:.26em; letter-spacing:.42em;
+  padding-top:.85rem; position:relative;
+  -webkit-text-stroke:0;
+  text-shadow:0 2px 6px rgba(0,0,0,.8);
+}
+.nfx-title-sub::before{
+  content:"";
+  position:absolute; top:.25rem; left:50%;
+  transform:translateX(-50%);
+  width:150px; height:3px;
+  background:linear-gradient(90deg,#1B5E4A 0 33.3%,#F5E6C8 33.3% 66.6%,#B3323C 66.6%);
+}
+.nfx-subtitle{
+  color:#BFA987;
+  letter-spacing:.3em;
+  font-style:italic;
+  margin-top:1rem;
+}
+.nfx-badge{
+  background:linear-gradient(180deg,#FBF1DC,#EFDCB8);
+  color:#1A1008;
+  border:2px solid #E8A33D;
+  border-radius:0;
+  font-family:'Anton',sans-serif;
+  font-weight:400;
+  letter-spacing:.26em;
+  padding:7px 22px;
+  margin-bottom:2.6rem;
+  box-shadow:0 3px 14px rgba(0,0,0,.5);
+}
+
+/* info do evento com cantos chanfrados */
+.event-info{
+  background:linear-gradient(180deg,#1E140C,#140D07);
+  border:2px solid #E8A33D;
+  border-radius:0;
+  clip-path:polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px),
+                    calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+}
+.event-info .venue{color:#E8A33D; letter-spacing:.3em}
+.event-info .date{color:#F7EAD0}
+
+/* cards de luta na mesma linguagem */
+.fight-card{border-radius:0}
+.section-title, .admin-section{color:#E8A33D}
+""",
+    },
     "numbered": {
         "label": "Evento Numerado (Dourado)",
         "accent": "#D20A0A", "accent_bright": "#FF1A1A", "accent_dark": "#8a0606",

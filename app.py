@@ -72,6 +72,195 @@ def invalidate_cache():
 # ──────────────────────────────────────────────
 # TEMAS — paletas selecionáveis no Admin
 # ──────────────────────────────────────────────
+HERO_NOCHE = r"""<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;overflow:hidden}
+.wrap{position:relative;width:100%;height:470px;font-family:'Oswald',sans-serif}
+.art{position:absolute;inset:0;width:100%;height:100%}
+.ros{position:absolute;top:52%;left:50%;width:330px;height:330px;
+     transform:translate(-50%,-50%);opacity:.22;pointer-events:none}
+.txt{position:absolute;inset:0;display:flex;flex-direction:column;
+     align-items:center;justify-content:center;text-align:center;padding:0 56px}
+
+.banner{display:inline-flex;align-items:center;gap:1.1em;
+  background:linear-gradient(180deg,#FBF1DC,#E8D5AE);
+  color:#1A1008;font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.30em;
+  padding:7px 30px;border-top:3px solid #E8A33D;border-bottom:3px solid #E8A33D;
+  box-shadow:0 4px 18px rgba(0,0,0,.6);text-transform:uppercase}
+.banner i{font-style:normal;color:#B3323C;font-size:1.15em;line-height:0}
+
+h1{font-family:'Anton',sans-serif;font-size:78px;line-height:.86;margin-top:20px;
+   color:#F7EAD0;letter-spacing:.01em;text-transform:uppercase;
+   -webkit-text-stroke:5px #1A1008;paint-order:stroke fill;
+   text-shadow:0 8px 0 rgba(26,16,8,.92),0 16px 30px rgba(0,0,0,.8)}
+h1 em{font-style:normal;color:#E8A33D;display:block;font-size:.62em;margin-top:2px;
+      -webkit-text-stroke:5px #1A1008;paint-order:stroke fill}
+
+.rule{width:220px;height:4px;margin:18px 0 10px;
+  background:linear-gradient(90deg,#1B5E4A 0 33.3%,#F2E2C2 33.3% 66.6%,#B3323C 66.6%);
+  box-shadow:0 2px 6px rgba(0,0,0,.7)}
+.sub{font-size:13px;letter-spacing:.44em;color:#EFDCB8;text-transform:uppercase;font-weight:500;
+     text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.tag{margin-top:8px;font-size:11.5px;letter-spacing:.34em;color:#C9A87C;
+     font-style:italic;text-transform:uppercase}
+.badge{margin-top:20px;display:inline-block;
+  background:linear-gradient(180deg,#FBF1DC,#E8D5AE);color:#1A1008;
+  font-family:'Anton',sans-serif;font-size:12px;letter-spacing:.28em;
+  padding:7px 24px;border:2px solid #E8A33D;text-transform:uppercase;
+  box-shadow:0 4px 16px rgba(0,0,0,.6)}
+
+@media(max-width:640px){
+  h1{font-size:52px;-webkit-text-stroke:4px #1A1008}
+  h1 em{-webkit-text-stroke:4px #1A1008}
+  .ros{width:250px;height:250px}
+  .txt{padding:0 46px}
+  .banner{font-size:12px;padding:6px 20px}
+}
+</style>
+<div class="wrap">
+  <svg class="art" viewBox="0 0 820 470" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <pattern id="serV" width="36" height="36" patternUnits="userSpaceOnUse">
+      <rect width="36" height="36" fill="#1B5E4A"/>
+      <path d="M18,2 L26,18 L18,34 L10,18 Z" fill="none" stroke="#F2E2C2" stroke-width="1.6" opacity=".55"/>
+      <path d="M18,11 L22,18 L18,25 L14,18 Z" fill="#E8A33D" opacity=".70"/>
+      <circle cx="0"  cy="18" r="2.4" fill="#F2E2C2" opacity=".45"/>
+      <circle cx="36" cy="18" r="2.4" fill="#F2E2C2" opacity=".45"/>
+      <path d="M18,0 l2,4 l-4,0 Z"  fill="#F2E2C2" opacity=".35"/>
+      <path d="M18,36 l2,-4 l-4,0 Z" fill="#F2E2C2" opacity=".35"/>
+    </pattern>
+  <pattern id="serR" width="36" height="36" patternUnits="userSpaceOnUse">
+      <rect width="36" height="36" fill="#B3323C"/>
+      <path d="M18,2 L26,18 L18,34 L10,18 Z" fill="none" stroke="#F2E2C2" stroke-width="1.6" opacity=".55"/>
+      <path d="M18,11 L22,18 L18,25 L14,18 Z" fill="#E8A33D" opacity=".70"/>
+      <circle cx="0"  cy="18" r="2.4" fill="#F2E2C2" opacity=".45"/>
+      <circle cx="36" cy="18" r="2.4" fill="#F2E2C2" opacity=".45"/>
+      <path d="M18,0 l2,4 l-4,0 Z"  fill="#F2E2C2" opacity=".35"/>
+      <path d="M18,36 l2,-4 l-4,0 Z" fill="#F2E2C2" opacity=".35"/>
+    </pattern>
+  <pattern id="greca" width="40" height="20" patternUnits="userSpaceOnUse">
+      <rect width="40" height="20" fill="#1A1008"/>
+      <path d="M0,18 L0,4 L28,4 L28,10 L10,10 L10,14 L22,14 L22,18 Z M32,4 L36,4 L36,18 L32,18 Z" fill="#E8A33D" opacity=".85"/>
+    </pattern>
+  <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#2A1A0C"/>
+    <stop offset="42%"  stop-color="#160E07"/>
+    <stop offset="78%"  stop-color="#8A3F16"/>
+    <stop offset="100%" stop-color="#D9743B"/>
+  </linearGradient>
+  <linearGradient id="ouro" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#F7D98A"/>
+    <stop offset="45%"  stop-color="#E8A33D"/>
+    <stop offset="100%" stop-color="#8F5E14"/>
+  </linearGradient>
+  <radialGradient id="sol" cx="50%" cy="88%" r="62%">
+    <stop offset="0%"   stop-color="#F5B44C" stop-opacity=".55"/>
+    <stop offset="55%"  stop-color="#C25A22" stop-opacity=".22"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+  <clipPath id="metadeDir"><rect x="410" y="0" width="410" height="470"/></clipPath>
+  <filter id="grao"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="linear" slope=".16"/></feComponentTransfer></filter>
+</defs>
+<!-- faixa serape externa -->
+<path d="M34,0 L786,0 L820,34 L820,436 L786,470 L34,470 L0,436 L0,34 Z" fill="url(#serV)"/>
+<g clip-path="url(#metadeDir)"><path d="M34,0 L786,0 L820,34 L820,436 L786,470 L34,470 L0,436 L0,34 Z" fill="url(#serR)"/></g>
+<!-- greca dourada -->
+<path d="M39,13 L781,13 L807,39 L807,431 L781,457 L39,457 L13,431 L13,39 Z" fill="url(#greca)"/>
+<!-- fio de ouro -->
+<path d="M52,30 L768,30 L790,52 L790,418 L768,440 L52,440 L30,418 L30,52 Z" fill="none" stroke="url(#ouro)" stroke-width="3.5"/>
+<!-- painel interno -->
+<path d="M53,33 L767,33 L787,53 L787,417 L767,437 L53,437 L33,417 L33,53 Z" fill="url(#sunset)"/>
+<path d="M53,33 L767,33 L787,53 L787,417 L767,437 L53,437 L33,417 L33,53 Z" fill="url(#sol)"/>
+<!-- mesa/butte do deserto -->
+<g opacity=".40">
+  <path d="M300,430 L318,300 L352,300 L366,430 Z" fill="#7A3312"/>
+  <path d="M430,430 L448,268 L500,268 L516,430 Z" fill="#8E3D16"/>
+  <path d="M540,430 L554,312 L580,312 L592,430 Z" fill="#6E2C10"/>
+</g>
+<path d="M53,33 L767,33 L787,53 L787,417 L767,437 L53,437 L33,417 L33,53 Z" fill="#000" filter="url(#grao)" opacity=".5"/>
+</svg>
+  <svg class="ros" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><path d="M200,200 L348.0,200.0 Q383.4,224.1 343.0,238.3 Z" fill="#B3323C"/>
+<path d="M200,200 L343.0,238.3 Q370.9,270.8 328.2,274.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L328.2,274.0 Q346.8,312.6 304.7,304.7 Z" fill="#B3323C"/>
+<path d="M200,200 L304.7,304.7 Q312.6,346.8 274.0,328.2 Z" fill="#1B5E4A"/>
+<path d="M200,200 L274.0,328.2 Q270.8,370.9 238.3,343.0 Z" fill="#B3323C"/>
+<path d="M200,200 L238.3,343.0 Q224.1,383.4 200.0,348.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L200.0,348.0 Q175.9,383.4 161.7,343.0 Z" fill="#B3323C"/>
+<path d="M200,200 L161.7,343.0 Q129.2,370.9 126.0,328.2 Z" fill="#1B5E4A"/>
+<path d="M200,200 L126.0,328.2 Q87.4,346.8 95.3,304.7 Z" fill="#B3323C"/>
+<path d="M200,200 L95.3,304.7 Q53.2,312.6 71.8,274.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L71.8,274.0 Q29.1,270.8 57.0,238.3 Z" fill="#B3323C"/>
+<path d="M200,200 L57.0,238.3 Q16.6,224.1 52.0,200.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L52.0,200.0 Q16.6,175.9 57.0,161.7 Z" fill="#B3323C"/>
+<path d="M200,200 L57.0,161.7 Q29.1,129.2 71.8,126.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L71.8,126.0 Q53.2,87.4 95.3,95.3 Z" fill="#B3323C"/>
+<path d="M200,200 L95.3,95.3 Q87.4,53.2 126.0,71.8 Z" fill="#1B5E4A"/>
+<path d="M200,200 L126.0,71.8 Q129.2,29.1 161.7,57.0 Z" fill="#B3323C"/>
+<path d="M200,200 L161.7,57.0 Q175.9,16.6 200.0,52.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L200.0,52.0 Q224.1,16.6 238.3,57.0 Z" fill="#B3323C"/>
+<path d="M200,200 L238.3,57.0 Q270.8,29.1 274.0,71.8 Z" fill="#1B5E4A"/>
+<path d="M200,200 L274.0,71.8 Q312.6,53.2 304.7,95.3 Z" fill="#B3323C"/>
+<path d="M200,200 L304.7,95.3 Q346.8,87.4 328.2,126.0 Z" fill="#1B5E4A"/>
+<path d="M200,200 L328.2,126.0 Q370.9,129.2 343.0,161.7 Z" fill="#B3323C"/>
+<path d="M200,200 L343.0,161.7 Q383.4,175.9 348.0,200.0 Z" fill="#1B5E4A"/>
+<circle cx="200" cy="200" r="144.3" fill="#F2E2C2"/>
+<circle cx="329.5" cy="200.0" r="5.5" fill="#B3323C"/>
+<circle cx="323.2" cy="240.0" r="5.5" fill="#B3323C"/>
+<circle cx="304.8" cy="276.1" r="5.5" fill="#B3323C"/>
+<circle cx="276.1" cy="304.8" r="5.5" fill="#B3323C"/>
+<circle cx="240.0" cy="323.2" r="5.5" fill="#B3323C"/>
+<circle cx="200.0" cy="329.5" r="5.5" fill="#B3323C"/>
+<circle cx="160.0" cy="323.2" r="5.5" fill="#B3323C"/>
+<circle cx="123.9" cy="304.8" r="5.5" fill="#B3323C"/>
+<circle cx="95.2" cy="276.1" r="5.5" fill="#B3323C"/>
+<circle cx="76.8" cy="240.0" r="5.5" fill="#B3323C"/>
+<circle cx="70.5" cy="200.0" r="5.5" fill="#B3323C"/>
+<circle cx="76.8" cy="160.0" r="5.5" fill="#B3323C"/>
+<circle cx="95.2" cy="123.9" r="5.5" fill="#B3323C"/>
+<circle cx="123.9" cy="95.2" r="5.5" fill="#B3323C"/>
+<circle cx="160.0" cy="76.8" r="5.5" fill="#B3323C"/>
+<circle cx="200.0" cy="70.5" r="5.5" fill="#B3323C"/>
+<circle cx="240.0" cy="76.8" r="5.5" fill="#B3323C"/>
+<circle cx="276.1" cy="95.2" r="5.5" fill="#B3323C"/>
+<circle cx="304.8" cy="123.9" r="5.5" fill="#B3323C"/>
+<circle cx="323.2" cy="160.0" r="5.5" fill="#B3323C"/>
+<circle cx="200" cy="200" r="114.7" fill="#1B5E4A"/>
+<path d="M311.0,200.0 L272.1,183.4 L255.5,200.0 L272.1,216.6 Z" fill="#E8A33D"/>
+<path d="M296.1,255.5 L270.8,221.6 L248.1,227.8 L254.1,250.5 Z" fill="#E8A33D"/>
+<path d="M255.5,296.1 L250.5,254.1 L227.8,248.1 L221.6,270.8 Z" fill="#E8A33D"/>
+<path d="M200.0,311.0 L216.6,272.1 L200.0,255.5 L183.4,272.1 Z" fill="#E8A33D"/>
+<path d="M144.5,296.1 L178.4,270.8 L172.2,248.1 L149.5,254.1 Z" fill="#E8A33D"/>
+<path d="M103.9,255.5 L145.9,250.5 L151.9,227.8 L129.2,221.6 Z" fill="#E8A33D"/>
+<path d="M89.0,200.0 L127.9,216.6 L144.5,200.0 L127.9,183.4 Z" fill="#E8A33D"/>
+<path d="M103.9,144.5 L129.2,178.4 L151.9,172.2 L145.9,149.5 Z" fill="#E8A33D"/>
+<path d="M144.5,103.9 L149.5,145.9 L172.2,151.9 L178.4,129.2 Z" fill="#E8A33D"/>
+<path d="M200.0,89.0 L183.4,127.9 L200.0,144.5 L216.6,127.9 Z" fill="#E8A33D"/>
+<path d="M255.5,103.9 L221.6,129.2 L227.8,151.9 L250.5,145.9 Z" fill="#E8A33D"/>
+<path d="M296.1,144.5 L254.1,149.5 L248.1,172.2 L270.8,178.4 Z" fill="#E8A33D"/>
+<circle cx="200" cy="200" r="55.5" fill="#F2E2C2"/>
+<circle cx="200" cy="200" r="44.4" fill="#B3323C"/>
+<circle cx="225.9" cy="200.0" r="13.9" fill="#F2E2C2"/>
+<circle cx="218.3" cy="218.3" r="13.9" fill="#F2E2C2"/>
+<circle cx="200.0" cy="225.9" r="13.9" fill="#F2E2C2"/>
+<circle cx="181.7" cy="218.3" r="13.9" fill="#F2E2C2"/>
+<circle cx="174.1" cy="200.0" r="13.9" fill="#F2E2C2"/>
+<circle cx="181.7" cy="181.7" r="13.9" fill="#F2E2C2"/>
+<circle cx="200.0" cy="174.1" r="13.9" fill="#F2E2C2"/>
+<circle cx="218.3" cy="181.7" r="13.9" fill="#F2E2C2"/>
+<circle cx="200" cy="200" r="18.5" fill="#E8A33D"/></svg>
+  <div class="txt">
+    <div class="banner"><i>&#10035;</i>La Pelea<i>&#10035;</i></div>
+    <h1>Noche<em>UFC</em></h1>
+    <div class="rule"></div>
+    <div class="sub">Bol&atilde;o UVR</div>
+    <div class="tag">Viva la pelea</div>
+    <div class="badge">Edici&oacute;n Especial</div>
+  </div>
+</div>"""
+
 THEMES = {
     "fightnight": {
         "label": "UFC Fight Night",
@@ -224,146 +413,9 @@ THEMES = {
         "subtitle": "Viva la pelea",
         "badge": "Edici\u00f3n Especial",
         "venue": "", "date": "",
+        "hero_art": HERO_NOCHE, "hero_art_h": 480,
         "extra_css": """
-/* ═══════ NOCHE UFC — moldura talavera ═══════ */
-/* camada 1: faixa estampada (serape) verde/vermelho */
-.nfx-hero{
-  padding:0 38px !important;
-  margin:-1rem -1rem 1.2rem;
-  overflow:visible;
-  border:none;
-  background:
-    repeating-linear-gradient(45deg,  rgba(245,230,200,.13) 0 2px, transparent 2px 13px),
-    repeating-linear-gradient(-45deg, rgba(245,230,200,.13) 0 2px, transparent 2px 13px),
-    repeating-linear-gradient(90deg,  rgba(0,0,0,.10) 0 1px, transparent 1px 26px),
-    linear-gradient(90deg,#1B5E4A 0 50%, #B3323C 50% 100%);
-  clip-path:polygon(30px 0, calc(100% - 30px) 0, 100% 30px, 100% calc(100% - 30px),
-                    calc(100% - 30px) 100%, 30px 100%, 0 calc(100% - 30px), 0 30px);
-}
-/* camada 2: fio dourado da moldura */
-.nfx-hero::before{
-  content:"";
-  position:absolute; inset:16px;
-  background:linear-gradient(180deg,#F5C46A,#E8A33D 45%,#A8701F);
-  clip-path:polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px),
-                    calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
-  z-index:0; pointer-events:none;
-}
-/* camada 3: painel interno escuro com pôr do sol no deserto */
-.nfx-hero::after{
-  content:"";
-  position:absolute; inset:19px;
-  background:
-    radial-gradient(ellipse 120% 70% at 50% 78%, rgba(217,116,59,.40) 0%, transparent 62%),
-    radial-gradient(ellipse 90% 55% at 50% 12%, rgba(232,163,61,.20) 0%, transparent 60%),
-    linear-gradient(180deg,#1A1108 0%, #140D07 45%, #241608 100%);
-  clip-path:polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px),
-                    calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
-  z-index:1; pointer-events:none;
-}
-/* roseta talavera atrás do título */
-.cs-bg{
-  position:absolute;
-  top:44%; left:50%;
-  width:min(310px,72vw); height:min(310px,72vw);
-  transform:translate(-50%,-50%);
-  background:
-    repeating-conic-gradient(from 0deg at 50% 50%,
-      #B3323C 0 14deg, #1B5E4A 14deg 28deg);
-  border-radius:50%;
-  opacity:.16; z-index:2; font-size:0; pointer-events:none;
-}
-.cs-bg::before{
-  content:"";
-  position:absolute; inset:17%;
-  border-radius:50%;
-  background:#F5E6C8;
-  opacity:.55;
-}
-.cs-bg::after{
-  content:"";
-  position:absolute; inset:30%;
-  border-radius:50%;
-  background:repeating-conic-gradient(from 9deg at 50% 50%,
-      #E8A33D 0 18deg, #7A1F27 18deg 36deg);
-}
-/* todo o conteúdo acima das camadas */
-.nfx-hero > *:not(.cs-bg){position:relative; z-index:3}
-
-/* ── banner creme no topo, estilo "THE FIGHT" ── */
-.nfx-brand{
-  display:inline-block;
-  margin:2.6rem 0 0;
-  padding:.42rem 2.4rem;
-  background:linear-gradient(180deg,#FBF1DC,#EFDCB8);
-  color:#1A1008;
-  font-family:'Anton',sans-serif;
-  font-size:1rem;
-  letter-spacing:.26em;
-  border-top:2px solid #E8A33D;
-  border-bottom:2px solid #E8A33D;
-  box-shadow:0 3px 14px rgba(0,0,0,.5);
-}
-.nfx-brand::before,.nfx-brand::after{
-  content:"\u2733";
-  width:auto; height:auto;
-  background:none;
-  color:#1A1008;
-  font-size:.85em;
-  margin:0 .85em;
-  vertical-align:middle;
-}
-
-/* ── tipografia display creme com contorno ── */
-.nfx-title{
-  margin-top:1.1rem;
-  font-size:clamp(2.9rem, 12vw, 5.4rem);
-  color:#F7EAD0;
-  letter-spacing:.005em;
-  line-height:.88;
-  -webkit-text-stroke:4px #1A1008;
-  paint-order:stroke fill;
-  text-shadow:0 7px 0 rgba(26,16,8,.9), 0 14px 26px rgba(0,0,0,.75);
-}
-.nfx-title .outline{
-  color:#E8A33D;
-  -webkit-text-stroke:4px #1A1008;
-  paint-order:stroke fill;
-}
-.nfx-title-sub{
-  color:#EFDCB8; opacity:1;
-  font-size:.26em; letter-spacing:.42em;
-  padding-top:.85rem; position:relative;
-  -webkit-text-stroke:0;
-  text-shadow:0 2px 6px rgba(0,0,0,.8);
-}
-.nfx-title-sub::before{
-  content:"";
-  position:absolute; top:.25rem; left:50%;
-  transform:translateX(-50%);
-  width:150px; height:3px;
-  background:linear-gradient(90deg,#1B5E4A 0 33.3%,#F5E6C8 33.3% 66.6%,#B3323C 66.6%);
-}
-.nfx-subtitle{
-  color:#BFA987;
-  letter-spacing:.3em;
-  font-style:italic;
-  margin-top:1rem;
-}
-.nfx-badge{
-  background:linear-gradient(180deg,#FBF1DC,#EFDCB8);
-  color:#1A1008;
-  border:2px solid #E8A33D;
-  border-radius:0;
-  font-family:'Anton',sans-serif;
-  font-weight:400;
-  letter-spacing:.26em;
-  padding:7px 22px;
-  margin-bottom:2.6rem;
-  box-shadow:0 3px 14px rgba(0,0,0,.5);
-}
-
-/* info do evento com cantos chanfrados */
+/* ═══ NOCHE UFC — o hero é SVG (HERO_NOCHE); aqui só o resto da página ═══ */
 .event-info{
   background:linear-gradient(180deg,#1E140C,#140D07);
   border:2px solid #E8A33D;
@@ -374,9 +426,37 @@ THEMES = {
 .event-info .venue{color:#E8A33D; letter-spacing:.3em}
 .event-info .date{color:#F7EAD0}
 
-/* cards de luta na mesma linguagem */
-.fight-card{border-radius:0}
-.section-title, .admin-section{color:#E8A33D}
+/* abas e títulos em ouro sobre marrom */
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"]{
+  color:#E8A33D; border-bottom-color:#E8A33D;
+}
+.section-title{color:#F7EAD0; border-bottom-color:#E8A33D}
+.admin-section{color:#E8A33D}
+
+/* cards de luta com canto chanfrado, sem arredondado */
+.fight-card{
+  border-radius:0;
+  clip-path:polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+}
+.fight-tag{border-radius:0}
+
+/* ranking: cabeçalho creme sobre marrom */
+.rank-table th{background:#241708; color:#E8A33D; border-bottom-color:#E8A33D}
+.rank-table tr.top-1 td{color:#F5C46A; background:rgba(232,163,61,.07)}
+
+/* botões: creme com borda de ouro, igual ao pôster */
+div[data-testid="stButton"]>button{
+  background:linear-gradient(180deg,#FBF1DC,#E8D5AE)!important;
+  color:#1A1008!important;
+  border:2px solid #E8A33D!important;
+  border-radius:0!important;
+  font-family:'Anton',sans-serif!important;
+  letter-spacing:.22em!important;
+}
+div[data-testid="stButton"]>button:hover{
+  background:linear-gradient(180deg,#fff8e8,#F2E2C2)!important;
+  box-shadow:0 4px 20px rgba(232,163,61,.45)!important;
+}
 """,
     },
     "numbered": {
@@ -961,7 +1041,17 @@ if T.get("venue") or T.get("date"):
   <div class="date">{T.get('date','')}</div>
 </div>
 """
-st.markdown(_hero_html, unsafe_allow_html=True)
+if T.get("hero_art"):
+    components.html(T["hero_art"], height=T.get("hero_art_h", 470))
+    if T.get("venue") or T.get("date"):
+        st.markdown(f"""
+<div class="event-info">
+  <div class="venue">{T.get('venue','')}</div>
+  <div class="date">{T.get('date','')}</div>
+</div>
+""", unsafe_allow_html=True)
+else:
+    st.markdown(_hero_html, unsafe_allow_html=True)
 
 
 

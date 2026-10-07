@@ -36,7 +36,8 @@ def load_lutas() -> pd.DataFrame:
     df = pd.DataFrame(res.data or [])
     if df.empty:
         df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem",
-                                   "foto_1","foto_2","band_1","band_2","rec_1","rec_2"])
+                                   "foto_1","foto_2","band_1","band_2","rec_1","rec_2",
+                                   "hist_1","hist_2"])
     if "foto_1" not in df.columns: df["foto_1"] = ""
     if "foto_2" not in df.columns: df["foto_2"] = ""
     if "band_1" not in df.columns: df["band_1"] = ""
@@ -44,6 +45,9 @@ def load_lutas() -> pd.DataFrame:
     # cartel (V-D-E) vindo da ESPN; banco sem a migração continua funcionando
     if "rec_1" not in df.columns: df["rec_1"] = ""
     if "rec_2" not in df.columns: df["rec_2"] = ""
+    # últimas lutas (JSON) vindas da ESPN, idem
+    if "hist_1" not in df.columns: df["hist_1"] = ""
+    if "hist_2" not in df.columns: df["hist_2"] = ""
     return df
 
 @st.cache_data(ttl=30)
@@ -84,6 +88,15 @@ def fmt_cartel(rec) -> str:
     if len(partes) >= 3 and int(partes[2]) > 0:
         return "-".join(partes[:3])
     return "-".join(partes[:2])
+
+def parse_hist(txt) -> list:
+    """hist_1/hist_2 do banco (JSON) -> lista de lutas. Qualquer lixo vira []."""
+    import json
+    try:
+        val = json.loads(txt) if txt else []
+        return [h for h in val if isinstance(h, dict) and h.get("r")] if isinstance(val, list) else []
+    except Exception:
+        return []
 
 # ──────────────────────────────────────────────
 # TEMAS — paletas selecionáveis no Admin
@@ -2111,6 +2124,86 @@ with tab_votar:
  text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
 {check}{cartel}'''
 
+        # ── Últimas lutas: setinha embaixo de cada confronto ───────────────
+        # <details> nativo: abre/fecha no navegador, sem rerun do Streamlit,
+        # e não disputa o clique com o botão do palpite. HTML numa linha só:
+        # indentação ou linha em branco viram bloco de código no markdown.
+        import html as _html
+        _HX_TIT = {"V": "Vitória", "D": "Derrota", "E": "Empate", "NC": "Sem resultado"}
+
+        def _hx_chips(hist):
+            if not hist:
+                return '<span class="hx-vazio">—</span>'
+            return "".join(
+                f'<span class="hx-b hx-{h["r"].lower()}" title="{_HX_TIT.get(h["r"], "")}'
+                f' · {_html.escape(h.get("op", ""))}">{h["r"]}</span>'
+                for h in hist
+            )
+
+        def _hx_col(nome, hist):
+            linhas = "".join(
+                f'<div class="hx-row"><span class="hx-b hx-{h["r"].lower()}">{h["r"]}</span>'
+                f'<div class="hx-tx"><span class="hx-op">{_html.escape(h.get("op", "?"))}</span>'
+                f'<span class="hx-met">{_html.escape(" · ".join(x for x in (h.get("met"), h.get("dt")) if x))}'
+                f'</span></div></div>'
+                for h in hist
+            ) or '<div class="hx-sem">Sem lutas registradas na ESPN</div>'
+            return f'<div class="hx-col"><div class="hx-nm">{_html.escape(nome)}</div>{linhas}</div>'
+
+        def _hx_html(l1, h1, l2, h2):
+            return (
+                '<details class="hx"><summary>'
+                f'<span class="hx-form">{_hx_chips(h1)}</span>'
+                '<span class="hx-btn">Últimas lutas<span class="hx-chev"></span></span>'
+                f'<span class="hx-form">{_hx_chips(h2)}</span>'
+                f'</summary><div class="hx-body">{_hx_col(l1, h1)}{_hx_col(l2, h2)}</div></details>'
+            )
+
+        HX_CSS = """
+.hx{margin:-.35rem 0 .4rem;font-family:inherit}
+.hx summary{list-style:none;display:grid;align-items:center;cursor:pointer;
+ /* mesmas proporções das colunas dos cards ([1, .17, 1]) pra forma ficar
+    centrada embaixo de cada lutador; o botão transborda a coluna do meio */
+ grid-template-columns:minmax(0,1fr) minmax(0,.17fr) minmax(0,1fr);column-gap:1rem;padding:6px 0;-webkit-tap-highlight-color:transparent;user-select:none}
+.hx summary::-webkit-details-marker{display:none}
+.hx summary:focus{outline:none}
+.hx summary:focus-visible .hx-btn{box-shadow:0 0 0 2px var(--ufc-red-bright)}
+.hx-form{display:flex;justify-content:center;gap:4px}
+.hx-btn{justify-self:center;width:max-content;display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;
+ border:1px solid var(--border);color:var(--muted);font-size:.66rem;font-weight:700;
+ letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;
+ transition:color .15s,border-color .15s,background .15s}
+.hx summary:hover .hx-btn,.hx[open] .hx-btn{color:#E6E9EE;border-color:var(--ufc-red-bright);
+ background:rgba(255,255,255,.03)}
+.hx-chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+ transform:translateY(-2px) rotate(45deg);transition:transform .22s ease}
+.hx[open] .hx-chev{transform:translateY(2px) rotate(-135deg)}
+.hx-b{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
+ padding:0 4px;border-radius:6px;font-size:.66rem;font-weight:800;letter-spacing:.02em;
+ border:1px solid transparent;flex-shrink:0}
+.hx-v{color:#4ADE80;background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35)}
+.hx-d{color:#F87171;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35)}
+.hx-e,.hx-nc{color:#A1A8B3;background:rgba(161,168,179,.10);border-color:rgba(161,168,179,.30)}
+.hx-vazio{color:var(--muted);font-size:.8rem}
+.hx-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 0 4px}
+.hx[open] .hx-body{animation:hx-in .24s cubic-bezier(.2,.7,.2,1)}
+@keyframes hx-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.hx-col{min-width:0;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+ background:linear-gradient(180deg,rgba(30,36,48,.30),rgba(12,15,20,.18))}
+.hx-nm{font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+ color:var(--muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-row{display:flex;align-items:center;gap:10px;padding:7px 0}
+.hx-row+.hx-row{border-top:1px solid rgba(255,255,255,.06)}
+.hx-tx{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.hx-op{font-size:.84rem;font-weight:600;color:#E6E9EE;overflow-wrap:anywhere}
+.hx-met{font-size:.7rem;color:var(--muted)}
+.hx-sem{font-size:.78rem;color:var(--muted);padding:6px 0}
+/* abaixo de 640px o Streamlit empilha os cards: forma vai pras pontas */
+@media (max-width:640px){.hx summary{display:flex;justify-content:space-between;gap:8px}}
+@media (max-width:560px){.hx-body{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.hx-chev,.hx[open] .hx-body{transition:none;animation:none}}
+"""
+
         _css_cards = []
         for _, luta in lutas.iterrows():
             lid = int(luta["id"])
@@ -2152,6 +2245,11 @@ with tab_votar:
                 if st.button(l2, key=f"pk{lid}b", use_container_width=True):
                     st.session_state[skey] = l2
 
+            h1 = parse_hist(luta.get("hist_1", ""))
+            h2 = parse_hist(luta.get("hist_2", ""))
+            if h1 or h2:
+                st.markdown(_hx_html(l1, h1, l2, h2), unsafe_allow_html=True)
+
             sel = st.session_state[skey]
             _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto))
             _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto))
@@ -2159,7 +2257,7 @@ with tab_votar:
 
         # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,
         # entao nao precisa de um segundo reload so para repintar o selecionado.
-        st.markdown("<style>" + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
+        st.markdown("<style>" + HX_CSS + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
 
         st.markdown('<div class="section-title">Bônus da Noite</div>', unsafe_allow_html=True)
         todos_uniq = sorted(set(todos_lutadores))
@@ -2417,8 +2515,69 @@ with tab_admin:
                     pass  # sem cartel não derruba o card
                 return ""
 
+            # result.name da ESPN -> texto curto em português
+            _METODOS = [
+                ("unanimous", "Decisão unânime"), ("split", "Decisão dividida"),
+                ("majority", "Decisão majoritária"), ("decision", "Decisão"),
+                ("ko", "KO/TKO"), ("submission", "Finalização"),
+                ("disqual", "Desclassificação"), ("draw", "Empate"),
+                ("no-contest", "Sem resultado"), ("overturn", "Sem resultado"),
+            ]
+
+            def _historico_espn(aid, n=3):
+                """Últimas n lutas do atleta, mais recente primeiro.
+                Cada uma: {r: V/D/E/NC, op: adversário, met: método, dt: 'mm/aa'}."""
+                if not aid:
+                    return []
+                try:
+                    itens = _get(f"https://sports.core.api.espn.com/v2/sports/mma/athletes/{aid}/eventlog"
+                                 ).get("events", {}).get("items", [])
+                except Exception:
+                    return []
+                lutas_h = []
+                for it in [i for i in itens if i.get("played")][:n]:
+                    try:
+                        comp = _get(it["competition"]["$ref"])
+                        cs = comp.get("competitors", [])
+                        eu = next(c for c in cs if str(c.get("id")) == str(aid))
+                        adv = next(c for c in cs if str(c.get("id")) != str(aid))
+                        status = comp.get("status", {})
+                        if "$ref" in status:
+                            status = _get(status["$ref"])
+                        res = status.get("result") or {}
+                        nome_res = str(res.get("name", "")).lower()
+                        met = next((pt for chave, pt in _METODOS if chave in nome_res),
+                                   res.get("displayName", ""))
+                        if eu.get("winner"):
+                            r = "V"
+                        elif adv.get("winner"):
+                            r = "D"
+                        elif "draw" in nome_res:
+                            r = "E"
+                        else:
+                            r = "NC"
+                        # finalização mostra round e tempo; decisão não precisa
+                        if met and not met.startswith("Decisão") and r in ("V", "D"):
+                            per, clk = status.get("period"), status.get("displayClock")
+                            if per:
+                                met += f" · R{per}" + (f" {clk}" if clk else "")
+                        op_nome = "?"
+                        if adv.get("athlete", {}).get("$ref"):
+                            atl = _get(adv["athlete"]["$ref"])
+                            op_nome = atl.get("displayName") or atl.get("fullName") or "?"
+                        dt = str(comp.get("date", ""))[:7]  # 'AAAA-MM'
+                        dt = f"{dt[5:7]}/{dt[2:4]}" if len(dt) == 7 else ""
+                        lutas_h.append({"r": r, "op": op_nome, "met": met, "dt": dt,
+                                        "_ord": str(comp.get("date", ""))})
+                    except Exception:
+                        continue  # uma luta ruim não derruba o histórico
+                lutas_h.sort(key=lambda x: x["_ord"], reverse=True)
+                for l in lutas_h:
+                    del l["_ord"]
+                return lutas_h
+
             def _atleta_espn(c):
-                """Um competidor da luta -> (nome, foto, bandeira, cartel)."""
+                """Um competidor da luta -> (nome, foto, bandeira, cartel, histórico)."""
                 ath_ref = c.get("athlete", {}).get("$ref")
                 nome, foto, band = "?", "", ""
                 if ath_ref:
@@ -2440,19 +2599,22 @@ with tab_admin:
                 rec_ref = ((c.get("record") or {}).get("$ref")
                            or (f"https://sports.core.api.espn.com/v2/sports/mma/athletes/{c['id']}/records"
                                if c.get("id") else ""))
-                return nome, foto, band, _cartel_espn(rec_ref)
+                return nome, foto, band, _cartel_espn(rec_ref), _historico_espn(c.get("id"))
 
             def _buscar_card_espn(evid):
-                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto, bandeira e cartel."""
+                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto, bandeira,
+                cartel e histórico (hist_1/hist_2 já em JSON, prontos pro banco)."""
+                import json
                 from concurrent.futures import ThreadPoolExecutor
                 base = f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}"
                 dados = _get(base)
                 nome_evento = dados.get("name", "Evento ESPN")
                 competitions = dados.get("competitions", [])
 
-                # São ~50 chamadas por card (luta, atleta, cartel); em paralelo cai
-                # de dezenas de segundos para poucos. map() preserva a ordem.
-                with ThreadPoolExecutor(max_workers=12) as ex:
+                # São ~10 chamadas por atleta (perfil, cartel, 3 lutas com status e
+                # adversário), ~250 por card; em paralelo fica em poucos segundos.
+                # map() preserva a ordem.
+                with ThreadPoolExecutor(max_workers=16) as ex:
                     comps = list(ex.map(lambda r: _get(r["$ref"]), competitions))
                     comps = [c for c in comps if len(c.get("competitors", [])) >= 2]
                     competidores = [c for comp in comps for c in comp["competitors"][:2]]
@@ -2460,12 +2622,14 @@ with tab_admin:
 
                 lutas = []
                 for i, comp in enumerate(comps):
-                    (n1, f1, b1, r1), (n2, f2, b2, r2) = atletas[2 * i], atletas[2 * i + 1]
+                    (n1, f1, b1, r1, h1), (n2, f2, b2, r2, h2) = atletas[2 * i], atletas[2 * i + 1]
                     lutas.append({
                         "l1": n1, "l2": n2,
                         "foto_1": f1, "foto_2": f2,
                         "band_1": b1, "band_2": b2,
                         "rec_1": r1, "rec_2": r2,
+                        "hist_1": json.dumps(h1, ensure_ascii=False) if h1 else "",
+                        "hist_2": json.dumps(h2, ensure_ascii=False) if h2 else "",
                         "peso": comp.get("type", {}).get("text", ""),
                         "data": comp.get("date", ""),
                     })
@@ -2480,10 +2644,11 @@ with tab_admin:
             with cb2:
                 importar = st.button("🚀 IMPORTAR (ESPN)")
             with cb3:
-                # Só completa o cartel do card atual (casando pelo nome);
-                # não apaga palpites nem lutas.
+                # Só completa cartel e últimas lutas do card atual (casando pelo
+                # nome); não apaga palpites nem lutas.
                 so_cartel = st.button("📊 Atualizar cartéis",
-                                      help="Preenche V-D-E do card atual sem zerar os palpites")
+                                      help="Preenche cartel (V-D-E) e últimas lutas do card atual "
+                                           "sem zerar os palpites")
 
             if so_cartel:
                 evid = _espn_id(espn_in or "")
@@ -2491,35 +2656,40 @@ with tab_admin:
                     st.error("Não achei o ID. Cole a URL completa ou só o número.")
                 else:
                     try:
-                        with st.spinner(f"Buscando cartéis do evento {evid}…"):
+                        with st.spinner(f"Buscando cartéis e últimas lutas do evento {evid}…"):
                             _, lutas_espn = _buscar_card_espn(evid)
-                        cartel_por_nome = {}
+                        # nome -> (cartel, histórico)
+                        dados_por_nome = {}
                         for l in lutas_espn:
-                            cartel_por_nome[l["l1"].strip().upper()] = l["rec_1"]
-                            cartel_por_nome[l["l2"].strip().upper()] = l["rec_2"]
+                            dados_por_nome[l["l1"].strip().upper()] = (l["rec_1"], l["hist_1"])
+                            dados_por_nome[l["l2"].strip().upper()] = (l["rec_2"], l["hist_2"])
                         atuais = load_lutas()
                         n_ok, sem_par = 0, []
                         for _, lt in atuais.iterrows():
                             upd = {}
                             for lado in ("1", "2"):
                                 nm = str(lt[f"lutador_{lado}"]).strip()
-                                rec = cartel_por_nome.get(nm.upper(), "")
+                                rec, hist = dados_por_nome.get(nm.upper(), ("", ""))
                                 if rec:
                                     upd[f"rec_{lado}"] = rec
-                                else:
+                                if hist:
+                                    upd[f"hist_{lado}"] = hist
+                                if not (rec or hist):
                                     sem_par.append(nm)
+                                else:
+                                    n_ok += 1
                             if upd:
                                 sb.table("lutas").update(upd).eq("id", int(lt["id"])).execute()
-                                n_ok += len(upd)
                         invalidate_cache()
-                        st.success(f"✅ {n_ok} cartéis atualizados.")
+                        st.success(f"✅ {n_ok} lutadores atualizados.")
                         if sem_par:
-                            st.caption("Sem cartel (nome não bate com a ESPN ou ela não tem): "
+                            st.caption("Sem dados (nome não bate com a ESPN ou ela não tem): "
                                        + ", ".join(sem_par))
                     except Exception as e:
                         st.error(f"Erro ao atualizar cartéis: {e}")
-                        if "rec_" in str(e):
-                            st.caption("Falta a migração: rode `migracao_cartel.sql` no Supabase.")
+                        if "rec_" in str(e) or "hist_" in str(e):
+                            st.caption("Falta migração: rode `migracao_cartel.sql` e "
+                                       "`migracao_historico.sql` no Supabase.")
 
             if buscar or importar:
                 evid = _espn_id(espn_in or "")
@@ -2570,6 +2740,8 @@ with tab_admin:
                                     "band_2": l.get("band_2", ""),
                                     "rec_1": l.get("rec_1", ""),
                                     "rec_2": l.get("rec_2", ""),
+                                    "hist_1": l.get("hist_1", ""),
+                                    "hist_2": l.get("hist_2", ""),
                                 } for i, l in enumerate(lutas_espn)]
                                 try:
                                     sb.table("resultados").delete().neq("luta_id", 0).execute()
@@ -2578,11 +2750,13 @@ with tab_admin:
                                     try:
                                         sb.table("lutas").insert(validas).execute()
                                     except Exception as e_ins:
-                                        # banco sem migracao_cartel.sql: grava sem o cartel
-                                        if "rec_" not in str(e_ins):
+                                        # banco sem as migrações de cartel/histórico:
+                                        # grava sem as colunas novas
+                                        if "rec_" not in str(e_ins) and "hist_" not in str(e_ins):
                                             raise
                                         for v in validas:
-                                            v.pop("rec_1", None); v.pop("rec_2", None)
+                                            for col in ("rec_1", "rec_2", "hist_1", "hist_2"):
+                                                v.pop(col, None)
                                         sb.table("lutas").insert(validas).execute()
                                     sb.table("config").update({
                                         "fotn_1": "", "fotn_2": "", "potn_1": "", "potn_2": "",

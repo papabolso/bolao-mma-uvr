@@ -1259,6 +1259,19 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Anton&family=Inter:wght@400;500;600&display=swap');
 """ + _ROOT_VARS + """
 
+
+/* ═══ Escolha clicável dos lutadores ═══ */
+.pick-head{display:flex;align-items:center;gap:10px;margin:20px 0 8px}
+.pick-tag{background:var(--ufc-red);color:#fff;font-family:'Oswald',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:.18em;padding:4px 10px;border-radius:3px}
+.pick-tag.main{background:var(--gold);color:#121212}
+.pick-tag.co-main{background:var(--ufc-red-bright)}
+.pick-tag.prelim{background:#2A313B;color:var(--muted)}
+.pick-pts{color:var(--muted);font-size:10.5px;letter-spacing:.2em;font-weight:600}
+.pick-vs{display:flex;align-items:center;justify-content:center;height:150px;
+  font-family:'Anton',sans-serif;font-size:1.15rem;color:var(--muted);opacity:.65}
+@media(max-width:640px){.pick-vs{font-size:.9rem}}
+
 .nfx-brand{
   font-family:'Oswald',sans-serif;
   font-size:.85rem;
@@ -2012,6 +2025,55 @@ with tab_votar:
         </style>
         """
 
+        # ── Escolha clicável: a foto E o nome formam um único botão ────────
+        # st.markdown remove <img>, mas NAO remove background-image dentro de
+        # <style>. Entao a foto entra como fundo de um st.button de verdade,
+        # que vive no documento principal (nao num iframe) e devolve o clique.
+        # O gancho e a classe st-key-<key>, gerada pelo Streamlit >= 1.39.
+        from urllib.parse import quote as _q
+
+        def _camadas_foto(nome, url):
+            """Fundo do avatar: foto -> proxy weserv -> cor chapada."""
+            u = (url or "").strip() or FOTOS.get(nome.strip().upper(), "")
+            if not u:
+                return None
+            prox = "https://images.weserv.nl/?url=" + _q(u.replace("https://", ""), safe="") + "&w=220"
+            return (f"url('{u}') center/cover no-repeat, "
+                    f"url('{prox}') center/cover no-repeat, #171A20")
+
+        def _css_pick(key, nome, url, sel):
+            cam = _camadas_foto(nome, url)
+            ini = iniciais(nome)
+            borda    = "var(--ufc-red-bright)" if sel else "var(--border)"
+            foto_bd  = "var(--ufc-red-bright)" if sel else "#39414D"
+            cor_txt  = "#fff" if sel else "#C8CDD6"
+            fundo    = ("linear-gradient(180deg,#2A1012,#15090B)" if sel
+                        else "linear-gradient(180deg,#141821,#0D1014)")
+            glow     = ("box-shadow:0 0 0 1px var(--ufc-red-bright),"
+                        "0 10px 30px rgba(210,10,10,.35);" if sel else "")
+            check = (f'''
+.st-key-{key} button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
+ width:21px;height:21px;border-radius:50%;background:var(--ufc-red-bright);
+ color:#fff;font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
+                     if sel else "")
+            return f'''
+.st-key-{key} button{{position:relative;width:100%;height:150px;margin:0;
+ padding:94px 8px 0;background:{fundo}!important;border:2px solid {borda}!important;
+ border-radius:16px!important;{glow}color:{cor_txt}!important;font-weight:700!important;
+ font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
+ white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s}}
+.st-key-{key} button:hover{{border-color:var(--ufc-red-bright)!important;
+ transform:translateY(-2px)}}
+.st-key-{key} button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
+.st-key-{key} button::before{{content:{'""' if cam else f'"{ini}"'};
+ position:absolute;top:14px;left:50%;transform:translateX(-50%);
+ width:72px;height:72px;border-radius:50%;
+ background:{cam or "#171A20"};border:2px solid {foto_bd};
+ color:var(--muted);font-size:21px;font-weight:800;line-height:72px;
+ text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
+{check}'''
+
+        _css_cards = []
         for _, luta in lutas.iterrows():
             lid = int(luta["id"])
             l1, l2 = str(luta["lutador_1"]).strip(), str(luta["lutador_2"]).strip()
@@ -2022,34 +2084,38 @@ with tab_votar:
             lista_lutas_fmt.append(f"{l1} vs {l2}")
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
 
-            altura = 190 if tag_class == "main" else 180
-            components.html(
-                CARD_CSS + f"""
-                <div class="fc {tag_class}">
-                  <span class="tag {tag_class}">{tag_label}</span>
-                  <div class="row">
-                    <div class="blk">
-                      {avatar_html(l1, "l", f1_url)}
-                      <div class="nm">{l1}</div>
-                    </div>
-                    <div class="mid"><span>VS</span></div>
-                    <div class="blk">
-                      {avatar_html(l2, "r", f2_url)}
-                      <div class="nm">{l2}</div>
-                    </div>
-                  </div>
-                </div>
-                """,
-                height=altura,
+            skey = f"pick_{lid}"
+            if skey not in st.session_state:
+                st.session_state[skey] = None
+
+            _f2esp = bool(cfg.get("f2_especial", False))
+            pts = 2 if (tag_class == "main" or (tag_class == "co-main" and _f2esp)) else 1
+            st.markdown(
+                f'''<div class="pick-head">
+                  <span class="pick-tag {tag_class}">{tag_label}</span>
+                  <span class="pick-pts">{pts} {"PONTOS" if pts > 1 else "PONTO"}</span>
+                </div>''',
+                unsafe_allow_html=True,
             )
-            escolha = st.radio(
-                f"Vencedor da luta {lid}",
-                options=[l1, l2],
-                horizontal=True,
-                label_visibility="collapsed",
-                key=f"luta_{lid}",
-            )
-            palpites_usuario[lid] = escolha
+
+            ca, cv, cb = st.columns([1, 0.17, 1])
+            with ca:
+                if st.button(l1, key=f"pk{lid}a", use_container_width=True):
+                    st.session_state[skey] = l1
+            with cv:
+                st.markdown('<div class="pick-vs">VS</div>', unsafe_allow_html=True)
+            with cb:
+                if st.button(l2, key=f"pk{lid}b", use_container_width=True):
+                    st.session_state[skey] = l2
+
+            sel = st.session_state[skey]
+            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1))
+            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2))
+            palpites_usuario[lid] = sel
+
+        # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,
+        # entao nao precisa de um segundo reload so para repintar o selecionado.
+        st.markdown("<style>" + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
 
         st.markdown('<div class="section-title">Bônus da Noite</div>', unsafe_allow_html=True)
         todos_uniq = sorted(set(todos_lutadores))
@@ -2067,8 +2133,12 @@ with tab_votar:
         st.markdown("---")
         if st.button("✅ ENVIAR PALPITES"):
             nome_limpo = nome_usuario.strip()
+            _faltando = [lid for lid, pal in palpites_usuario.items() if not pal]
             if not nome_limpo:
                 st.error("Informe seu nome.")
+            elif _faltando:
+                st.error(f"Faltam {len(_faltando)} luta(s) sem palpite. "
+                         "Clique no lutador que você acha que vence em cada uma.")
             else:
                 if fotn_sel != "— Selecione —":
                     f1v, f2v = fotn_sel.split(" vs ")

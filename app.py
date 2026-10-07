@@ -2065,10 +2065,12 @@ with tab_votar:
 .st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:var(--ufc-red-bright)!important;
  transform:translateY(-2px)}}
 .st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
-.st-key-{key} div[data-testid="stButton"]>button p,
 .st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
  position:absolute!important;left:6px;right:6px;bottom:10px;margin:0!important;
- text-align:center;line-height:1.14!important}}
+ z-index:2;text-align:center}}
+.st-key-{key} div[data-testid="stButton"]>button p{{
+ position:static!important;margin:0!important;line-height:1.14!important;text-align:center;
+ white-space:normal!important;overflow-wrap:anywhere;word-break:break-word}}
 .st-key-{key} div[data-testid="stButton"]>button::before{{content:{'""' if cam else f'"{ini}"'};
  position:absolute;top:14px;left:50%;transform:translateX(-50%);
  width:72px;height:72px;border-radius:50%;

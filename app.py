@@ -36,11 +36,14 @@ def load_lutas() -> pd.DataFrame:
     df = pd.DataFrame(res.data or [])
     if df.empty:
         df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem",
-                                   "foto_1","foto_2","band_1","band_2"])
+                                   "foto_1","foto_2","band_1","band_2","rec_1","rec_2"])
     if "foto_1" not in df.columns: df["foto_1"] = ""
     if "foto_2" not in df.columns: df["foto_2"] = ""
     if "band_1" not in df.columns: df["band_1"] = ""
     if "band_2" not in df.columns: df["band_2"] = ""
+    # cartel (V-D-E) vindo da ESPN; banco sem a migração continua funcionando
+    if "rec_1" not in df.columns: df["rec_1"] = ""
+    if "rec_2" not in df.columns: df["rec_2"] = ""
     return df
 
 @st.cache_data(ttl=30)
@@ -71,6 +74,16 @@ def invalidate_cache():
     load_palpites.clear()
     load_resultados.clear()
     load_config.clear()
+
+def fmt_cartel(rec) -> str:
+    """'4-1-0' -> '4-1'; '4-1-2' fica igual. Empate só aparece se houver."""
+    import re
+    partes = re.findall(r"\d+", str(rec or ""))
+    if len(partes) < 2:
+        return ""
+    if len(partes) >= 3 and int(partes[2]) > 0:
+        return "-".join(partes[:3])
+    return "-".join(partes[:2])
 
 # ──────────────────────────────────────────────
 # TEMAS — paletas selecionáveis no Admin
@@ -2051,8 +2064,15 @@ with tab_votar:
             return (f"url('{u}') center/cover no-repeat, "
                     f"url('{prox}') center/cover no-repeat, #171A20")
 
-        def _css_pick(key, nome, url, sel, band=""):
+        def _css_pick(key, nome, url, sel, band="", rec="", alto=150):
             cam = _camadas_foto(nome, url)
+            # cartel entra como ::after do <p> (linha de baixo do nome); o ::after
+            # do botao ja e o check. So digitos e hifen, entao nao quebra o content.
+            cartel = (f'''
+.st-key-{key} div[data-testid="stButton"]>button p::after{{content:"{rec}";display:block;
+ margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
+ font-variant-numeric:tabular-nums;color:{"#E6E9EE" if sel else "var(--muted)"}}}'''
+                      if rec else "")
             ini = iniciais(nome)
             # bandeira: camada de fundo no topo-esquerdo, antes do gradiente
             _bandeira = f"url('{band}') 11px 11px/26px auto no-repeat," if band else ""
@@ -2069,7 +2089,7 @@ with tab_votar:
  color:#fff;font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
                      if sel else "")
             return f'''
-.st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:150px;margin:0;
+.st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:{alto}px;margin:0;
  padding:92px 8px 14px!important;background:{_bandeira}{fundo}!important;border:2px solid {borda}!important;
  border-radius:16px!important;clip-path:none!important;font-family:inherit!important;{glow}color:{cor_txt}!important;font-weight:700!important;
  font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
@@ -2089,7 +2109,7 @@ with tab_votar:
  background:{cam or "#171A20"};border:2px solid {foto_bd};
  color:var(--muted);font-size:21px;font-weight:800;line-height:72px;
  text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
-{check}'''
+{check}{cartel}'''
 
         _css_cards = []
         for _, luta in lutas.iterrows():
@@ -2100,6 +2120,10 @@ with tab_votar:
             f2_url = str(luta.get("foto_2", "") or "").strip()
             b1_url = str(luta.get("band_1", "") or "").strip()
             b2_url = str(luta.get("band_2", "") or "").strip()
+            r1 = fmt_cartel(luta.get("rec_1", ""))
+            r2 = fmt_cartel(luta.get("rec_2", ""))
+            # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel
+            alto = 166 if (r1 or r2) else 150
             todos_lutadores.extend([l1, l2])
             lista_lutas_fmt.append(f"{l1} vs {l2}")
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
@@ -2129,8 +2153,8 @@ with tab_votar:
                     st.session_state[skey] = l2
 
             sel = st.session_state[skey]
-            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url))
-            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url))
+            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto))
+            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto))
             palpites_usuario[lid] = sel
 
         # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,
@@ -2381,52 +2405,68 @@ with tab_admin:
                 with urllib.request.urlopen(req, timeout=12) as r:
                     return json.loads(r.read().decode("utf-8"))
 
+            def _cartel_espn(rec_ref):
+                """Cartel geral do atleta no formato V-D-E (ex: '4-1-0'). Vazio se não houver."""
+                if not rec_ref:
+                    return ""
+                try:
+                    for it in _get(rec_ref).get("items", []):
+                        if it.get("type") == "total" or it.get("name") == "overall":
+                            return str(it.get("summary") or "").strip()
+                except Exception:
+                    pass  # sem cartel não derruba o card
+                return ""
+
+            def _atleta_espn(c):
+                """Um competidor da luta -> (nome, foto, bandeira, cartel)."""
+                ath_ref = c.get("athlete", {}).get("$ref")
+                nome, foto, band = "?", "", ""
+                if ath_ref:
+                    try:
+                        atleta = _get(ath_ref)
+                        nome = atleta.get("fullName") or atleta.get("displayName") or "?"
+                        foto = atleta.get("headshot", {}).get("href", "") or ""
+                        # A ESPN entrega a bandeira pronta em flag.href.
+                        # Se faltar, monta pelo codigo do pais (citizenship).
+                        band = (atleta.get("flag") or {}).get("href", "") or ""
+                        if not band:
+                            cz = str(atleta.get("citizenship") or "").strip().lower()
+                            if cz:
+                                band = ("https://a.espncdn.com/i/teamlogos/"
+                                        f"countries/500/{cz}.png")
+                    except Exception:
+                        pass  # segue sem foto pra não derrubar o card inteiro
+                # o competidor já aponta pro cartel; se faltar, usa o do atleta
+                rec_ref = ((c.get("record") or {}).get("$ref")
+                           or (f"https://sports.core.api.espn.com/v2/sports/mma/athletes/{c['id']}/records"
+                               if c.get("id") else ""))
+                return nome, foto, band, _cartel_espn(rec_ref)
+
             def _buscar_card_espn(evid):
-                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto_1/foto_2 embutidas."""
+                """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto, bandeira e cartel."""
+                from concurrent.futures import ThreadPoolExecutor
                 base = f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}"
                 dados = _get(base)
                 nome_evento = dados.get("name", "Evento ESPN")
                 competitions = dados.get("competitions", [])
 
+                # São ~50 chamadas por card (luta, atleta, cartel); em paralelo cai
+                # de dezenas de segundos para poucos. map() preserva a ordem.
+                with ThreadPoolExecutor(max_workers=12) as ex:
+                    comps = list(ex.map(lambda r: _get(r["$ref"]), competitions))
+                    comps = [c for c in comps if len(c.get("competitors", [])) >= 2]
+                    competidores = [c for comp in comps for c in comp["competitors"][:2]]
+                    atletas = list(ex.map(_atleta_espn, competidores))
+
                 lutas = []
-                for comp_ref in competitions:
-                    comp = _get(comp_ref["$ref"])
-                    tipo_peso = comp.get("type", {}).get("text", "")
-                    competitors = comp.get("competitors", [])
-                    if len(competitors) < 2:
-                        continue
-
-                    nomes_luta, fotos_luta, bands_luta = [], [], []
-                    for c in competitors[:2]:
-                        ath_ref = c.get("athlete", {}).get("$ref")
-                        nome, foto, band = "?", "", ""
-                        if ath_ref:
-                            try:
-                                atleta = _get(ath_ref)
-                                nome = atleta.get("fullName") or atleta.get("displayName") or "?"
-                                foto = atleta.get("headshot", {}).get("href", "") or ""
-                                # A ESPN entrega a bandeira pronta em flag.href.
-                                # Se faltar, monta pelo codigo do pais (citizenship).
-                                band = (atleta.get("flag") or {}).get("href", "") or ""
-                                if not band:
-                                    cz = str(atleta.get("citizenship") or "").strip().lower()
-                                    if cz:
-                                        band = ("https://a.espncdn.com/i/teamlogos/"
-                                                f"countries/500/{cz}.png")
-                            except Exception:
-                                pass  # segue sem foto pra não derrubar o card inteiro
-                        nomes_luta.append(nome)
-                        fotos_luta.append(foto)
-                        bands_luta.append(band)
-
+                for i, comp in enumerate(comps):
+                    (n1, f1, b1, r1), (n2, f2, b2, r2) = atletas[2 * i], atletas[2 * i + 1]
                     lutas.append({
-                        "l1": nomes_luta[0],
-                        "l2": nomes_luta[1] if len(nomes_luta) > 1 else "?",
-                        "foto_1": fotos_luta[0] if fotos_luta else "",
-                        "foto_2": fotos_luta[1] if len(fotos_luta) > 1 else "",
-                        "band_1": bands_luta[0] if bands_luta else "",
-                        "band_2": bands_luta[1] if len(bands_luta) > 1 else "",
-                        "peso": tipo_peso,
+                        "l1": n1, "l2": n2,
+                        "foto_1": f1, "foto_2": f2,
+                        "band_1": b1, "band_2": b2,
+                        "rec_1": r1, "rec_2": r2,
+                        "peso": comp.get("type", {}).get("text", ""),
                         "data": comp.get("date", ""),
                     })
 
@@ -2434,11 +2474,52 @@ with tab_admin:
                 lutas.reverse()
                 return nome_evento, lutas
 
-            cb1, cb2 = st.columns(2)
+            cb1, cb2, cb3 = st.columns(3)
             with cb1:
                 buscar = st.button("🔎 Buscar card")
             with cb2:
                 importar = st.button("🚀 IMPORTAR (ESPN)")
+            with cb3:
+                # Só completa o cartel do card atual (casando pelo nome);
+                # não apaga palpites nem lutas.
+                so_cartel = st.button("📊 Atualizar cartéis",
+                                      help="Preenche V-D-E do card atual sem zerar os palpites")
+
+            if so_cartel:
+                evid = _espn_id(espn_in or "")
+                if not evid:
+                    st.error("Não achei o ID. Cole a URL completa ou só o número.")
+                else:
+                    try:
+                        with st.spinner(f"Buscando cartéis do evento {evid}…"):
+                            _, lutas_espn = _buscar_card_espn(evid)
+                        cartel_por_nome = {}
+                        for l in lutas_espn:
+                            cartel_por_nome[l["l1"].strip().upper()] = l["rec_1"]
+                            cartel_por_nome[l["l2"].strip().upper()] = l["rec_2"]
+                        atuais = load_lutas()
+                        n_ok, sem_par = 0, []
+                        for _, lt in atuais.iterrows():
+                            upd = {}
+                            for lado in ("1", "2"):
+                                nm = str(lt[f"lutador_{lado}"]).strip()
+                                rec = cartel_por_nome.get(nm.upper(), "")
+                                if rec:
+                                    upd[f"rec_{lado}"] = rec
+                                else:
+                                    sem_par.append(nm)
+                            if upd:
+                                sb.table("lutas").update(upd).eq("id", int(lt["id"])).execute()
+                                n_ok += len(upd)
+                        invalidate_cache()
+                        st.success(f"✅ {n_ok} cartéis atualizados.")
+                        if sem_par:
+                            st.caption("Sem cartel (nome não bate com a ESPN ou ela não tem): "
+                                       + ", ".join(sem_par))
+                    except Exception as e:
+                        st.error(f"Erro ao atualizar cartéis: {e}")
+                        if "rec_" in str(e):
+                            st.caption("Falta a migração: rode `migracao_cartel.sql` no Supabase.")
 
             if buscar or importar:
                 evid = _espn_id(espn_in or "")
@@ -2461,8 +2542,10 @@ with tab_admin:
                             rows_pv = ""
                             for i, l in enumerate(lutas_espn):
                                 tipo_auto = "F1" if i == 0 else ("F2" if i == 1 else "PRELIM")
-                                f1_ok = ("📷" if l["foto_1"] else "—") + ("🏳" if l.get("band_1") else "")
-                                f2_ok = ("📷" if l["foto_2"] else "—") + ("🏳" if l.get("band_2") else "")
+                                f1_ok = (("📷" if l["foto_1"] else "—") + ("🏳" if l.get("band_1") else "")
+                                         + (f' <small>{fmt_cartel(l.get("rec_1"))}</small>' if l.get("rec_1") else ""))
+                                f2_ok = (("📷" if l["foto_2"] else "—") + ("🏳" if l.get("band_2") else "")
+                                         + (f' <small>{fmt_cartel(l.get("rec_2"))}</small>' if l.get("rec_2") else ""))
                                 rows_pv += (
                                     f'<tr><td>{i+1}</td><td>{l["l1"]} {f1_ok}</td><td>{l["l2"]} {f2_ok}</td>'
                                     f'<td>{l["peso"]}</td><td>{tipo_auto}</td></tr>'
@@ -2485,12 +2568,22 @@ with tab_admin:
                                     "foto_2": l["foto_2"],
                                     "band_1": l.get("band_1", ""),
                                     "band_2": l.get("band_2", ""),
+                                    "rec_1": l.get("rec_1", ""),
+                                    "rec_2": l.get("rec_2", ""),
                                 } for i, l in enumerate(lutas_espn)]
                                 try:
                                     sb.table("resultados").delete().neq("luta_id", 0).execute()
                                     sb.table("palpites").delete().neq("id", 0).execute()
                                     sb.table("lutas").delete().neq("id", 0).execute()
-                                    sb.table("lutas").insert(validas).execute()
+                                    try:
+                                        sb.table("lutas").insert(validas).execute()
+                                    except Exception as e_ins:
+                                        # banco sem migracao_cartel.sql: grava sem o cartel
+                                        if "rec_" not in str(e_ins):
+                                            raise
+                                        for v in validas:
+                                            v.pop("rec_1", None); v.pop("rec_2", None)
+                                        sb.table("lutas").insert(validas).execute()
                                     sb.table("config").update({
                                         "fotn_1": "", "fotn_2": "", "potn_1": "", "potn_2": "",
                                     }).eq("id", 1).execute()

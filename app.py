@@ -2122,7 +2122,15 @@ with tab_votar:
  background:{cam or "#171A20"};border:2px solid {foto_bd};
  color:var(--muted);font-size:21px;font-weight:800;line-height:72px;
  text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
-{check}{cartel}'''
+{check}{cartel}
+@media (max-width:640px){{
+.st-key-{key} div[data-testid="stButton"]>button{{height:{alto - 6}px;padding:80px 6px 10px!important;
+ border-radius:14px!important;font-size:.76rem!important}}
+.st-key-{key} div[data-testid="stButton"]>button::before{{top:12px;width:60px;height:60px;
+ line-height:60px;font-size:18px}}
+.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
+ left:4px;right:4px;bottom:9px}}
+}}'''
 
         # ── Últimas lutas: setinha embaixo de cada confronto ───────────────
         # <details> nativo: abre/fecha no navegador, sem rerun do Streamlit,
@@ -2154,7 +2162,8 @@ with tab_votar:
             return (
                 '<details class="hx"><summary>'
                 f'<span class="hx-form">{_hx_chips(h1)}</span>'
-                '<span class="hx-btn">Últimas lutas<span class="hx-chev"></span></span>'
+                '<span class="hx-btn"><span class="hx-txt">Últimas lutas</span>'
+                '<span class="hx-chev"></span></span>'
                 f'<span class="hx-form">{_hx_chips(h2)}</span>'
                 f'</summary><div class="hx-body">{_hx_col(l1, h1)}{_hx_col(l2, h2)}</div></details>'
             )
@@ -2198,9 +2207,37 @@ with tab_votar:
 .hx-op{font-size:.84rem;font-weight:600;color:#E6E9EE;overflow-wrap:anywhere}
 .hx-met{font-size:.7rem;color:var(--muted)}
 .hx-sem{font-size:.78rem;color:var(--muted);padding:6px 0}
-/* abaixo de 640px o Streamlit empilha os cards: forma vai pras pontas */
-@media (max-width:640px){.hx summary{display:flex;justify-content:space-between;gap:8px}}
-@media (max-width:560px){.hx-body{grid-template-columns:1fr}}
+/* ── Celular ──────────────────────────────────────────────────────────
+   O Streamlit empilha colunas abaixo de 640px (min-width:100% + wrap), o
+   que deixava cada confronto com ~600px de altura. Na linha do palpite
+   (a que contém os botões st-key-pk*) os dois lutadores ficam lado a lado
+   e o VS vira uma faixa estreita. :has() roda em iOS 15.4+ / Chrome 105+. */
+@media (max-width:640px){
+ div[data-testid="stHorizontalBlock"]:has([class*="st-key-pk"]){flex-wrap:nowrap!important;gap:6px!important}
+ div[data-testid="stHorizontalBlock"]:has([class*="st-key-pk"])>div[data-testid="stColumn"]{
+  min-width:0!important;width:auto!important;flex:1 1 0!important}
+ div[data-testid="stHorizontalBlock"]:has([class*="st-key-pk"])>div[data-testid="stColumn"]:nth-child(2){
+  flex:0 0 20px!important}
+ .pick-vs{height:146px;font-size:.72rem}
+ .pick-head{margin:16px 0 8px}
+ /* mesma grade do confronto; no meio só a setinha num círculo */
+ .hx summary{grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);column-gap:6px}
+ .hx-btn{width:30px;height:30px;padding:0;justify-content:center;gap:0}
+ .hx-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ .hx-chev{transform:translateY(-1px) rotate(45deg)}
+ .hx[open] .hx-chev{transform:translateY(1px) rotate(-135deg)}
+ .hx-b{min-width:18px;height:18px;font-size:.62rem;border-radius:5px}
+ .hx-form{gap:3px}
+ /* histórico: cada coluna embaixo do seu lutador, compacto */
+ /* 32px = 6 + faixa do VS (20) + 6: cada coluna fica alinhada ao seu card */
+ .hx-body{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 32px}
+ .hx-col{padding:8px 9px;border-radius:10px}
+ .hx-nm{font-size:.6rem;letter-spacing:.1em}
+ .hx-row{gap:7px;padding:6px 0;align-items:flex-start}
+ .hx-row .hx-b{margin-top:1px}
+ .hx-op{font-size:.74rem}
+ .hx-met{font-size:.62rem}
+}
 @media (prefers-reduced-motion:reduce){.hx-chev,.hx[open] .hx-body{transition:none;animation:none}}
 """
 

@@ -2047,8 +2047,8 @@ with tab_votar:
             borda    = "var(--ufc-red-bright)" if sel else "var(--border)"
             foto_bd  = "var(--ufc-red-bright)" if sel else "#39414D"
             cor_txt  = "#fff" if sel else "#C8CDD6"
-            fundo    = ("linear-gradient(180deg,#2A1012,#15090B)" if sel
-                        else "linear-gradient(180deg,#141821,#0D1014)")
+            fundo    = ("linear-gradient(180deg,rgba(210,10,10,.20),rgba(120,6,6,.10))" if sel
+                        else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
             glow     = ("box-shadow:0 0 0 1px var(--ufc-red-bright),"
                         "0 10px 30px rgba(210,10,10,.35);" if sel else "")
             check = (f'''
@@ -2058,13 +2058,17 @@ with tab_votar:
                      if sel else "")
             return f'''
 .st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:150px;margin:0;
- padding:94px 8px 0;background:{fundo}!important;border:2px solid {borda}!important;
+ padding:92px 8px 14px!important;background:{fundo}!important;border:2px solid {borda}!important;
  border-radius:16px!important;clip-path:none!important;font-family:inherit!important;{glow}color:{cor_txt}!important;font-weight:700!important;
  font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
  white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s}}
 .st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:var(--ufc-red-bright)!important;
  transform:translateY(-2px)}}
 .st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
+.st-key-{key} div[data-testid="stButton"]>button p,
+.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
+ position:absolute!important;left:6px;right:6px;bottom:10px;margin:0!important;
+ text-align:center;line-height:1.14!important}}
 .st-key-{key} div[data-testid="stButton"]>button::before{{content:{'""' if cam else f'"{ini}"'};
  position:absolute;top:14px;left:50%;transform:translateX(-50%);
  width:72px;height:72px;border-radius:50%;

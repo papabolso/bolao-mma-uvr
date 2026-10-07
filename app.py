@@ -646,273 +646,156 @@ h1 em{font-style:normal;display:block;font-size:.70em;margin-top:4px;letter-spac
 
 HERO_FIGHTNIGHT = r"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap');
+/* Hero da arena. Ocupa a largura toda da tela (ver .fn-hero-mark no extra_css)
+   e termina exatamente na cor da página (#08090B): não existe borda de "imagem".
+   A arte usa xMidYMid slice: corta as laterais em vez de esticar, então a tela
+   do octógono e os refletores ficam proporcionais do celular ao monitor largo. */
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:transparent;overflow:hidden}
-.wrap{position:relative;width:100%;height:470px;font-family:'Oswald',sans-serif}
-.art{position:absolute;inset:0;width:100%;height:100%}
+html,body{background:#08090B;overflow:hidden}
+.wrap{position:relative;width:100%;height:100vh;font-family:'Oswald',sans-serif}
+.art{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* fusão: o pé do hero vira a cor da página, em px reais (não escala com a arte) */
+.fusao{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,9,11,0) 0%,rgba(8,9,11,0) 58%,
+             rgba(8,9,11,.55) 78%,#08090B 100%)}
 .txt{position:absolute;inset:0;display:flex;flex-direction:column;
-     align-items:center;justify-content:center;text-align:center;padding:0 60px}
-.banner{display:inline-flex;align-items:center;gap:.95em;
-  font-family:'Oswald',sans-serif;font-weight:600;font-size:11.5px;
-  letter-spacing:.42em;text-transform:uppercase;padding:6px 22px;
-  color:#fff;background:linear-gradient(180deg,#E01212,#9D0606);
-  box-shadow:0 5px 24px rgba(210,10,10,.55);clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}
-.banner b{font-weight:400;opacity:.72;letter-spacing:.42em}
-h1{font-family:'Anton',sans-serif;font-size:92px;line-height:.82;margin-top:20px;
-   letter-spacing:.004em;text-transform:uppercase;color:#fff;
-   text-shadow:0 4px 0 #0A0C0F,0 10px 34px rgba(0,0,0,.95)}
-h1 em{font-style:normal;display:block;font-size:1em;margin-top:-2px;
-   color:transparent;-webkit-text-stroke:4px #E01212;
-   text-shadow:0 0 26px rgba(224,18,18,.55)}
-.rule{position:relative;width:268px;height:3px;margin:22px 0 15px;
-  background:linear-gradient(90deg,transparent,#8C939E 14%,#E01212 50%,#8C939E 86%,transparent)}
-.rule::after{content:"";position:absolute;top:-3px;left:50%;width:9px;height:9px;
-  transform:translateX(-50%) rotate(45deg);background:#E01212;
-  box-shadow:0 0 14px rgba(224,18,18,.8)}
+     align-items:center;justify-content:center;text-align:center;padding:12px 24px 0}
+.banner{display:inline-flex;align-items:center;gap:.9em;
+  font-weight:600;font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+  padding:6px 20px 6px 24px;color:#fff;
+  background:linear-gradient(180deg,#E01212,#9D0606);
+  box-shadow:0 6px 30px rgba(210,10,10,.45);
+  clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}
+.banner b{font-weight:400;opacity:.72}
+h1{font-family:'Anton',sans-serif;font-size:92px;line-height:.82;margin-top:22px;
+   text-transform:uppercase;color:#fff;letter-spacing:.004em;
+   text-shadow:0 2px 0 #0A0C0F,0 14px 40px rgba(0,0,0,.9)}
+h1 em{font-style:normal;display:block;margin-top:-2px;color:transparent;
+   -webkit-text-stroke:3.5px #E81515;
+   text-shadow:0 0 30px rgba(232,21,21,.55),0 0 2px rgba(232,21,21,.6)}
+.rule{position:relative;width:250px;height:2px;margin:22px 0 14px;
+  background:linear-gradient(90deg,transparent,#8C939E 18%,#E01212 50%,#8C939E 82%,transparent)}
+.rule::after{content:"";position:absolute;top:-3.5px;left:50%;width:9px;height:9px;
+  transform:translateX(-50%) rotate(45deg);background:#E01212;box-shadow:0 0 14px rgba(224,18,18,.8)}
 .sub{font-size:12.5px;letter-spacing:.46em;color:#EAEEF3;text-transform:uppercase;
-     font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.95)}
-.tag{margin-top:9px;font-size:11px;letter-spacing:.32em;color:#8C939E;
-     font-style:italic;text-transform:uppercase}
-.badge{margin-top:22px;display:inline-block;font-family:'Anton',sans-serif;
-  font-size:12px;letter-spacing:.30em;text-transform:uppercase;padding:8px 28px;
-  color:#fff;background:linear-gradient(180deg,#E01212,#A80808);
-  clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
-  box-shadow:0 6px 26px rgba(210,10,10,.5)}
+     font-weight:600;text-shadow:0 2px 12px rgba(0,0,0,.95);padding-left:.46em}
+.tag{margin-top:9px;font-size:11px;letter-spacing:.3em;color:#8C939E;
+     font-style:italic;text-transform:uppercase;padding-left:.3em}
+/* "It's time" é chamada, não botão: texto entre dois traços vermelhos */
+.badge{margin-top:20px;display:inline-flex;align-items:center;gap:14px;
+  font-family:'Anton',sans-serif;font-size:13px;letter-spacing:.34em;color:#fff;
+  text-transform:uppercase;text-shadow:0 0 18px rgba(232,21,21,.6);padding-left:.34em}
+.badge i{display:block;width:26px;height:2px;background:#E01212;box-shadow:0 0 10px rgba(224,18,18,.8)}
+.oct-m{display:none}
 @media(max-width:640px){
-  h1{font-size:58px}
-  h1 em{-webkit-text-stroke:2.4px #E01212}
-  .txt{padding:0 40px}
-  .banner{font-size:9.5px;letter-spacing:.28em;padding:5px 14px}
-  .rule{width:200px}
-  .sub{font-size:11px;letter-spacing:.32em}
+  .oct-d{display:none} .oct-m{display:inline}
+  .txt{padding:8px 18px 0}
+  .banner{font-size:9px;letter-spacing:.3em;padding:5px 13px 5px 16px}
+  h1{font-size:60px;margin-top:18px}
+  h1 em{-webkit-text-stroke:2.4px #E81515}
+  .rule{width:190px;margin:18px 0 12px}
+  .sub{font-size:11px;letter-spacing:.34em;padding-left:.34em}
+  .tag{font-size:9.5px;letter-spacing:.22em;padding-left:.22em}
+  .badge{margin-top:16px;font-size:11.5px;gap:11px}
+  .badge i{width:20px}
 }
 </style>
 <div class="wrap">
-<svg class="art" viewBox="0 0 820 470" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+<svg class="art" viewBox="0 0 1600 470" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <linearGradient id="fAco" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="#1A1F26"/>
-    <stop offset="38%"  stop-color="#0D1014"/>
-    <stop offset="74%"  stop-color="#06080A"/>
-    <stop offset="100%" stop-color="#000000"/>
+  <!-- base quase na cor da página: só um respiro de aço perto do teto -->
+  <linearGradient id="fBase" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#11141A"/>
+    <stop offset="45%"  stop-color="#0B0D11"/>
+    <stop offset="100%" stop-color="#08090B"/>
   </linearGradient>
   <linearGradient id="fLuz" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="#EAF2FF" stop-opacity=".30"/>
-    <stop offset="46%"  stop-color="#C8D8F0" stop-opacity=".09"/>
+    <stop offset="0%"   stop-color="#EAF2FF" stop-opacity=".34"/>
+    <stop offset="50%"  stop-color="#C8D8F0" stop-opacity=".08"/>
     <stop offset="100%" stop-color="#9FB4D4" stop-opacity="0"/>
   </linearGradient>
-  <radialGradient id="fRubro" cx="50%" cy="108%" r="62%">
-    <stop offset="0%"   stop-color="#FF2B2B" stop-opacity=".26"/>
-    <stop offset="42%"  stop-color="#D20A0A" stop-opacity=".09"/>
-    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  <radialGradient id="fLamp" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FFFFFF" stop-opacity=".75"/>
+    <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
   </radialGradient>
-  <linearGradient id="fMat" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="#2A3038"/>
-    <stop offset="55%"  stop-color="#15191F"/>
-    <stop offset="100%" stop-color="#090B0E"/>
-  </linearGradient>
-  <linearGradient id="fAcoH" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="#4A525E"/>
-    <stop offset="30%"  stop-color="#C8CDD6"/>
-    <stop offset="52%"  stop-color="#6C7480"/>
-    <stop offset="76%"  stop-color="#EAEEF3"/>
-    <stop offset="100%" stop-color="#4A525E"/>
-  </linearGradient>
-  <!-- tela do octogono -->
-  <pattern id="fTela" width="26" height="26" patternUnits="userSpaceOnUse">
-    <path d="M0,0 L26,26" stroke="#8C939E" stroke-width="1.5" opacity=".30"/>
-    <path d="M26,0 L0,26" stroke="#8C939E" stroke-width="1.5" opacity=".30"/>
-    <path d="M0,0 L26,26" stroke="#EAEEF3" stroke-width=".5" opacity=".22"/>
-    <path d="M26,0 L0,26" stroke="#EAEEF3" stroke-width=".5" opacity=".22"/>
-    <circle cx="13" cy="13" r="1.1" fill="#C8CDD6" opacity=".22"/>
+  <!-- tela do octógono -->
+  <pattern id="fTela" width="24" height="24" patternUnits="userSpaceOnUse">
+    <path d="M0,0 L24,24 M24,0 L0,24" stroke="#9AA2AE" stroke-width="1.2" opacity=".22"/>
+    <path d="M0,0 L24,24 M24,0 L0,24" stroke="#EAEEF3" stroke-width=".45" opacity=".16"/>
   </pattern>
-  <linearGradient id="fFade" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="#fff" stop-opacity="0"/>
-    <stop offset="34%"  stop-color="#fff" stop-opacity=".85"/>
-    <stop offset="72%"  stop-color="#fff" stop-opacity=".40"/>
+  <!-- a tela só aparece onde a luz bate e some antes das bordas -->
+  <radialGradient id="fTelaFade" cx="50%" cy="38%" r="46%" gradientTransform="translate(.5 .38) scale(1 1.25) translate(-.5 -.38)">
+    <stop offset="0%"   stop-color="#fff" stop-opacity=".9"/>
+    <stop offset="50%"  stop-color="#fff" stop-opacity=".35"/>
     <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
-  </linearGradient>
-  <mask id="fMask"><rect width="820" height="470" fill="url(#fFade)"/></mask>
+  </radialGradient>
+  <mask id="fTelaMask"><rect width="1600" height="470" fill="url(#fTelaFade)"/></mask>
+  <radialGradient id="fRubro" cx="50%" cy="100%" r="50%">
+    <stop offset="0%"   stop-color="#FF2B2B" stop-opacity=".30"/>
+    <stop offset="45%"  stop-color="#D20A0A" stop-opacity=".10"/>
+    <stop offset="100%" stop-color="#D20A0A" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="fHalo" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#000" stop-opacity=".55"/>
+    <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="fBlur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="16"/></filter>
   <filter id="fGrao" x="0" y="0" width="100%" height="100%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="19" result="n"/>
+    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="19" result="n"/>
     <feColorMatrix in="n" type="saturate" values="0"/>
-    <feComponentTransfer><feFuncA type="linear" slope=".26" intercept="0"/></feComponentTransfer>
+    <feComponentTransfer><feFuncA type="linear" slope=".22"/></feComponentTransfer>
   </filter>
-  <filter id="fBlur"><feGaussianBlur stdDeviation="14"/></filter>
-  <!-- fusao das bordas com o fundo do site: some o retangulo da "imagem colada" -->
-  <linearGradient id="fFusaoY" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="#08090B" stop-opacity=".55"/>
-    <stop offset="11%"  stop-color="#08090B" stop-opacity="0"/>
-    <stop offset="58%"  stop-color="#08090B" stop-opacity="0"/>
-    <stop offset="82%"  stop-color="#08090B" stop-opacity=".62"/>
-    <stop offset="100%" stop-color="#08090B" stop-opacity="1"/>
-  </linearGradient>
-  <linearGradient id="fFusaoX" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="#08090B" stop-opacity="1"/>
-    <stop offset="13%"  stop-color="#08090B" stop-opacity="0"/>
-    <stop offset="87%"  stop-color="#08090B" stop-opacity="0"/>
-    <stop offset="100%" stop-color="#08090B" stop-opacity="1"/>
-  </linearGradient>
 </defs>
 
-<rect width="820" height="470" fill="url(#fAco)"/>
+<rect width="1600" height="470" fill="url(#fBase)"/>
 
-<!-- cones de luz vindos do teto da arena -->
+<!-- refletores do teto: centrais mais fortes, laterais somem na penumbra -->
 <g filter="url(#fBlur)">
-<path d="M154.0,-30 L186.0,-30 L250.0,470 L-60.0,470 Z" fill="url(#fLuz)" opacity=".85"/>
-<path d="M394.0,-30 L426.0,-30 L590.0,470 L230.0,470 Z" fill="url(#fLuz)" opacity="1"/>
-<path d="M634.0,-30 L666.0,-30 L880.0,470 L570.0,470 Z" fill="url(#fLuz)" opacity=".85"/>
-<path d="M274.0,-30 L306.0,-30 L420.0,470 L110.0,470 Z" fill="url(#fLuz)" opacity=".45"/>
-<path d="M514.0,-30 L546.0,-30 L710.0,470 L400.0,470 Z" fill="url(#fLuz)" opacity=".45"/>
+  <path d="M776,-20 L824,-20 L1010,470 L590,470 Z" fill="url(#fLuz)"/>
+  <path d="M536,-20 L572,-20 L700,470 L380,470 Z" fill="url(#fLuz)" opacity=".7"/>
+  <path d="M1028,-20 L1064,-20 L1220,470 L900,470 Z" fill="url(#fLuz)" opacity=".7"/>
+  <path d="M300,-20 L330,-20 L420,470 L160,470 Z" fill="url(#fLuz)" opacity=".35"/>
+  <path d="M1270,-20 L1300,-20 L1440,470 L1180,470 Z" fill="url(#fLuz)" opacity=".35"/>
+</g>
+<ellipse cx="800"  cy="0" rx="70" ry="16" fill="url(#fLamp)"/>
+<ellipse cx="554"  cy="0" rx="46" ry="11" fill="url(#fLamp)" opacity=".7"/>
+<ellipse cx="1046" cy="0" rx="46" ry="11" fill="url(#fLamp)" opacity=".7"/>
+
+<!-- tela do octógono -->
+<g mask="url(#fTelaMask)"><rect width="1600" height="470" fill="url(#fTela)"/></g>
+
+<!-- penumbra atrás do letreiro, sem borda: dá leitura sem virar "caixa" -->
+<ellipse cx="800" cy="232" rx="260" ry="190" fill="url(#fHalo)"/>
+
+<!-- octógono: só contorno (vermelho por fora, aço por dentro). No celular a
+     arte aparece em escala 1:1, então ele tem uma versão menor (.oct-m). -->
+<g class="oct-d">
+<polygon points="800,52 932,107 987,239 932,371 800,426 668,371 613,239 668,107"
+         fill="none" stroke="#D20A0A" stroke-width="2" opacity=".55"/>
+<polygon points="800,66 922,117 973,239 922,361 800,412 678,361 627,239 678,117"
+         fill="none" stroke="#5A626E" stroke-width="1" opacity=".55"/>
+</g>
+<g class="oct-m">
+<polygon points="800,70 905,113 948,218 905,323 800,366 695,323 652,218 695,113"
+         fill="none" stroke="#D20A0A" stroke-width="1.6" opacity=".5"/>
+<polygon points="800,82 897,122 937,218 897,314 800,354 703,314 663,218 703,122"
+         fill="none" stroke="#5A626E" stroke-width=".9" opacity=".5"/>
 </g>
 
-<!-- tela do octogono ao fundo -->
-<g mask="url(#fMask)"><rect width="820" height="470" fill="url(#fTela)"/></g>
+<!-- lona em perspectiva + brilho vermelho subindo do chão -->
+<ellipse cx="800" cy="446" rx="190" ry="26" fill="none" stroke="#D20A0A" stroke-width="2" opacity=".45"/>
+<rect width="1600" height="470" fill="url(#fRubro)"/>
 
-<!-- mat em perspectiva -->
-<path d="M196,470 L624,470 L540,352 L280,352 Z" fill="url(#fMat)"/>
-<path d="M196,470 L280,352 M624,470 L540,352" stroke="#4A525E" stroke-width="1.6" opacity=".45" fill="none"/>
-<path d="M280,352 L540,352" stroke="#8C939E" stroke-width="1.6" opacity=".30"/>
-<ellipse cx="410" cy="424" rx="150" ry="30" fill="none" stroke="#D20A0A" stroke-width="2.4" opacity=".5"/>
-<ellipse cx="410" cy="424" rx="92"  ry="18" fill="none" stroke="#8C939E" stroke-width="1.2" opacity=".28"/>
-
-<!-- octogono atras do titulo -->
-<polygon points="591.1,297.0 485.0,394.6 335.0,394.6 228.9,297.0 228.9,159.0 335.0,61.4 485.0,61.4 591.1,159.0" fill="none" stroke="#D20A0A" stroke-width="2.6" opacity=".40"/>
-<polygon points="574.5,290.7 478.1,379.3 341.9,379.3 245.5,290.7 245.5,165.3 341.9,76.7 478.1,76.7 574.5,165.3" fill="#05070A" opacity=".80"/>
-<polygon points="574.5,290.7 478.1,379.3 341.9,379.3 245.5,290.7 245.5,165.3 341.9,76.7 478.1,76.7 574.5,165.3" fill="none" stroke="#252A33" stroke-width="1.2"/>
-
-<!-- brilho rubro subindo do chao -->
-<rect width="820" height="470" fill="url(#fRubro)"/>
-
-<g opacity=".05"><rect x="0" y="0" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="4" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="8" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="12" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="16" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="20" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="24" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="28" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="32" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="36" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="40" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="44" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="48" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="52" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="56" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="60" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="64" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="68" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="72" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="76" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="80" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="84" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="88" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="92" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="96" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="100" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="104" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="108" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="112" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="116" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="120" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="124" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="128" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="132" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="136" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="140" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="144" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="148" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="152" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="156" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="160" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="164" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="168" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="172" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="176" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="180" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="184" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="188" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="192" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="196" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="200" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="204" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="208" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="212" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="216" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="220" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="224" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="228" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="232" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="236" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="240" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="244" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="248" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="252" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="256" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="260" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="264" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="268" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="272" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="276" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="280" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="284" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="288" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="292" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="296" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="300" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="304" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="308" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="312" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="316" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="320" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="324" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="328" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="332" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="336" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="340" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="344" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="348" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="352" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="356" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="360" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="364" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="368" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="372" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="376" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="380" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="384" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="388" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="392" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="396" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="400" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="404" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="408" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="412" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="416" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="420" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="424" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="428" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="432" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="436" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="440" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="444" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="448" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="452" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="456" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="460" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="464" width="820" height="1" fill="#ffffff" opacity=".5"/>
-<rect x="0" y="468" width="820" height="1" fill="#ffffff" opacity=".5"/></g>
-<rect width="820" height="470" filter="url(#fGrao)" opacity=".34" style="mix-blend-mode:overlay"/>
-<rect width="820" height="470" fill="url(#fFusaoX)"/>
-<rect width="820" height="470" fill="url(#fFusaoY)"/>
+<rect width="1600" height="470" filter="url(#fGrao)" opacity=".3" style="mix-blend-mode:overlay"/>
 </svg>
+  <div class="fusao"></div>
   <div class="txt">
     <div class="banner">Ultimate Fighting <b>Championship</b></div>
     <h1>Fight<em>Night</em></h1>
     <div class="rule"></div>
     <div class="sub">Bol&atilde;o UVR</div>
     <div class="tag">Quem cravar mais leva a gl&oacute;ria</div>
-    <div class="badge">It&rsquo;s Time!</div>
+    <div class="badge"><i></i>It&rsquo;s Time!<i></i></div>
   </div>
 </div>"""
 
@@ -936,8 +819,23 @@ THEMES = {
         "badge": "It\u2019s Time!",
         "venue": "", "date": "",
         "hero_art": HERO_FIGHTNIGHT, "hero_art_h": 470,
+        # hero de ponta a ponta da tela (ver .fn-hero-mark abaixo)
+        "hero_full": True,
         "extra_css": """
 /* ═══ UFC FIGHT NIGHT — o hero é SVG (HERO_FIGHTNIGHT); aqui o resto da página ═══ */
+
+/* Página numa cor só (#08090B): o hero termina exatamente nela, então não
+   sobra borda de "imagem colada". Sem o brilho vermelho no canto esquerdo. */
+html,body,[data-testid="stAppViewContainer"]{background:#08090B!important}
+[data-testid="stMain"]{overflow-x:hidden}
+/* O marcador vem logo antes do iframe do hero; o iframe (irmão seguinte)
+   sai da coluna de conteúdo e cola no topo da página. */
+div[data-testid="stElementContainer"]:has(.fn-hero-mark){display:none}
+div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"]{
+  width:100vw!important;max-width:100vw!important;
+  margin-left:calc(50% - 50vw);margin-top:calc(-6rem - 16px)}
+div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"] iframe{
+  width:100%!important;display:block}
 .event-info{
   background:linear-gradient(180deg,#12161B,#0A0C10);
   border:1px solid var(--border);
@@ -952,8 +850,9 @@ THEMES = {
   color:#fff; border-bottom-color:var(--ufc-red);
 }
 .section-title{
-  color:#EAEEF3; border-bottom-color:var(--border);
-  letter-spacing:.14em;
+  color:#EAEEF3; letter-spacing:.14em;
+  /* a regra global põe borda vermelha cheia; aqui fica só a barra curta do ::after */
+  border-bottom:none!important; padding-bottom:0!important;
 }
 .section-title::after{
   content:""; display:block; width:48px; height:3px; margin-top:7px;
@@ -1766,6 +1665,9 @@ if T.get("venue") or T.get("date"):
 </div>
 """
 if T.get("hero_art"):
+    if T.get("hero_full"):
+        # marcador pro CSS achar o iframe seguinte (components.html não aceita key)
+        st.markdown('<div class="fn-hero-mark"></div>', unsafe_allow_html=True)
     components.html(T["hero_art"], height=T.get("hero_art_h", 470))
     if T.get("venue") or T.get("date"):
         st.markdown(f"""

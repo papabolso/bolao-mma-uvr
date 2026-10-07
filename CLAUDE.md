@@ -101,6 +101,17 @@ A ESPN lista prelim → main; o importador **inverte**. O CSV não tem foto nem 
 GitHub → Streamlit Cloud redeploya sozinho. Não há CI.
 Migrações de banco são arquivos `migracao_*.sql` aplicados à mão no Supabase.
 
+## Fluxo de trabalho
+
+- **Merge na `main` e push estão autorizados sem perguntar** (o dono pediu: "pode subir, sempre pode").
+  Fluxo: branch → teste local → commit → merge → push → avisar o que subiu. Migração que só
+  adiciona coluna vai junto; qualquer coisa que apague ou zere dados no banco ainda pede confirmação.
+- **O site é usado principalmente no celular.** Desenhar a UI primeiro para 375px e testar também
+  em 320px. O Streamlit empilha `st.columns` abaixo de 640px; a linha do palpite usa
+  `:has([class*="st-key-pk"])` para manter os lutadores lado a lado.
+- Teste local sem tocar no Supabase: rodar uma cópia do `app.py` com um módulo `supabase.py` falso
+  ao lado (devolve dados fixos) e um `secrets.toml` falso.
+
 ## Convenções
 
 - Comentários e interface em português; nomes de variáveis sem acento.

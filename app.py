@@ -2052,20 +2052,20 @@ with tab_votar:
             glow     = ("box-shadow:0 0 0 1px var(--ufc-red-bright),"
                         "0 10px 30px rgba(210,10,10,.35);" if sel else "")
             check = (f'''
-.st-key-{key} button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
+.st-key-{key} div[data-testid="stButton"]>button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
  width:21px;height:21px;border-radius:50%;background:var(--ufc-red-bright);
  color:#fff;font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
                      if sel else "")
             return f'''
-.st-key-{key} button{{position:relative;width:100%;height:150px;margin:0;
+.st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:150px;margin:0;
  padding:94px 8px 0;background:{fundo}!important;border:2px solid {borda}!important;
- border-radius:16px!important;{glow}color:{cor_txt}!important;font-weight:700!important;
+ border-radius:16px!important;clip-path:none!important;font-family:inherit!important;{glow}color:{cor_txt}!important;font-weight:700!important;
  font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
  white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s}}
-.st-key-{key} button:hover{{border-color:var(--ufc-red-bright)!important;
+.st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:var(--ufc-red-bright)!important;
  transform:translateY(-2px)}}
-.st-key-{key} button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
-.st-key-{key} button::before{{content:{'""' if cam else f'"{ini}"'};
+.st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
+.st-key-{key} div[data-testid="stButton"]>button::before{{content:{'""' if cam else f'"{ini}"'};
  position:absolute;top:14px;left:50%;transform:translateX(-50%);
  width:72px;height:72px;border-radius:50%;
  background:{cam or "#171A20"};border:2px solid {foto_bd};

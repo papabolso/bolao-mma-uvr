@@ -1857,7 +1857,7 @@ with tab_votar:
             "F1": ("main", "LUTA PRINCIPAL"),
             "F2": ("co-main", "CO-MAIN"),
             "PRINCIPAL": ("", "CARD PRINCIPAL"),
-            "PRELIM": ("prelim", "CARD PRINCIPAL"),
+            "PRELIM": ("prelim", "PRELIMINAR"),
         }
 
         # ── Fotos dos lutadores ──
@@ -2570,12 +2570,23 @@ with tab_admin:
                         "hist_1": json.dumps(h1, ensure_ascii=False) if h1 else "",
                         "hist_2": json.dumps(h2, ensure_ascii=False) if h2 else "",
                         "peso": comp.get("type", {}).get("text", ""),
+                        # 'main' = card principal; 'prelims1'/'prelims2' = preliminares
+                        "segmento": str((comp.get("cardSegment") or {}).get("name", "")),
                         "data": comp.get("date", ""),
                     })
 
                 # ESPN lista em ordem crescente (prelim -> main). Invertemos p/ main event vir 1º.
                 lutas.reverse()
                 return nome_evento, lutas
+
+            def _tipo_espn(i, l):
+                """1ª luta = F1, 2ª = F2; o resto segue o segmento da ESPN
+                (card principal ou preliminar). Sem segmento, vira PRELIM."""
+                if i == 0:
+                    return "F1"
+                if i == 1:
+                    return "F2"
+                return "PRINCIPAL" if l.get("segmento") == "main" else "PRELIM"
 
             cb1, cb2, cb3 = st.columns(3)
             with cb1:
@@ -2602,6 +2613,11 @@ with tab_admin:
                         for l in lutas_espn:
                             dados_por_nome[l["l1"].strip().upper()] = (l["rec_1"], l["hist_1"])
                             dados_por_nome[l["l2"].strip().upper()] = (l["rec_2"], l["hist_2"])
+                        # segmento da luta (principal/preliminar), pelo nome de qualquer lado
+                        seg_por_nome = {}
+                        for l in lutas_espn:
+                            for k in ("l1", "l2"):
+                                seg_por_nome[l[k].strip().upper()] = l.get("segmento", "")
                         atuais = load_lutas()
                         n_ok, sem_par = 0, []
                         for _, lt in atuais.iterrows():
@@ -2617,6 +2633,14 @@ with tab_admin:
                                     sem_par.append(nm)
                                 else:
                                     n_ok += 1
+                            # F1/F2 são escolha do admin; só corrige principal x preliminar
+                            tipo_at = str(lt.get("tipo", "")).strip().upper()
+                            seg = (seg_por_nome.get(str(lt["lutador_1"]).strip().upper())
+                                   or seg_por_nome.get(str(lt["lutador_2"]).strip().upper()) or "")
+                            if tipo_at in ("PRINCIPAL", "PRELIM") and seg:
+                                novo = "PRINCIPAL" if seg == "main" else "PRELIM"
+                                if novo != tipo_at:
+                                    upd["tipo"] = novo
                             if upd:
                                 sb.table("lutas").update(upd).eq("id", int(lt["id"])).execute()
                         invalidate_cache()
@@ -2650,7 +2674,7 @@ with tab_admin:
                             st.success(f"**{nome_evt}** — {len(lutas_espn)} lutas · {n_fotos}/{len(lutas_espn)*2} fotos encontradas")
                             rows_pv = ""
                             for i, l in enumerate(lutas_espn):
-                                tipo_auto = "F1" if i == 0 else ("F2" if i == 1 else "PRELIM")
+                                tipo_auto = _tipo_espn(i, l)
                                 f1_ok = (("📷" if l["foto_1"] else "—") + ("🏳" if l.get("band_1") else "")
                                          + (f' <small>{fmt_cartel(l.get("rec_1"))}</small>' if l.get("rec_1") else ""))
                                 f2_ok = (("📷" if l["foto_2"] else "—") + ("🏳" if l.get("band_2") else "")
@@ -2671,7 +2695,7 @@ with tab_admin:
                                     "id": i + 1,
                                     "lutador_1": l["l1"],
                                     "lutador_2": l["l2"],
-                                    "tipo": "F1" if i == 0 else ("F2" if i == 1 else "PRELIM"),
+                                    "tipo": _tipo_espn(i, l),
                                     "ordem": i + 1,
                                     "foto_1": l["foto_1"],
                                     "foto_2": l["foto_2"],

@@ -710,6 +710,20 @@ h1 em{font-style:normal;display:block;font-size:1em;margin-top:-2px;
     <feComponentTransfer><feFuncA type="linear" slope=".26" intercept="0"/></feComponentTransfer>
   </filter>
   <filter id="fBlur"><feGaussianBlur stdDeviation="14"/></filter>
+  <!-- fusao das bordas com o fundo do site: some o retangulo da "imagem colada" -->
+  <linearGradient id="fFusaoY" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#08090B" stop-opacity=".55"/>
+    <stop offset="11%"  stop-color="#08090B" stop-opacity="0"/>
+    <stop offset="58%"  stop-color="#08090B" stop-opacity="0"/>
+    <stop offset="82%"  stop-color="#08090B" stop-opacity=".62"/>
+    <stop offset="100%" stop-color="#08090B" stop-opacity="1"/>
+  </linearGradient>
+  <linearGradient id="fFusaoX" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#08090B" stop-opacity="1"/>
+    <stop offset="13%"  stop-color="#08090B" stop-opacity="0"/>
+    <stop offset="87%"  stop-color="#08090B" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#08090B" stop-opacity="1"/>
+  </linearGradient>
 </defs>
 
 <rect width="820" height="470" fill="url(#fAco)"/>
@@ -740,15 +754,6 @@ h1 em{font-style:normal;display:block;font-size:1em;margin-top:-2px;
 
 <!-- brilho rubro subindo do chao -->
 <rect width="820" height="470" fill="url(#fRubro)"/>
-
-<!-- brackets de transmissao -->
-<g stroke="url(#fAcoH)" stroke-width="2.4" fill="none" opacity=".9">
-  <path d="M22,56 L22,22 L86,22"/><path d="M798,56 L798,22 L734,22"/>
-  <path d="M22,414 L22,448 L86,448"/><path d="M798,414 L798,448 L734,448"/>
-</g>
-<g fill="#D20A0A" opacity=".9">
-  <rect x="22" y="22" width="30" height="3"/><rect x="768" y="445" width="30" height="3"/>
-</g>
 
 <g opacity=".05"><rect x="0" y="0" width="820" height="1" fill="#ffffff" opacity=".5"/>
 <rect x="0" y="4" width="820" height="1" fill="#ffffff" opacity=".5"/>
@@ -869,6 +874,8 @@ h1 em{font-style:normal;display:block;font-size:1em;margin-top:-2px;
 <rect x="0" y="464" width="820" height="1" fill="#ffffff" opacity=".5"/>
 <rect x="0" y="468" width="820" height="1" fill="#ffffff" opacity=".5"/></g>
 <rect width="820" height="470" filter="url(#fGrao)" opacity=".34" style="mix-blend-mode:overlay"/>
+<rect width="820" height="470" fill="url(#fFusaoX)"/>
+<rect width="820" height="470" fill="url(#fFusaoY)"/>
 </svg>
   <div class="txt">
     <div class="banner">Ultimate Fighting <b>Championship</b></div>

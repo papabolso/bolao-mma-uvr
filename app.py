@@ -1851,7 +1851,7 @@ with tab_votar:
         st.markdown('<div class="section-title">Palpites</div>', unsafe_allow_html=True)
         palpites_usuario = {}
         todos_lutadores = []
-        lista_lutas_fmt = []
+        confrontos = []  # (id, lutador_1, lutador_2) na ordem do card
 
         tag_map = {
             "F1": ("main", "LUTA PRINCIPAL"),
@@ -2157,7 +2157,7 @@ with tab_votar:
             # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel
             alto = 166 if (r1 or r2) else 150
             todos_lutadores.extend([l1, l2])
-            lista_lutas_fmt.append(f"{l1} vs {l2}")
+            confrontos.append((lid, l1, l2))
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
 
             skey = f"pick_{lid}"
@@ -2199,17 +2199,98 @@ with tab_votar:
         st.markdown("<style>" + HX_CSS + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
 
         st.markdown('<div class="section-title">Bônus da Noite</div>', unsafe_allow_html=True)
-        todos_uniq = sorted(set(todos_lutadores))
-        vazio = ["— Selecione —"]
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**🌟 Luta da Noite**")
-            fotn_sel = st.selectbox("FOTN", vazio + lista_lutas_fmt,
-                                    key="fotn_v", label_visibility="collapsed")
-        with c2:
-            st.markdown("**⚡ Performance da Noite**")
-            potn_sel = st.selectbox("POTN", vazio + todos_uniq,
-                                    key="potn_v", label_visibility="collapsed")
+
+        # ── Bônus: dois botões lado a lado que abrem a escolha (st.popover) ──
+        # Fechado ocupa uma linha; o botão mostra o que foi escolhido. Dentro,
+        # chips (st.pills): Luta da noite = um chip por luta; Performance = um
+        # par de chips por luta, pra escolher já vendo o adversário.
+        def _sobrenome(nome):
+            partes = nome.split()
+            if len(partes) >= 2 and partes[-1].rstrip(".").upper() in ("JR", "SR", "II", "III", "IV"):
+                return " ".join(partes[-2:])
+            return partes[-1] if partes else nome
+
+        _ids = [c[0] for c in confrontos]
+        _por_id = {c[0]: c for c in confrontos}
+        # card trocado (luta ou lutador sumiu): esquece a escolha antiga
+        if st.session_state.get("bonus_fotn") not in _ids:
+            st.session_state["bonus_fotn"] = None
+        for _lid, _a, _b in confrontos:
+            if st.session_state.get(f"bonus_potn_{_lid}") not in (_a, _b, None):
+                st.session_state[f"bonus_potn_{_lid}"] = None
+
+        def _so_um_potn(lid_escolhido):
+            """Performance é um lutador só: marcar um chip desmarca os das outras lutas."""
+            if st.session_state.get(f"bonus_potn_{lid_escolhido}"):
+                for _o in _ids:
+                    if _o != lid_escolhido:
+                        st.session_state[f"bonus_potn_{_o}"] = None
+            st.session_state["bx_potn"] = False  # escolheu: fecha o painel
+
+        def _fechar_fotn():
+            st.session_state["bx_fotn"] = False  # escolheu: fecha o painel
+
+        fotn_lid = st.session_state.get("bonus_fotn")
+        potn_nome = next((st.session_state.get(f"bonus_potn_{_l}") for _l in _ids
+                          if st.session_state.get(f"bonus_potn_{_l}")), None)
+        fotn_txt = (f"{_sobrenome(_por_id[fotn_lid][1])} x {_sobrenome(_por_id[fotn_lid][2])}"
+                    if fotn_lid else "Luta da noite")
+        potn_txt = potn_nome or "Performance"
+
+        with st.container(horizontal=True, gap="small", wrap=False):
+            # on_change="rerun" faz o popover guardar aberto/fechado no session_state,
+            # o que permite fechá-lo pelo callback da escolha
+            with st.popover(fotn_txt, icon="🌟", width="stretch", key="bx_fotn", on_change="rerun"):
+                st.markdown('<div class="bx-tit">Luta da noite <span>+2 pts</span></div>',
+                            unsafe_allow_html=True)
+                st.pills("Luta da noite", _ids, key="bonus_fotn", label_visibility="collapsed",
+                         on_change=_fechar_fotn,
+                         format_func=lambda l: f"{_sobrenome(_por_id[l][1])} x {_sobrenome(_por_id[l][2])}")
+            with st.popover(potn_txt, icon="⚡", width="stretch", key="bx_potn", on_change="rerun"):
+                st.markdown('<div class="bx-tit">Performance da noite <span>+1 pt</span></div>',
+                            unsafe_allow_html=True)
+                for _lid, _a, _b in confrontos:
+                    st.pills(f"Performance {_lid}", [_a, _b], key=f"bonus_potn_{_lid}",
+                             label_visibility="collapsed", on_change=_so_um_potn, args=(_lid,))
+
+        # legenda do botão (pontos ou "escolhido") e destaque quando há escolha
+        def _css_bx(key, escolhido, pts):
+            borda = "var(--ufc-red-bright)" if escolhido else "var(--border)"
+            fundo = ("linear-gradient(180deg,rgba(210,10,10,.18),rgba(120,6,6,.08))" if escolhido
+                     else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
+            leg = f"✓ +{pts} se acertar" if escolhido else f"Vale +{pts}"
+            return f'''
+.st-key-{key} button{{min-height:58px;padding:8px 12px!important;border-radius:14px!important;
+ border:1.5px solid {borda}!important;background:{fundo}!important;color:#fff!important;
+ clip-path:none!important;font-family:inherit!important;box-shadow:none!important;
+ justify-content:space-between;text-align:left}}
+.st-key-{key} button p{{font-weight:700;font-size:.84rem;letter-spacing:.02em;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}}
+.st-key-{key} button div[data-testid="stMarkdownContainer"]{{min-width:0;overflow:hidden}}
+.st-key-{key} button div[data-testid="stMarkdownContainer"]::after{{content:"{leg}";display:block;
+ font-size:.66rem;font-weight:600;letter-spacing:.06em;margin-top:2px;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ color:{"#F2B8B8" if escolhido else "var(--muted)"}}}'''
+
+        st.markdown(
+            "<style>"
+            + _css_bx("bx_fotn", bool(fotn_lid), "2 pts")
+            + _css_bx("bx_potn", bool(potn_nome), "1 pt")
+            + """
+/* os dois botões do bônus com a mesma largura, lado a lado até no celular */
+.st-key-bx_fotn,.st-key-bx_potn{flex:1 1 0!important;min-width:0!important;width:auto!important}
+.st-key-bx_fotn button,.st-key-bx_potn button{width:100%}
+.bx-tit{font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+ color:var(--muted);padding:2px 0 4px}
+/* o Streamlit põe margin-bottom negativa no último bloco do markdown */
+div:has(> .bx-tit){margin-bottom:0!important}
+.bx-tit span{color:var(--ufc-red-bright);margin-left:6px}
+div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"]{gap:.45rem}
+div[data-testid="stPopoverBody"] [data-testid="stButtonGroup"] button{border-radius:999px}
+"""
+            + "</style>",
+            unsafe_allow_html=True,
+        )
 
         st.markdown("---")
         if st.button("✅ ENVIAR PALPITES"):
@@ -2221,11 +2302,11 @@ with tab_votar:
                 st.error(f"Faltam {len(_faltando)} luta(s) sem palpite. "
                          "Clique no lutador que você acha que vence em cada uma.")
             else:
-                if fotn_sel != "— Selecione —":
-                    f1v, f2v = fotn_sel.split(" vs ")
+                if fotn_lid:
+                    f1v, f2v = _por_id[fotn_lid][1], _por_id[fotn_lid][2]
                 else:
                     f1v, f2v = "", ""
-                p1v = "" if potn_sel == "— Selecione —" else potn_sel
+                p1v = potn_nome or ""
 
                 try:
                     # Apaga os palpites antigos desse nome (case-insensitive)

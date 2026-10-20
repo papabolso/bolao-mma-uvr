@@ -8,7 +8,8 @@ Admin = o dono do repo (Luis Fillipe). Interface e comentários **em português*
 - **Streamlit** (`app.py`, arquivo único, ~190 KB) hospedado no Streamlit Community Cloud
 - **Supabase** (Postgres) como banco — projeto `seexgvfglqecvuvpgeus`
 - Credenciais em `.streamlit/secrets.toml` (nunca no repo)
-- `requirements.txt` exige **streamlit>=1.39** (ver "escolha clicável" abaixo)
+- `requirements.txt` exige **streamlit>=1.65** (`st-key-` desde 1.39; `key`/`on_change` no `st.popover` e
+  `st.container(horizontal=True)` são da 1.65)
 
 ## Banco
 
@@ -51,6 +52,8 @@ Já aconteceu de participante ficar com 0% de chance matemática por ser clone d
    pelo container e sai do botão. Posicionar só o `stMarkdownContainer`; `<p>` fica `static`.
 8. **Chaves de CSS.** O bloco de tema é f-string → `{{` e `}}`. O bloco estático (depois de
    `+ _ROOT_VARS + """`) usa chave simples. Confundir isso quebra o parse.
+9. **Abas no 1.65 não são mais `button[role=tab]`.** Agora é `div[data-testid="stTab"][aria-selected="true"]`
+   e o sublinhado é `.react-aria-SelectionIndicator`. Regras antigas de aba nos temas não pegam.
 
 ## Escolha clicável (tela de palpites)
 
@@ -69,10 +72,17 @@ Se o `requirements.txt` cair abaixo de 1.39, os botões continuam funcionando ma
 ## Temas
 
 `THEMES` em `app.py`, selecionável no Admin, persistido em `config.tema`.
-Cinco: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`.
+Seis: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`, `cinturao`.
 
-`noche`, `numbered` e `fightnight` têm `hero_art` — um hero em SVG renderizado por
-`components.html`. Os outros dois ainda usam o hero antigo em CSS.
+`noche`, `numbered`, `fightnight` e `cinturao` têm `hero_art` — um hero em SVG renderizado por
+`components.html`. `ufc` e `dwcs` ainda usam o hero antigo em CSS.
+
+- `"hero_full": True` (fightnight, cinturao): hero de ponta a ponta, colado no topo
+  (`_HERO_FULL_CSS` + marcador `.fn-hero-mark`). O tema pinta a página numa cor só e o hero
+  termina exatamente nela.
+- `cinturao` (eventos numerados): cinturão atravessando a tela, arte 2400x500 em escala 1:1
+  (só revela mais tira em tela larga, nunca estica). Preto + ouro; vermelho só na costura, no
+  rubi e na tag da luta principal. Usa `sel_a/sel_b/sel_glow/sel_leg` para o card escolhido em ouro.
 
 - `noche` usa textura em base64; `numbered` e `fightnight` usam `feTurbulence` procedural (mais leve).
 - `fightnight` funde as bordas no fundo da página (`#08090B`) para o hero não parecer imagem colada.

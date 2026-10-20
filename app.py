@@ -799,6 +799,215 @@ h1 em{font-style:normal;display:block;margin-top:-2px;color:transparent;
   </div>
 </div>"""
 
+# ── Hero "Cinturão" (eventos numerados) ─────────────────────────────────────
+# O cinturão atravessa a tela de ponta a ponta: a tira de couro some nas
+# laterais e o pé do hero termina na cor exata da página (#080706). A arte é
+# 2400x500 em escala 1:1 (xMidYMid slice com altura fixa): até 2400px de
+# largura nada estica nem aumenta, só aparece mais tira e mais placas laterais.
+# A placa central (320px) cabe no celular. Vermelho só na costura, no rubi e
+# num filete; o resto é preto e ouro.
+import math
+
+def _guilloche():
+    """Linhas concêntricas finas da placa (gravação de joalheria)."""
+    aneis = "".join(
+        f'<ellipse cx="1200" cy="190" rx="{r * 1.45:.1f}" ry="{r:.1f}"/>'
+        for r in range(6, 150, 4)
+    )
+    raios = "".join(
+        f'<line x1="1200" y1="190" x2="{1200 + 260 * math.cos(a / 36 * 6.2832):.1f}" '
+        f'y2="{190 + 180 * math.sin(a / 36 * 6.2832):.1f}"/>'
+        for a in range(36)
+    )
+    return aneis, raios
+
+_GUI_ANEIS, _GUI_RAIOS = _guilloche()
+
+def _placa_lateral(cx, w, h, op):
+    """Placa lateral do cinturão: moldura de ouro, campo gravado e estrela."""
+    x, y = cx - w / 2, 190 - h / 2
+    r = 5 * (w / 110)
+    estrela = " ".join(
+        f"{cx + (r * (2.4 if i % 2 == 0 else 1)) * math.sin(i * 3.14159 / 5):.1f},"
+        f"{190 - (r * (2.4 if i % 2 == 0 else 1)) * math.cos(i * 3.14159 / 5):.1f}"
+        for i in range(10)
+    )
+    return (
+        f'<g opacity="{op}">'
+        f'<rect x="{x:.1f}" y="{y:.1f}" width="{w}" height="{h}" rx="{w * .16:.1f}" fill="url(#cOuroBorda)"/>'
+        f'<rect x="{x + 6:.1f}" y="{y + 6:.1f}" width="{w - 12}" height="{h - 12}" rx="{w * .12:.1f}" '
+        f'fill="url(#cOuroCampo)" stroke="#5E450F" stroke-width="1"/>'
+        f'<rect x="{x + 14:.1f}" y="{y + 14:.1f}" width="{w - 28}" height="{h - 28}" rx="{w * .08:.1f}" '
+        f'fill="none" stroke="#7A5A14" stroke-width="1" opacity=".7"/>'
+        f'<polygon points="{estrela}" fill="#3A2A08" opacity=".75"/>'
+        f'</g>'
+    )
+
+_PLACAS_LATERAIS = "".join(
+    _placa_lateral(1200 + lado * dx, w, h, op)
+    for dx, w, h, op in ((262, 112, 136, 1), (420, 86, 108, .9), (548, 70, 90, .75))
+    for lado in (-1, 1)
+)
+
+HERO_CINTURAO = r"""<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#080706;overflow:hidden}
+.wrap{position:relative;width:100%;height:100vh;font-family:'Oswald',sans-serif}
+.art{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fusao{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,7,6,0) 0%,rgba(8,7,6,0) 80%,#080706 100%)}
+/* tudo em px absolutos, na mesma escala 1:1 da arte */
+.topo{position:absolute;top:30px;left:0;right:0;display:flex;align-items:center;
+  justify-content:center;gap:14px;font-size:10.5px;font-weight:600;letter-spacing:.44em;
+  text-transform:uppercase;color:#D9BC6A;padding-left:.44em}
+.topo i{display:block;width:34px;height:1px;background:linear-gradient(90deg,transparent,#B8902E)}
+.topo i:last-child{transform:scaleX(-1)}
+.placa{position:absolute;top:110px;left:50%;width:250px;height:160px;margin-left:-125px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+/* letras gravadas no ouro: escuras, com luz batendo na borda de baixo */
+.placa .p1,.placa .p3{font-size:9.5px;font-weight:700;letter-spacing:.52em;color:#3A2A08;
+  text-transform:uppercase;padding-left:.52em;text-shadow:0 1px 0 rgba(255,246,208,.55)}
+.placa .p2{font-family:'Anton',sans-serif;font-size:76px;line-height:.92;letter-spacing:.04em;
+  margin:7px 0 6px;padding-left:.04em;color:#2E2105;
+  text-shadow:0 1px 0 rgba(255,246,208,.7),0 -1px 0 rgba(0,0,0,.35),0 0 1px rgba(46,33,5,.5)}
+.titulo{position:absolute;top:322px;left:0;right:0;text-align:center;
+  font-family:'Anton',sans-serif;font-size:40px;line-height:1;letter-spacing:.06em;
+  text-transform:uppercase;padding-left:.06em;
+  background:linear-gradient(180deg,#FFF6D0 0%,#F2D27A 38%,#C9A13A 64%,#8C6A1C 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 #120E05) drop-shadow(0 10px 24px rgba(0,0,0,.9))}
+.filete{position:absolute;top:376px;left:50%;width:220px;height:1px;margin-left:-110px;
+  background:linear-gradient(90deg,transparent,#8C6A1C 15%,#B3121B 50%,#8C6A1C 85%,transparent)}
+.filete::after{content:"";position:absolute;top:-3.5px;left:50%;width:8px;height:8px;margin-left:-4px;
+  transform:rotate(45deg);background:#B3121B;box-shadow:0 0 10px rgba(179,18,27,.8),inset 0 0 0 1px #E8C766}
+.tag{position:absolute;top:392px;left:0;right:0;text-align:center;font-size:11px;
+  letter-spacing:.32em;color:#A99566;font-style:italic;text-transform:uppercase;padding-left:.32em}
+/* celular estreito: placa (SVG) e letras gravadas (HTML) encolhem juntas */
+@media(max-width:360px){
+  .cinto{transform:scale(.88);transform-box:view-box;transform-origin:1200px 190px}
+  .placa{transform:scale(.88)}
+}
+@media(max-width:400px){
+  .topo{font-size:9px;letter-spacing:.32em;gap:10px} .topo i{width:20px}
+  .titulo{font-size:34px}
+  .tag{font-size:9.5px;letter-spacing:.22em}
+}
+</style>
+<div class="wrap">
+<svg class="art" viewBox="0 0 2400 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="cBloom" cx="50%" cy="38%" r="30%">
+    <stop offset="0%"   stop-color="#D4AF37" stop-opacity=".26"/>
+    <stop offset="55%"  stop-color="#8C6A1C" stop-opacity=".07"/>
+    <stop offset="100%" stop-color="#080706" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="cLuz" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#FFF3D6" stop-opacity=".16"/>
+    <stop offset="100%" stop-color="#FFF3D6" stop-opacity="0"/>
+  </linearGradient>
+  <!-- couro: preto com leve volume no meio da tira -->
+  <linearGradient id="cCouro" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#1B1815"/>
+    <stop offset="18%"  stop-color="#0F0D0B"/>
+    <stop offset="52%"  stop-color="#171411"/>
+    <stop offset="84%"  stop-color="#0B0A08"/>
+    <stop offset="100%" stop-color="#1B1815"/>
+  </linearGradient>
+  <!-- a tira some nas pontas (só aparece em telas muito largas) -->
+  <linearGradient id="cTiraFade" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#fff" stop-opacity="0"/>
+    <stop offset="22%"  stop-color="#fff" stop-opacity="1"/>
+    <stop offset="78%"  stop-color="#fff" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <mask id="cTiraMask"><rect width="2400" height="500" fill="url(#cTiraFade)"/></mask>
+  <!-- ouro: moldura mais escura, campo com brilho diagonal -->
+  <linearGradient id="cOuroBorda" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#FFF0B8"/>
+    <stop offset="30%"  stop-color="#C9A13A"/>
+    <stop offset="62%"  stop-color="#6E5212"/>
+    <stop offset="100%" stop-color="#E8C766"/>
+  </linearGradient>
+  <linearGradient id="cOuroCampo" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%"   stop-color="#9C7622"/>
+    <stop offset="30%"  stop-color="#F6DE8A"/>
+    <stop offset="52%"  stop-color="#C9A13A"/>
+    <stop offset="72%"  stop-color="#FFF0B8"/>
+    <stop offset="100%" stop-color="#8C6A1C"/>
+  </linearGradient>
+  <radialGradient id="cBrilho" cx="38%" cy="30%" r="60%">
+    <stop offset="0%"   stop-color="#FFFBE8" stop-opacity=".55"/>
+    <stop offset="100%" stop-color="#FFFBE8" stop-opacity="0"/>
+  </radialGradient>
+  <clipPath id="cCampo">
+    <polygon points="1086,100 1314,100 1340,126 1340,254 1314,280 1086,280 1060,254 1060,126"/>
+  </clipPath>
+  <filter id="cDesfoca" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="28"/></filter>
+  <filter id="cSombra" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity=".75"/>
+  </filter>
+  <filter id="cGrao" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="7" result="n"/>
+    <feColorMatrix in="n" type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="linear" slope=".18"/></feComponentTransfer>
+  </filter>
+</defs>
+
+<rect width="2400" height="500" fill="#080706"/>
+<path d="M1150,-10 L1250,-10 L1420,500 L980,500 Z" fill="url(#cLuz)" filter="url(#cDesfoca)"/>
+<rect width="2400" height="500" fill="url(#cBloom)"/>
+
+<!-- tira de couro com filete de ouro e costura vermelha -->
+<g mask="url(#cTiraMask)">
+  <rect x="0" y="134" width="2400" height="112" fill="url(#cCouro)"/>
+  <rect x="0" y="134" width="2400" height="112" filter="url(#cGrao)" opacity=".55"/>
+  <line x1="0" y1="135.5" x2="2400" y2="135.5" stroke="#B8902E" stroke-width="1.6" opacity=".75"/>
+  <line x1="0" y1="244.5" x2="2400" y2="244.5" stroke="#B8902E" stroke-width="1.6" opacity=".75"/>
+  <line x1="0" y1="144" x2="2400" y2="144" stroke="#B3121B" stroke-width="1.4" stroke-dasharray="7 5" opacity=".8"/>
+  <line x1="0" y1="236" x2="2400" y2="236" stroke="#B3121B" stroke-width="1.4" stroke-dasharray="7 5" opacity=".8"/>
+</g>
+
+<g class="cinto">
+<g filter="url(#cSombra)">""" + _PLACAS_LATERAIS + r"""</g>
+
+<!-- placa central -->
+<g filter="url(#cSombra)">
+  <polygon points="1080,80 1320,80 1360,120 1360,260 1320,300 1080,300 1040,260 1040,120" fill="url(#cOuroBorda)"/>
+</g>
+<polygon points="1083,88 1317,88 1352,123 1352,257 1317,292 1083,292 1048,257 1048,123"
+         fill="#3A2A08" opacity=".55"/>
+<polygon points="1086,100 1314,100 1340,126 1340,254 1314,280 1086,280 1060,254 1060,126"
+         fill="url(#cOuroCampo)"/>
+<g clip-path="url(#cCampo)" fill="none" stroke="#6E5212" stroke-width=".7" opacity=".32">""" + _GUI_ANEIS + _GUI_RAIOS + r"""</g>
+<polygon points="1086,100 1314,100 1340,126 1340,254 1314,280 1086,280 1060,254 1060,126"
+         fill="url(#cBrilho)"/>
+<polygon points="1096,110 1304,110 1328,134 1328,246 1304,270 1096,270 1072,246 1072,134"
+         fill="none" stroke="#5E450F" stroke-width="1.2" opacity=".8"/>
+<polygon points="1086,100 1314,100 1340,126 1340,254 1314,280 1086,280 1060,254 1060,126"
+         fill="none" stroke="#FFF0B8" stroke-width="1" opacity=".6"/>
+
+<!-- rubi no topo da placa -->
+<g transform="translate(1200 84) rotate(45)">
+  <rect x="-11" y="-11" width="22" height="22" fill="url(#cOuroBorda)"/>
+  <rect x="-7" y="-7" width="14" height="14" fill="#B3121B"/>
+  <rect x="-7" y="-7" width="7" height="7" fill="#FF5A63" opacity=".55"/>
+</g>
+</g>
+</svg>
+  <div class="fusao"></div>
+  <div class="topo"><i></i>Ultimate Fighting Championship<i></i></div>
+  <div class="placa">
+    <div class="p1">Bol&atilde;o</div>
+    <div class="p2">UVR</div>
+    <div class="p3">Campe&atilde;o</div>
+  </div>
+  <div class="titulo">T&iacute;tulo em jogo</div>
+  <div class="filete"></div>
+  <div class="tag">Quem cravar mais leva o cintur&atilde;o</div>
+</div>"""
+
+
 THEMES = {
     "fightnight": {
         "label": "UFC Fight Night",
@@ -827,15 +1036,6 @@ THEMES = {
 /* Página numa cor só (#08090B): o hero termina exatamente nela, então não
    sobra borda de "imagem colada". Sem o brilho vermelho no canto esquerdo. */
 html,body,[data-testid="stAppViewContainer"]{background:#08090B!important}
-[data-testid="stMain"]{overflow-x:hidden}
-/* O marcador vem logo antes do iframe do hero; o iframe (irmão seguinte)
-   sai da coluna de conteúdo e cola no topo da página. */
-div[data-testid="stElementContainer"]:has(.fn-hero-mark){display:none}
-div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"]{
-  width:100vw!important;max-width:100vw!important;
-  margin-left:calc(50% - 50vw);margin-top:calc(-6rem - 16px)}
-div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"] iframe{
-  width:100%!important;display:block}
 .event-info{
   background:linear-gradient(180deg,#12161B,#0A0C10);
   border:1px solid var(--border);
@@ -1088,6 +1288,80 @@ div[data-testid="stButton"]>button:hover{
 }
 """,
     },
+    "cinturao": {
+        "label": "Evento Numerado · Cinturão",
+        # o "vermelho" do app vira ouro neste tema; vermelho de verdade só em
+        # detalhes (costura e rubi do hero, tag da luta principal)
+        "accent": "#C9A13A", "accent_bright": "#E8C766", "accent_dark": "#8C6A1C",
+        "gold": "#D4AF37", "gold_bright": "#F4D45C", "gold_dark": "#9C7A1E",
+        "bg": "#080706", "bg_dark": "#080706", "surface": "#100E0B", "surface_2": "#17140F",
+        "border": "#2A2418", "text": "#ffffff", "muted": "#8F8878",
+        "hero_glow": "rgba(0,0,0,0)",
+        "hero_bg": "#080706",
+        "ghost_l": "", "ghost_l_size": "0", "ghost_l_op": "0",
+        "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "Ultimate Fighting Championship",
+        "title_a": "Título", "title_b": "em jogo",
+        "title_sub": "Bolão UVR",
+        "subtitle": "Quem cravar mais leva o cinturão",
+        "badge": "Title Fight",
+        "venue": "", "date": "",
+        "hero_art": HERO_CINTURAO, "hero_art_h": 430,
+        "hero_full": True,
+        # card escolhido (palpite e bônus) em ouro em vez de vermelho
+        "sel_a": "rgba(212,175,55,.17)", "sel_b": "rgba(140,106,28,.06)",
+        "sel_glow": "rgba(212,175,55,.26)", "sel_leg": "#E8C766",
+        "extra_css": """
+/* ═══ CINTURÃO — hero é SVG (HERO_CINTURAO); preto + ouro, vermelho só no detalhe ═══ */
+html,body,[data-testid="stAppViewContainer"]{background:#080706!important}
+
+/* abas: no Streamlit 1.65 são div[data-testid=stTab] + SelectionIndicator */
+[data-testid="stTab"][aria-selected="true"],[data-testid="stTab"][aria-selected="true"] p{
+  color:var(--gold-bright)!important;
+}
+[data-testid="stTabs"] .react-aria-SelectionIndicator{background:var(--gold)!important}
+.section-title{
+  color:#F6EDD2; letter-spacing:.14em;
+  border-bottom:none!important; padding-bottom:0!important;
+}
+.section-title::after{
+  content:""; display:block; width:48px; height:2px; margin-top:8px;
+  background:linear-gradient(90deg,var(--gold-bright),var(--gold-dark));
+}
+.admin-section{color:var(--gold-bright)}
+
+/* tags do palpite: ouro; a luta principal (de cinturão) em vermelho */
+.pick-tag{background:linear-gradient(180deg,#F2D27A,#B8902E)!important;color:#140F05!important}
+.pick-tag.main{background:#B3121B!important;color:#fff!important}
+.pick-tag.co-main{background:transparent!important;color:var(--gold-bright)!important;
+  box-shadow:inset 0 0 0 1px var(--gold-dark)}
+.pick-tag.prelim{background:#1C1912!important;color:var(--muted)!important}
+/* check do card escolhido: escuro sobre ouro (branco some) */
+[class*="st-key-pk"] div[data-testid="stButton"]>button::after{color:#140F05!important}
+
+.rank-table th{
+  background:linear-gradient(180deg,#1C1709,#120E06);
+  color:var(--gold-bright); border-bottom-color:var(--gold-dark); letter-spacing:.16em;
+}
+.rank-table tr.top-1 td{
+  color:#FBEFC6; background:rgba(212,175,55,.09); box-shadow:inset 3px 0 0 var(--gold);
+}
+
+/* botões de ação: ouro escovado */
+div[data-testid="stButton"]>button{
+  background:linear-gradient(180deg,#F7DC78,#C9A32E 58%,#8A6A14)!important;
+  color:#140F05!important; border:1px solid #6E5410!important; border-radius:0!important;
+  font-family:'Anton',sans-serif!important; letter-spacing:.2em!important;
+  text-shadow:0 1px 0 rgba(255,251,232,.45)!important;
+  clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
+}
+div[data-testid="stButton"]>button:hover{
+  background:linear-gradient(180deg,#FFF3C4,#E0BC46 58%,#9C7A1E)!important;
+  box-shadow:0 4px 22px rgba(212,175,55,.42)!important;
+}
+""",
+    },
 }
 _cfg_tema = {}
 try:
@@ -1104,6 +1378,19 @@ T = THEMES[TEMA_ATUAL]
 # ──────────────────────────────────────────────
 # CSS — UFC genérico (preto + vermelho + dourado)
 # ──────────────────────────────────────────────
+# Hero de ponta a ponta (temas com "hero_full"): um marcador vem logo antes do
+# iframe do hero; o iframe (irmão seguinte) sai da coluna de conteúdo e cola no
+# topo da página. O hero termina na cor exata do fundo da página do tema.
+_HERO_FULL_CSS = """
+[data-testid="stMain"]{overflow-x:hidden}
+div[data-testid="stElementContainer"]:has(.fn-hero-mark){display:none}
+div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"]{
+  width:100vw!important;max-width:100vw!important;
+  margin-left:calc(50% - 50vw);margin-top:calc(-6rem - 16px)}
+div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"] iframe{
+  width:100%!important;display:block}
+"""
+
 _ROOT_VARS = f"""
 :root{{
   --ufc-red:{T['accent']};
@@ -1119,6 +1406,11 @@ _ROOT_VARS = f"""
   --border:{T['border']};
   --text:{T['text']};
   --muted:{T['muted']};
+  /* fundo/brilho do card escolhido (palpite e bônus); tema pode trocar */
+  --sel-a:{T.get('sel_a', 'rgba(210,10,10,.20)')};
+  --sel-b:{T.get('sel_b', 'rgba(120,6,6,.10)')};
+  --sel-glow:{T.get('sel_glow', 'rgba(210,10,10,.35)')};
+  --sel-leg:{T.get('sel_leg', '#F2B8B8')};
   /* aliases */
   --mm-red:var(--ufc-red);
   --mm-purple:#0e0e0e;
@@ -1186,6 +1478,7 @@ html,body,[data-testid="stAppViewContainer"]{{
   letter-spacing:-.05em;
 }}
 
+{_HERO_FULL_CSS if T.get('hero_full') else ''}
 {T.get('extra_css','')}
 """
 
@@ -1994,10 +2287,10 @@ with tab_votar:
             borda    = "var(--ufc-red-bright)" if sel else "var(--border)"
             foto_bd  = "var(--ufc-red-bright)" if sel else "#39414D"
             cor_txt  = "#fff" if sel else "#C8CDD6"
-            fundo    = ("linear-gradient(180deg,rgba(210,10,10,.20),rgba(120,6,6,.10))" if sel
+            fundo    = ("linear-gradient(180deg,var(--sel-a),var(--sel-b))" if sel
                         else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
             glow     = ("box-shadow:0 0 0 1px var(--ufc-red-bright),"
-                        "0 10px 30px rgba(210,10,10,.35);" if sel else "")
+                        "0 10px 30px var(--sel-glow);" if sel else "")
             check = (f'''
 .st-key-{key} div[data-testid="stButton"]>button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
  width:21px;height:21px;border-radius:50%;background:var(--ufc-red-bright);
@@ -2256,7 +2549,7 @@ with tab_votar:
         # legenda do botão (pontos ou "escolhido") e destaque quando há escolha
         def _css_bx(key, escolhido, pts):
             borda = "var(--ufc-red-bright)" if escolhido else "var(--border)"
-            fundo = ("linear-gradient(180deg,rgba(210,10,10,.18),rgba(120,6,6,.08))" if escolhido
+            fundo = ("linear-gradient(180deg,var(--sel-a),var(--sel-b))" if escolhido
                      else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
             leg = f"✓ +{pts} se acertar" if escolhido else f"Vale +{pts}"
             return f'''
@@ -2270,7 +2563,7 @@ with tab_votar:
 .st-key-{key} button div[data-testid="stMarkdownContainer"]::after{{content:"{leg}";display:block;
  font-size:.66rem;font-weight:600;letter-spacing:.06em;margin-top:2px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
- color:{"#F2B8B8" if escolhido else "var(--muted)"}}}'''
+ color:{"var(--sel-leg)" if escolhido else "var(--muted)"}}}'''
 
         st.markdown(
             "<style>"

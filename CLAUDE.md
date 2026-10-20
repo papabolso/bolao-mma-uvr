@@ -80,9 +80,12 @@ Seis: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`, `cinturao`.
 - `"hero_full": True` (fightnight, cinturao): hero de ponta a ponta, colado no topo
   (`_HERO_FULL_CSS` + marcador `.fn-hero-mark`). O tema pinta a página numa cor só e o hero
   termina exatamente nela.
-- `cinturao` (eventos numerados): cinturão atravessando a tela, arte 2400x500 em escala 1:1
-  (só revela mais tira em tela larga, nunca estica). Preto + ouro; vermelho só na costura, no
-  rubi e na tag da luta principal. Usa `sel_a/sel_b/sel_glow/sel_leg` para o card escolhido em ouro.
+- `cinturao` (eventos numerados): o cinturão é uma **imagem** (`CINTURAO_WEBP_B64`, WebP com
+  transparência, 972x325, embutida em base64). A original veio com o xadrez de "transparência"
+  pintado no fundo: foi removido por preenchimento a partir das bordas só nos cinzas neutros
+  (40-120) — o couro é mais escuro e barra. Para trocar a imagem, refazer esse recorte. No celular
+  o cinturão (640-700px) é mais largo que a tela. Preto + ouro; vermelho só no filete e na tag da
+  luta principal. Usa `sel_a/sel_b/sel_glow/sel_leg` para o card escolhido em ouro.
 
 - `noche` usa textura em base64; `numbered` e `fightnight` usam `feTurbulence` procedural (mais leve).
 - `fightnight` funde as bordas no fundo da página (`#08090B`) para o hero não parecer imagem colada.

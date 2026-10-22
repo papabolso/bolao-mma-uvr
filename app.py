@@ -1387,6 +1387,131 @@ div[data-testid="stButton"]>button:hover{
 }
 """,
     },
+    "ouro": {
+        "label": "Evento Numerado · Ouro",
+        # mesmo hero do Cinturão (faixa preta); a página vira a placa de ouro.
+        # Preto marca o que foi escolhido. Ouro fosco, sem brilho: menos é mais.
+        "accent": "#1A1408", "accent_bright": "#0B0906", "accent_dark": "#000000",
+        "gold": "#D4AF37", "gold_bright": "#F4D45C", "gold_dark": "#9C7A1E",
+        "bg": "#B8933C", "bg_dark": "#9A7629", "surface": "#100E0B", "surface_2": "#17140F",
+        "border": "rgba(42,30,6,.30)", "text": "#ffffff", "muted": "#5A4718",
+        "hero_glow": "rgba(0,0,0,0)",
+        "hero_bg": "#080706",
+        "ghost_l": "", "ghost_l_size": "0", "ghost_l_op": "0",
+        "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
+        "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
+        "brand": "Ultimate Fighting Championship",
+        "title_a": "Título", "title_b": "em jogo",
+        "title_sub": "Bolão UVR",
+        "subtitle": "Quem cravar mais leva o cinturão",
+        "badge": "Title Fight",
+        "venue": "", "date": "",
+        "hero_art": HERO_CINTURAO, "hero_art_h": 440,
+        "hero_full": True,
+        "sel_a": "#17140F", "sel_b": "#070605",
+        "sel_glow": "rgba(40,28,4,.45)", "sel_leg": "#E8C766",
+        # card solto: ouro um tom mais claro, texto escuro; escolhido: placa preta
+        "pick": {
+            "borda": "rgba(42,30,6,.28)", "borda_sel": "#0B0906",
+            "foto_bd": "rgba(42,30,6,.45)", "foto_bd_sel": "#E8C766",
+            "txt": "#2A1F08", "txt_sel": "#F6E7B8", "bx_txt": "#2A1F08",
+            "fundo": "linear-gradient(180deg,rgba(255,236,180,.22),rgba(255,236,180,.08))",
+            "fundo_sel": "linear-gradient(180deg,#1A1610,#070605)",
+            "glow_sel": "0 12px 26px -8px rgba(30,20,2,.65)",
+            "chk": "linear-gradient(180deg,#F4D45C,#B8902E)", "chk_txt": "#140F05",
+            "rec": "#5A4718", "rec_sel": "#C9B27A", "hover": "#2A1F08",
+            "foto_vazia": "#2A2216", "ini": "#C9B27A",
+        },
+        "extra_css": """
+/* ═══ OURO — hero preto (HERO_CINTURAO) sobre página de ouro fosco ═══ */
+/* ouro escovado: degradê suave + fios horizontais quase invisíveis */
+html,body,[data-testid="stAppViewContainer"]{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 60% at 50% 0%,rgba(255,232,160,.30),transparent 70%),
+    linear-gradient(180deg,#C29C45 0%,#B48F3A 50%,#A6822F 100%)!important;
+}
+/* faixa preta do hero assenta sobre a placa, com sombra curta */
+div[data-testid="stElementContainer"]:has(.fn-hero-mark)+div[data-testid="stElementContainer"]{
+  position:relative;z-index:1;box-shadow:0 1px 0 #6E5418,0 16px 28px -14px rgba(0,0,0,.7)}
+
+/* texto direto sobre o ouro: escuro */
+[data-testid="stMain"] [data-testid="stMarkdownContainer"],
+[data-testid="stMain"] [data-testid="stCaptionContainer"],
+[data-testid="stMain"] [data-testid="stWidgetLabel"] p{color:#1F1706}
+/* ...menos dentro dos botões, que têm cor própria */
+[data-testid="stMain"] button [data-testid="stMarkdownContainer"]{color:inherit}
+
+/* abas */
+[data-testid="stTab"] p{color:#5A4718!important}
+[data-testid="stTab"][aria-selected="true"] p{color:#0B0906!important}
+[data-testid="stTabs"] [role="tablist"]{border-bottom-color:rgba(42,30,6,.25)!important}
+[data-testid="stTabs"] .react-aria-SelectionIndicator{background:#0B0906!important}
+
+.section-title{
+  color:#140F05!important; letter-spacing:.14em;
+  border-bottom:none!important; padding-bottom:0!important;
+}
+.section-title::after{content:""; display:block; width:48px; height:2px; margin-top:8px; background:#140F05}
+.admin-section{color:#140F05!important; border-bottom-color:rgba(42,30,6,.3)!important}
+hr{border-top-color:#140F05!important; opacity:.25}
+
+/* cabeçalho de cada luta */
+.pick-tag{background:transparent!important;color:#2A1F08!important;box-shadow:inset 0 0 0 1px rgba(42,30,6,.45)}
+.pick-tag.main{background:#0B0906!important;color:#E8C766!important;box-shadow:none}
+.pick-tag.co-main{background:#0B0906!important;color:#F6E7B8!important;box-shadow:none}
+.pick-tag.prelim{color:#5A4718!important;box-shadow:inset 0 0 0 1px rgba(42,30,6,.25)}
+.pick-pts{color:#5A4718!important}
+.pick-vs{color:#2A1F08!important;opacity:.45!important}
+
+/* últimas lutas: chips e painel em preto (verde/vermelho somem no ouro) */
+.hx-b{background:#0B0906!important;border-color:transparent!important}
+.hx-btn{color:#2A1F08!important;border-color:rgba(42,30,6,.35)!important}
+.hx summary:hover .hx-btn,.hx[open] .hx-btn{background:#0B0906!important;color:#F6E7B8!important;border-color:#0B0906!important}
+.hx-col{background:linear-gradient(180deg,#17140F,#0B0906)!important;border-color:#0B0906!important}
+.hx-row+.hx-row{border-top-color:rgba(232,199,102,.12)!important}
+.hx-nm{color:#C9B27A!important}
+.hx-met,.hx-sem{color:#9C8A5E!important}
+
+/* campos: placa preta com fio de ouro */
+div[data-testid="stTextInput"] input,[data-baseweb="input"] input,
+[data-baseweb="select"] > div,div[data-testid="stNumberInput"] input{
+  background:#0E0C09!important;border-color:#0E0C09!important;color:#F6E7B8!important}
+div[data-testid="stTextInput"] input::placeholder{color:#7D6C45!important}
+div[data-testid="stTextInput"] input:focus,[data-baseweb="input"] input:focus{
+  border-color:#E8C766!important;box-shadow:none!important}
+
+.bx-tit span{color:#E8C766!important}
+.bx-tit{color:#C9B27A!important}
+/* painel do bônus em preto; chip escolhido em ouro */
+div[data-testid="stPopoverBody"]{background:#0E0C09!important;border:1px solid #2A2216!important}
+div[data-testid="stPopoverBody"] button[data-variant="pills"]{
+  background:transparent!important;color:#E9DDBB!important;border:1px solid #3A3020!important}
+div[data-testid="stPopoverBody"] button[data-variant="pills"][aria-checked="true"]{
+  background:linear-gradient(180deg,#F2D27A,#B8902E)!important;color:#140F05!important;border-color:#B8902E!important}
+div[data-testid="stPopoverBody"] button[data-variant="pills"] *{color:inherit!important}
+
+.rank-table{background:#0E0C09!important;border-color:#0B0906!important}
+.rank-table th{
+  background:#0B0906!important; color:#E8C766!important; border-bottom:1px solid #6E5418!important; letter-spacing:.16em;
+}
+.rank-table td{border-bottom-color:#1F1A10!important}
+.rank-table tr.top-1 td{color:#FBEFC6; background:rgba(212,175,55,.10); box-shadow:inset 3px 0 0 var(--gold)}
+[data-testid="stAlert"]{border-left-color:#E8C766!important}
+
+/* botões de ação: pretos, letra de ouro (o inverso da página) */
+div[data-testid="stButton"]>button{
+  background:#0B0906!important;
+  color:#E8C766!important; border:1px solid #0B0906!important; border-radius:0!important;
+  font-family:'Anton',sans-serif!important; letter-spacing:.2em!important;
+  clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
+}
+div[data-testid="stButton"]>button:hover{
+  background:#1E1A12!important; color:#F6E7B8!important;
+  box-shadow:0 8px 20px -6px rgba(30,20,2,.6)!important;
+}
+""",
+    },
 }
 _cfg_tema = {}
 try:
@@ -2297,6 +2422,20 @@ with tab_votar:
             return (f"url('{u}') center/cover no-repeat, "
                     f"url('{prox}') center/cover no-repeat, #171A20")
 
+        # cores dos cards de escolha (palpite e bônus); o tema pode trocar via "pick"
+        PK = {
+            "borda": "var(--border)", "borda_sel": "var(--ufc-red-bright)",
+            "foto_bd": "#39414D", "foto_bd_sel": "var(--ufc-red-bright)",
+            "txt": "#C8CDD6", "txt_sel": "#fff",
+            "fundo": "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))",
+            "fundo_sel": "linear-gradient(180deg,var(--sel-a),var(--sel-b))",
+            "glow_sel": "0 0 0 1px var(--ufc-red-bright),0 10px 30px var(--sel-glow)",
+            "chk": "var(--ufc-red-bright)", "chk_txt": "#fff",
+            "rec": "var(--muted)", "rec_sel": "#E6E9EE", "hover": "var(--ufc-red-bright)",
+            "foto_vazia": "#171A20", "ini": "var(--muted)", "bx_txt": "#fff",
+        }
+        PK.update(T.get("pick", {}))
+
         def _css_pick(key, nome, url, sel, band="", rec="", alto=150):
             cam = _camadas_foto(nome, url)
             # cartel entra como ::after do <p> (linha de baixo do nome); o ::after
@@ -2304,22 +2443,20 @@ with tab_votar:
             cartel = (f'''
 .st-key-{key} div[data-testid="stButton"]>button p::after{{content:"{rec}";display:block;
  margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
- font-variant-numeric:tabular-nums;color:{"#E6E9EE" if sel else "var(--muted)"}}}'''
+ font-variant-numeric:tabular-nums;color:{PK["rec_sel"] if sel else PK["rec"]}}}'''
                       if rec else "")
             ini = iniciais(nome)
             # bandeira: camada de fundo no topo-esquerdo, antes do gradiente
             _bandeira = f"url('{band}') 11px 11px/26px auto no-repeat," if band else ""
-            borda    = "var(--ufc-red-bright)" if sel else "var(--border)"
-            foto_bd  = "var(--ufc-red-bright)" if sel else "#39414D"
-            cor_txt  = "#fff" if sel else "#C8CDD6"
-            fundo    = ("linear-gradient(180deg,var(--sel-a),var(--sel-b))" if sel
-                        else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
-            glow     = ("box-shadow:0 0 0 1px var(--ufc-red-bright),"
-                        "0 10px 30px var(--sel-glow);" if sel else "")
+            borda    = PK["borda_sel"] if sel else PK["borda"]
+            foto_bd  = PK["foto_bd_sel"] if sel else PK["foto_bd"]
+            cor_txt  = PK["txt_sel"] if sel else PK["txt"]
+            fundo    = PK["fundo_sel"] if sel else PK["fundo"]
+            glow     = f"box-shadow:{PK['glow_sel']};" if sel else ""
             check = (f'''
 .st-key-{key} div[data-testid="stButton"]>button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
- width:21px;height:21px;border-radius:50%;background:var(--ufc-red-bright);
- color:#fff;font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
+ width:21px;height:21px;border-radius:50%;background:{PK["chk"]};
+ color:{PK["chk_txt"]};font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
                      if sel else "")
             return f'''
 .st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:{alto}px;margin:0;
@@ -2327,9 +2464,9 @@ with tab_votar:
  border-radius:16px!important;clip-path:none!important;font-family:inherit!important;{glow}color:{cor_txt}!important;font-weight:700!important;
  font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
  white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s}}
-.st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:var(--ufc-red-bright)!important;
+.st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:{PK["hover"]}!important;
  transform:translateY(-2px)}}
-.st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px var(--ufc-red-bright)!important}}
+.st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px {PK["hover"]}!important}}
 .st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
  position:absolute!important;left:6px;right:6px;bottom:10px;margin:0!important;
  z-index:2;text-align:center}}
@@ -2339,8 +2476,8 @@ with tab_votar:
 .st-key-{key} div[data-testid="stButton"]>button::before{{content:{'""' if cam else f'"{ini}"'};
  position:absolute;top:14px;left:50%;transform:translateX(-50%);
  width:72px;height:72px;border-radius:50%;
- background:{cam or "#171A20"};border:2px solid {foto_bd};
- color:var(--muted);font-size:21px;font-weight:800;line-height:72px;
+ background:{cam or PK["foto_vazia"]};border:2px solid {foto_bd};
+ color:{PK["ini"]};font-size:21px;font-weight:800;line-height:72px;
  text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
 {check}{cartel}
 @media (max-width:640px){{
@@ -2573,13 +2710,13 @@ with tab_votar:
 
         # legenda do botão (pontos ou "escolhido") e destaque quando há escolha
         def _css_bx(key, escolhido, pts):
-            borda = "var(--ufc-red-bright)" if escolhido else "var(--border)"
-            fundo = ("linear-gradient(180deg,var(--sel-a),var(--sel-b))" if escolhido
-                     else "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))")
+            borda = PK["borda_sel"] if escolhido else PK["borda"]
+            fundo = PK["fundo_sel"] if escolhido else PK["fundo"]
+            texto = PK["txt_sel"] if escolhido else PK["bx_txt"]
             leg = f"✓ +{pts} se acertar" if escolhido else f"Vale +{pts}"
             return f'''
 .st-key-{key} button{{min-height:58px;padding:8px 12px!important;border-radius:14px!important;
- border:1.5px solid {borda}!important;background:{fundo}!important;color:#fff!important;
+ border:1.5px solid {borda}!important;background:{fundo}!important;color:{texto}!important;
  clip-path:none!important;font-family:inherit!important;box-shadow:none!important;
  justify-content:space-between;text-align:left}}
 .st-key-{key} button p{{font-weight:700;font-size:.84rem;letter-spacing:.02em;white-space:nowrap;

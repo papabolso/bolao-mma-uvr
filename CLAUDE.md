@@ -72,7 +72,7 @@ Se o `requirements.txt` cair abaixo de 1.39, os botões continuam funcionando ma
 ## Temas
 
 `THEMES` em `app.py`, selecionável no Admin, persistido em `config.tema`.
-Seis: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`, `cinturao`.
+Sete: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`, `cinturao`, `ouro`.
 
 `noche`, `numbered`, `fightnight` e `cinturao` têm `hero_art` — um hero em SVG renderizado por
 `components.html`. `ufc` e `dwcs` ainda usam o hero antigo em CSS.
@@ -87,6 +87,12 @@ Seis: `fightnight`, `ufc`, `dwcs`, `noche`, `numbered`, `cinturao`.
   celular tem 720-760px, mais largo que a tela. Preto + ouro; vermelho só na costura, nos filetes
   de "BOLÃO", no filete do título e na tag da luta principal. Usa `sel_a/sel_b/sel_glow/sel_leg`
   para o card escolhido em ouro.
+- `ouro`: mesmo hero do `cinturao` (faixa preta), mas a **página é ouro fosco** e o **preto marca
+  a escolha** (card, chip do bônus, botão). Texto direto sobre o ouro fica escuro; painéis
+  (ranking, campos, histórico, popover do bônus) viram placas pretas. Sem brilho/gradiente
+  metálico forte de propósito — é o que deixava brega.
+- Cores dos cards de escolha (palpite e bônus) saem do dicionário `PK` na aba Palpitar; um tema
+  troca qualquer uma pela chave `"pick"` (só o `ouro` usa). Sem `"pick"`, tudo fica como antes.
 
 - `noche` usa textura em base64; `numbered` e `fightnight` usam `feTurbulence` procedural (mais leve).
 - `fightnight` funde as bordas no fundo da página (`#08090B`) para o hero não parecer imagem colada.

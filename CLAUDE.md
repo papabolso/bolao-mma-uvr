@@ -15,7 +15,7 @@ Admin = o dono do repo (Luis Fillipe). Interface e comentários **em português*
 
 | Tabela | Colunas |
 | --- | --- |
-| `lutas` | id, lutador_1, lutador_2, tipo, ordem, foto_1, foto_2, band_1, band_2 |
+| `lutas` | id, lutador_1, lutador_2, tipo, ordem, foto_1, foto_2, band_1, band_2, rec_1, rec_2, hist_1, hist_2, nasc_1, nasc_2 |
 | `palpites` | id, nome, luta_id, palpite, fotn_1, fotn_2, potn_1, potn_2, created_at |
 | `resultados` | luta_id, vencedor_real, pontos |
 | `config` | id, fotn_1, fotn_2, potn_1, potn_2, f2_especial, bloqueado, abertura, fechamento, tema |
@@ -107,8 +107,12 @@ Fallback de tema é `dwcs` (não `ufc`) — é o que mais roda.
 sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{id}
   → competitions[].$ref
     → competitors[].athlete.$ref
-      → fullName, headshot.href, flag.href, citizenship
+      → fullName, headshot.href, flag.href, citizenship, dateOfBirth
 ```
+
+Idade: guarda `dateOfBirth` cortado em `AAAA-MM-DD` em `nasc_1/nasc_2` (`migracao_idade.sql`) e
+calcula na hora (`fmt_idade`), então não envelhece no banco. Aparece junto do cartel embaixo do
+nome (`info_lutador`: "28-4 · 38 anos"). "Atualizar cartéis" também preenche, sem zerar palpites.
 
 A ESPN **já entrega a bandeira pronta** em `flag.href`
 (`https://a.espncdn.com/i/teamlogos/countries/500/usa.png`). Se faltar, montar pelo

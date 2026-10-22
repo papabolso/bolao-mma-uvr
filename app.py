@@ -37,7 +37,7 @@ def load_lutas() -> pd.DataFrame:
     if df.empty:
         df = pd.DataFrame(columns=["id","lutador_1","lutador_2","tipo","ordem",
                                    "foto_1","foto_2","band_1","band_2","rec_1","rec_2",
-                                   "hist_1","hist_2"])
+                                   "hist_1","hist_2","nasc_1","nasc_2"])
     if "foto_1" not in df.columns: df["foto_1"] = ""
     if "foto_2" not in df.columns: df["foto_2"] = ""
     if "band_1" not in df.columns: df["band_1"] = ""
@@ -48,6 +48,9 @@ def load_lutas() -> pd.DataFrame:
     # últimas lutas (JSON) vindas da ESPN, idem
     if "hist_1" not in df.columns: df["hist_1"] = ""
     if "hist_2" not in df.columns: df["hist_2"] = ""
+    # data de nascimento (AAAA-MM-DD) vinda da ESPN, idem
+    if "nasc_1" not in df.columns: df["nasc_1"] = ""
+    if "nasc_2" not in df.columns: df["nasc_2"] = ""
     return df
 
 @st.cache_data(ttl=30)
@@ -88,6 +91,21 @@ def fmt_cartel(rec) -> str:
     if len(partes) >= 3 and int(partes[2]) > 0:
         return "-".join(partes[:3])
     return "-".join(partes[:2])
+
+def fmt_idade(nasc) -> str:
+    """'1988-09-29' (ou com hora) -> '38 anos'. Calculada hoje, então nunca envelhece no banco."""
+    from datetime import date
+    try:
+        a, m, d = (int(x) for x in str(nasc or "")[:10].split("-"))
+        hoje = date.today()
+        anos = hoje.year - a - ((hoje.month, hoje.day) < (m, d))
+        return f"{anos} anos" if 15 < anos < 70 else ""
+    except Exception:
+        return ""
+
+def info_lutador(rec, nasc) -> str:
+    """Linha de baixo do nome no card: '28-4 · 38 anos' (o que tiver)."""
+    return " · ".join(x for x in (fmt_cartel(rec), fmt_idade(nasc)) if x)
 
 def parse_hist(txt) -> list:
     """hist_1/hist_2 do banco (JSON) -> lista de lutas. Qualquer lixo vira []."""
@@ -2438,8 +2456,9 @@ with tab_votar:
 
         def _css_pick(key, nome, url, sel, band="", rec="", alto=150):
             cam = _camadas_foto(nome, url)
-            # cartel entra como ::after do <p> (linha de baixo do nome); o ::after
-            # do botao ja e o check. So digitos e hifen, entao nao quebra o content.
+            # cartel e idade entram como ::after do <p> (linha de baixo do nome); o
+            # ::after do botao ja e o check. So digitos, hifen, ponto e letras: nao
+            # quebra o content.
             cartel = (f'''
 .st-key-{key} div[data-testid="stButton"]>button p::after{{content:"{rec}";display:block;
  margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
@@ -2607,9 +2626,9 @@ with tab_votar:
             f2_url = str(luta.get("foto_2", "") or "").strip()
             b1_url = str(luta.get("band_1", "") or "").strip()
             b2_url = str(luta.get("band_2", "") or "").strip()
-            r1 = fmt_cartel(luta.get("rec_1", ""))
-            r2 = fmt_cartel(luta.get("rec_2", ""))
-            # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel
+            r1 = info_lutador(luta.get("rec_1", ""), luta.get("nasc_1", ""))
+            r2 = info_lutador(luta.get("rec_2", ""), luta.get("nasc_2", ""))
+            # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel/idade
             alto = 166 if (r1 or r2) else 150
             todos_lutadores.extend([l1, l2])
             confrontos.append((lid, l1, l2))
@@ -3052,14 +3071,16 @@ with tab_admin:
                 return lutas_h
 
             def _atleta_espn(c):
-                """Um competidor da luta -> (nome, foto, bandeira, cartel, histórico)."""
+                """Um competidor da luta -> (nome, foto, bandeira, cartel, histórico, nascimento)."""
                 ath_ref = c.get("athlete", {}).get("$ref")
-                nome, foto, band = "?", "", ""
+                nome, foto, band, nasc = "?", "", "", ""
                 if ath_ref:
                     try:
                         atleta = _get(ath_ref)
                         nome = atleta.get("fullName") or atleta.get("displayName") or "?"
                         foto = atleta.get("headshot", {}).get("href", "") or ""
+                        # '1988-09-29T07:00Z' -> '1988-09-29'
+                        nasc = str(atleta.get("dateOfBirth") or "")[:10]
                         # A ESPN entrega a bandeira pronta em flag.href.
                         # Se faltar, monta pelo codigo do pais (citizenship).
                         band = (atleta.get("flag") or {}).get("href", "") or ""
@@ -3074,7 +3095,7 @@ with tab_admin:
                 rec_ref = ((c.get("record") or {}).get("$ref")
                            or (f"https://sports.core.api.espn.com/v2/sports/mma/athletes/{c['id']}/records"
                                if c.get("id") else ""))
-                return nome, foto, band, _cartel_espn(rec_ref), _historico_espn(c.get("id"))
+                return nome, foto, band, _cartel_espn(rec_ref), _historico_espn(c.get("id")), nasc
 
             def _buscar_card_espn(evid):
                 """Busca evento -> lutas -> atletas. Retorna (nome_evento, [lutas]) com foto, bandeira,
@@ -3097,7 +3118,7 @@ with tab_admin:
 
                 lutas = []
                 for i, comp in enumerate(comps):
-                    (n1, f1, b1, r1, h1), (n2, f2, b2, r2, h2) = atletas[2 * i], atletas[2 * i + 1]
+                    (n1, f1, b1, r1, h1, d1), (n2, f2, b2, r2, h2, d2) = atletas[2 * i], atletas[2 * i + 1]
                     lutas.append({
                         "l1": n1, "l2": n2,
                         "foto_1": f1, "foto_2": f2,
@@ -3105,6 +3126,7 @@ with tab_admin:
                         "rec_1": r1, "rec_2": r2,
                         "hist_1": json.dumps(h1, ensure_ascii=False) if h1 else "",
                         "hist_2": json.dumps(h2, ensure_ascii=False) if h2 else "",
+                        "nasc_1": d1, "nasc_2": d2,
                         "peso": comp.get("type", {}).get("text", ""),
                         # 'main' = card principal; 'prelims1'/'prelims2' = preliminares
                         "segmento": str((comp.get("cardSegment") or {}).get("name", "")),
@@ -3130,11 +3152,11 @@ with tab_admin:
             with cb2:
                 importar = st.button("🚀 IMPORTAR (ESPN)")
             with cb3:
-                # Só completa cartel e últimas lutas do card atual (casando pelo
-                # nome); não apaga palpites nem lutas.
+                # Só completa cartel, últimas lutas e idade do card atual (casando
+                # pelo nome); não apaga palpites nem lutas.
                 so_cartel = st.button("📊 Atualizar cartéis",
-                                      help="Preenche cartel (V-D-E) e últimas lutas do card atual "
-                                           "sem zerar os palpites")
+                                      help="Preenche cartel (V-D-E), últimas lutas e idade do card "
+                                           "atual sem zerar os palpites")
 
             if so_cartel:
                 evid = _espn_id(espn_in or "")
@@ -3142,13 +3164,13 @@ with tab_admin:
                     st.error("Não achei o ID. Cole a URL completa ou só o número.")
                 else:
                     try:
-                        with st.spinner(f"Buscando cartéis e últimas lutas do evento {evid}…"):
+                        with st.spinner(f"Buscando cartéis, últimas lutas e idades do evento {evid}…"):
                             _, lutas_espn = _buscar_card_espn(evid)
-                        # nome -> (cartel, histórico)
+                        # nome -> (cartel, histórico, nascimento)
                         dados_por_nome = {}
                         for l in lutas_espn:
-                            dados_por_nome[l["l1"].strip().upper()] = (l["rec_1"], l["hist_1"])
-                            dados_por_nome[l["l2"].strip().upper()] = (l["rec_2"], l["hist_2"])
+                            dados_por_nome[l["l1"].strip().upper()] = (l["rec_1"], l["hist_1"], l["nasc_1"])
+                            dados_por_nome[l["l2"].strip().upper()] = (l["rec_2"], l["hist_2"], l["nasc_2"])
                         # segmento da luta (principal/preliminar), pelo nome de qualquer lado
                         seg_por_nome = {}
                         for l in lutas_espn:
@@ -3160,12 +3182,14 @@ with tab_admin:
                             upd = {}
                             for lado in ("1", "2"):
                                 nm = str(lt[f"lutador_{lado}"]).strip()
-                                rec, hist = dados_por_nome.get(nm.upper(), ("", ""))
+                                rec, hist, nasc = dados_por_nome.get(nm.upper(), ("", "", ""))
                                 if rec:
                                     upd[f"rec_{lado}"] = rec
                                 if hist:
                                     upd[f"hist_{lado}"] = hist
-                                if not (rec or hist):
+                                if nasc:
+                                    upd[f"nasc_{lado}"] = nasc
+                                if not (rec or hist or nasc):
                                     sem_par.append(nm)
                                 else:
                                     n_ok += 1
@@ -3186,9 +3210,9 @@ with tab_admin:
                                        + ", ".join(sem_par))
                     except Exception as e:
                         st.error(f"Erro ao atualizar cartéis: {e}")
-                        if "rec_" in str(e) or "hist_" in str(e):
-                            st.caption("Falta migração: rode `migracao_cartel.sql` e "
-                                       "`migracao_historico.sql` no Supabase.")
+                        if "rec_" in str(e) or "hist_" in str(e) or "nasc_" in str(e):
+                            st.caption("Falta migração: rode `migracao_cartel.sql`, "
+                                       "`migracao_historico.sql` e `migracao_idade.sql` no Supabase.")
 
             if buscar or importar:
                 evid = _espn_id(espn_in or "")
@@ -3212,9 +3236,11 @@ with tab_admin:
                             for i, l in enumerate(lutas_espn):
                                 tipo_auto = _tipo_espn(i, l)
                                 f1_ok = (("📷" if l["foto_1"] else "—") + ("🏳" if l.get("band_1") else "")
-                                         + (f' <small>{fmt_cartel(l.get("rec_1"))}</small>' if l.get("rec_1") else ""))
+                                         + (f' <small>{info_lutador(l.get("rec_1"), l.get("nasc_1"))}</small>'
+                                            if l.get("rec_1") or l.get("nasc_1") else ""))
                                 f2_ok = (("📷" if l["foto_2"] else "—") + ("🏳" if l.get("band_2") else "")
-                                         + (f' <small>{fmt_cartel(l.get("rec_2"))}</small>' if l.get("rec_2") else ""))
+                                         + (f' <small>{info_lutador(l.get("rec_2"), l.get("nasc_2"))}</small>'
+                                            if l.get("rec_2") or l.get("nasc_2") else ""))
                                 rows_pv += (
                                     f'<tr><td>{i+1}</td><td>{l["l1"]} {f1_ok}</td><td>{l["l2"]} {f2_ok}</td>'
                                     f'<td>{l["peso"]}</td><td>{tipo_auto}</td></tr>'
@@ -3241,6 +3267,8 @@ with tab_admin:
                                     "rec_2": l.get("rec_2", ""),
                                     "hist_1": l.get("hist_1", ""),
                                     "hist_2": l.get("hist_2", ""),
+                                    "nasc_1": l.get("nasc_1", ""),
+                                    "nasc_2": l.get("nasc_2", ""),
                                 } for i, l in enumerate(lutas_espn)]
                                 try:
                                     sb.table("resultados").delete().neq("luta_id", 0).execute()
@@ -3251,10 +3279,10 @@ with tab_admin:
                                     except Exception as e_ins:
                                         # banco sem as migrações de cartel/histórico:
                                         # grava sem as colunas novas
-                                        if "rec_" not in str(e_ins) and "hist_" not in str(e_ins):
+                                        if not any(c in str(e_ins) for c in ("rec_", "hist_", "nasc_")):
                                             raise
                                         for v in validas:
-                                            for col in ("rec_1", "rec_2", "hist_1", "hist_2"):
+                                            for col in ("rec_1", "rec_2", "hist_1", "hist_2", "nasc_1", "nasc_2"):
                                                 v.pop(col, None)
                                         sb.table("lutas").insert(validas).execute()
                                     sb.table("config").update({

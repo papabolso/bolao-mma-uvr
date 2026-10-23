@@ -69,6 +69,22 @@ a partir do `key=` (recurso oficial desde **1.39**). A foto entra como `backgrou
 
 Se o `requirements.txt` cair abaixo de 1.39, os botões continuam funcionando mas ficam sem estilo.
 
+**Fluidez no celular** (cada toque era um rerun do app inteiro, ~1 s no Streamlit Cloud):
+
+- **Seleção instantânea:** `PICK_JS` (injetado por `components.html`, iframe da mesma origem, que
+  alcança `window.parent.document`) marca no clique o card tocado com `data-pk="on"` e o adversário
+  com `"off"`. Cada card já traz no CSS o estado **oposto** sob `.st-key-X[data-pk=...]`
+  (`_cores_pick(..., oposto=True)`), então pinta antes do servidor responder. Quando o rerun chega,
+  o estado real bate com o que já está na tela. Usa `click` e não `pointerdown`: começar a rolar a
+  tela em cima de um card não pode marcar palpite.
+- **`@st.fragment` em `_tela_palpites`:** o toque refaz só a tela de palpites (não o hero, o
+  ranking e o admin). Por isso o envio **reconfere o status** (`status_bolao`, com
+  `load_config.clear()`) antes de gravar, e depois de salvar faz `st.rerun()` do app inteiro para o
+  ranking ver o envio. A mensagem, o gong e os balões saem nesse rerun (`session_state["_enviado"]`).
+- **CSS enxuto:** regras comuns a todos os cards saem uma vez em `PICK_CSS`
+  (`[class*="st-key-pk"]`); por card vai só altura, foto, cartel/idade e cores. Cada toque
+  reenvia esse CSS.
+
 ## Temas
 
 `THEMES` em `app.py`, selecionável no Admin, persistido em `config.tema`.

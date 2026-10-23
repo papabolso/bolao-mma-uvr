@@ -1045,9 +1045,9 @@ html,body{background:#080706;overflow:hidden}
 """ + CINTO_SVG + r"""
   <div class="fusao"></div>
   <div class="topo"><i></i>Ultimate Fighting Championship<i></i></div>
-  <div class="titulo">T&iacute;tulo em jogo</div>
+  <div class="titulo">Cada luta conta</div>
   <div class="filete"></div>
-  <div class="tag">Quem cravar mais leva o cintur&atilde;o</div>
+  <div class="tag">Quem cravar mais leva a noite</div>
 </div>"""
 
 
@@ -1345,9 +1345,9 @@ div[data-testid="stButton"]>button:hover{
         "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
         "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
         "brand": "Ultimate Fighting Championship",
-        "title_a": "Título", "title_b": "em jogo",
+        "title_a": "Cada luta", "title_b": "conta",
         "title_sub": "Bolão UVR",
-        "subtitle": "Quem cravar mais leva o cinturão",
+        "subtitle": "Quem cravar mais leva a noite",
         "badge": "Title Fight",
         "venue": "", "date": "",
         "hero_art": HERO_CINTURAO, "hero_art_h": 440,
@@ -1419,9 +1419,9 @@ div[data-testid="stButton"]>button:hover{
         "ghost_r": "", "ghost_r_size": "0", "ghost_r_op": "0",
         "ghost_c": "", "ghost_c_size": "0", "ghost_c_op": "0",
         "brand": "Ultimate Fighting Championship",
-        "title_a": "Título", "title_b": "em jogo",
+        "title_a": "Cada luta", "title_b": "conta",
         "title_sub": "Bolão UVR",
-        "subtitle": "Quem cravar mais leva o cinturão",
+        "subtitle": "Quem cravar mais leva a noite",
         "badge": "Title Fight",
         "venue": "", "date": "",
         "hero_art": HERO_CINTURAO, "hero_art_h": 440,

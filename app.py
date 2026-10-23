@@ -3006,6 +3006,21 @@ with tab_admin:
                 with urllib.request.urlopen(req, timeout=12) as r:
                     return json.loads(r.read().decode("utf-8"))
 
+            def _foto_por_id(aid):
+                """Atleta novo às vezes vem sem headshot no perfil, mas a foto já existe
+                no CDN pelo ID (ex.: Asaf Chopurov, 5454811). Só devolve se a imagem responde."""
+                import urllib.request
+                if not aid:
+                    return ""
+                u = f"https://a.espncdn.com/i/headshots/mma/players/full/{aid}.png"
+                try:
+                    req = urllib.request.Request(u, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=8) as r:
+                        ok = r.status == 200 and r.headers.get("Content-Type", "").startswith("image")
+                    return u if ok else ""
+                except Exception:
+                    return ""  # 404 = ainda não tem foto
+
             def _cartel_espn(rec_ref):
                 """Cartel geral do atleta no formato V-D-E (ex: '4-1-0'). Vazio se não houver."""
                 if not rec_ref:
@@ -3087,7 +3102,8 @@ with tab_admin:
                     try:
                         atleta = _get(ath_ref)
                         nome = atleta.get("fullName") or atleta.get("displayName") or "?"
-                        foto = atleta.get("headshot", {}).get("href", "") or ""
+                        foto = (atleta.get("headshot", {}).get("href", "")
+                                or _foto_por_id(atleta.get("id") or c.get("id")))
                         # '1988-09-29T07:00Z' -> '1988-09-29'
                         nasc = str(atleta.get("dateOfBirth") or "")[:10]
                         # A ESPN entrega a bandeira pronta em flag.href.

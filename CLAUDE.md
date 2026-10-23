@@ -112,7 +112,7 @@ sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{id}
 
 Idade: guarda `dateOfBirth` cortado em `AAAA-MM-DD` em `nasc_1/nasc_2` (`migracao_idade.sql`) e
 calcula na hora (`fmt_idade`), então não envelhece no banco. Aparece junto do cartel embaixo do
-nome (`info_lutador`: "28-4 · 38 anos"). "Atualizar cartéis" também preenche, sem zerar palpites.
+nome ("28-4 · 38 anos"; a idade em vermelho, cor em `PK["idade"]`). "Atualizar cartéis" também preenche, sem zerar palpites.
 
 A ESPN **já entrega a bandeira pronta** em `flag.href`
 (`https://a.espncdn.com/i/teamlogos/countries/500/usa.png`). Se faltar, montar pelo

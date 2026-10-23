@@ -1439,6 +1439,8 @@ div[data-testid="stButton"]>button:hover{
             "chk": "linear-gradient(180deg,#F4D45C,#B8902E)", "chk_txt": "#140F05",
             "rec": "#5A4718", "rec_sel": "#C9B27A", "hover": "#2A1F08",
             "foto_vazia": "#2A2216", "ini": "#C9B27A",
+            # vermelho escuro no ouro (o vivo some); no card preto, o vivo
+            "idade": "#8E1414", "idade_sel": "#FF5A5F",
         },
         "extra_css": """
 /* ═══ OURO — hero preto (HERO_CINTURAO) sobre página de ouro fosco ═══ */
@@ -2451,19 +2453,26 @@ with tab_votar:
             "chk": "var(--ufc-red-bright)", "chk_txt": "#fff",
             "rec": "var(--muted)", "rec_sel": "#E6E9EE", "hover": "var(--ufc-red-bright)",
             "foto_vazia": "#171A20", "ini": "var(--muted)", "bx_txt": "#fff",
+            "idade": "#E5484D", "idade_sel": "#FF6369",
         }
         PK.update(T.get("pick", {}))
 
-        def _css_pick(key, nome, url, sel, band="", rec="", alto=150):
+        def _css_pick(key, nome, url, sel, band="", rec="", alto=150, idade=""):
             cam = _camadas_foto(nome, url)
-            # cartel e idade entram como ::after do <p> (linha de baixo do nome); o
-            # ::after do botao ja e o check. So digitos, hifen, ponto e letras: nao
-            # quebra o content.
+            # linha de baixo do nome: cartel no ::before e idade (em vermelho) no
+            # ::after do container do texto, que vira flex para os dois ficarem lado
+            # a lado embaixo do <p>. O ::before/::after do botao ja sao foto e check.
+            # So digitos, hifen, ponto e letras: nao quebra o content.
+            sep = " ·" if (rec and idade) else ""
+            _mc = f'.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]'
             cartel = (f'''
-.st-key-{key} div[data-testid="stButton"]>button p::after{{content:"{rec}";display:block;
- margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
- font-variant-numeric:tabular-nums;color:{PK["rec_sel"] if sel else PK["rec"]}}}'''
-                      if rec else "")
+{_mc}{{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;column-gap:5px}}
+{_mc} p{{flex:0 0 100%}}
+{_mc}::before,{_mc}::after{{margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
+ font-variant-numeric:tabular-nums}}
+{_mc}::before{{content:"{rec}{sep}";order:1;color:{PK["rec_sel"] if sel else PK["rec"]}}}
+{_mc}::after{{content:"{idade}";order:2;color:{PK["idade_sel"] if sel else PK["idade"]}}}'''
+                      if (rec or idade) else "")
             ini = iniciais(nome)
             # bandeira: camada de fundo no topo-esquerdo, antes do gradiente
             _bandeira = f"url('{band}') 11px 11px/26px auto no-repeat," if band else ""
@@ -2626,10 +2635,10 @@ with tab_votar:
             f2_url = str(luta.get("foto_2", "") or "").strip()
             b1_url = str(luta.get("band_1", "") or "").strip()
             b2_url = str(luta.get("band_2", "") or "").strip()
-            r1 = info_lutador(luta.get("rec_1", ""), luta.get("nasc_1", ""))
-            r2 = info_lutador(luta.get("rec_2", ""), luta.get("nasc_2", ""))
+            r1, i1 = fmt_cartel(luta.get("rec_1", "")), fmt_idade(luta.get("nasc_1", ""))
+            r2, i2 = fmt_cartel(luta.get("rec_2", "")), fmt_idade(luta.get("nasc_2", ""))
             # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel/idade
-            alto = 166 if (r1 or r2) else 150
+            alto = 166 if (r1 or r2 or i1 or i2) else 150
             todos_lutadores.extend([l1, l2])
             confrontos.append((lid, l1, l2))
             tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
@@ -2664,8 +2673,8 @@ with tab_votar:
                 st.markdown(_hx_html(l1, h1, l2, h2), unsafe_allow_html=True)
 
             sel = st.session_state[skey]
-            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto))
-            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto))
+            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto, i1))
+            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto, i2))
             palpites_usuario[lid] = sel
 
         # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,

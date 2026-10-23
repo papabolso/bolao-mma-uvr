@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- três "olhos" de QR code + miolo -->
+    <path android:fillColor="#FFFFFF" android:pathData="M32,32h16v16h-16zM36,36v8h8v-8z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M60,32h16v16h-16zM64,36v8h8v-8z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M32,60h16v16h-16zM36,64v8h8v-8z" />
+    <path android:fillColor="#25D366" android:pathData="M60,60h6v6h-6zM70,60h6v6h-6zM60,70h6v6h-6zM70,70h6v6h-6zM65,65h6v6h-6z" />
+</vector>

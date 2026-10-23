@@ -118,6 +118,10 @@ nome ("28-4 · 38 anos"; a idade em vermelho, cor em `PK["idade"]`). "Atualizar 
 a foto dias depois). Troca só quando a ESPN mandou uma diferente; foto que não é `espncdn.com`
 (colada à mão no CSV) não é sobrescrita, e foto vazia da ESPN não apaga a atual.
 
+Foto: atleta novo às vezes vem **sem `headshot`** no perfil, mas a imagem já existe no CDN pelo ID
+(`a.espncdn.com/i/headshots/mma/players/full/{id}.png`). `_foto_por_id` monta esse link e só usa
+se um HEAD responder imagem (404 = ainda não tem). Foi o caso do Asaf Chopurov (5454811).
+
 A ESPN **já entrega a bandeira pronta** em `flag.href`
 (`https://a.espncdn.com/i/teamlogos/countries/500/usa.png`). Se faltar, montar pelo
 `citizenship` minúsculo. Não usar emoji de bandeira: Chrome no Windows não renderiza.

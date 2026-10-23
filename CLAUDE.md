@@ -114,6 +114,10 @@ Idade: guarda `dateOfBirth` cortado em `AAAA-MM-DD` em `nasc_1/nasc_2` (`migraca
 calcula na hora (`fmt_idade`), então não envelhece no banco. Aparece junto do cartel embaixo do
 nome ("28-4 · 38 anos"; a idade em vermelho, cor em `PK["idade"]`). "Atualizar cartéis" também preenche, sem zerar palpites.
 
+"📊 Atualizar cartéis" casa pelo nome e também **atualiza foto e bandeira** (a ESPN às vezes só põe
+a foto dias depois). Troca só quando a ESPN mandou uma diferente; foto que não é `espncdn.com`
+(colada à mão no CSV) não é sobrescrita, e foto vazia da ESPN não apaga a atual.
+
 A ESPN **já entrega a bandeira pronta** em `flag.href`
 (`https://a.espncdn.com/i/teamlogos/countries/500/usa.png`). Se faltar, montar pelo
 `citizenship` minúsculo. Não usar emoji de bandeira: Chrome no Windows não renderiza.

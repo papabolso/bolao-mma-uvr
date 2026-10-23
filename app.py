@@ -3164,8 +3164,8 @@ with tab_admin:
                 # Só completa cartel, últimas lutas e idade do card atual (casando
                 # pelo nome); não apaga palpites nem lutas.
                 so_cartel = st.button("📊 Atualizar cartéis",
-                                      help="Preenche cartel (V-D-E), últimas lutas e idade do card "
-                                           "atual sem zerar os palpites")
+                                      help="Preenche foto, bandeira, cartel (V-D-E), últimas lutas e "
+                                           "idade do card atual sem zerar os palpites")
 
             if so_cartel:
                 evid = _espn_id(espn_in or "")
@@ -3173,32 +3173,43 @@ with tab_admin:
                     st.error("Não achei o ID. Cole a URL completa ou só o número.")
                 else:
                     try:
-                        with st.spinner(f"Buscando cartéis, últimas lutas e idades do evento {evid}…"):
+                        with st.spinner(f"Buscando fotos, cartéis, últimas lutas e idades do evento {evid}…"):
                             _, lutas_espn = _buscar_card_espn(evid)
-                        # nome -> (cartel, histórico, nascimento)
+                        # nome -> (cartel, histórico, nascimento, foto, bandeira)
                         dados_por_nome = {}
                         for l in lutas_espn:
-                            dados_por_nome[l["l1"].strip().upper()] = (l["rec_1"], l["hist_1"], l["nasc_1"])
-                            dados_por_nome[l["l2"].strip().upper()] = (l["rec_2"], l["hist_2"], l["nasc_2"])
+                            for lado in ("1", "2"):
+                                dados_por_nome[l[f"l{lado}"].strip().upper()] = (
+                                    l[f"rec_{lado}"], l[f"hist_{lado}"], l[f"nasc_{lado}"],
+                                    l[f"foto_{lado}"], l.get(f"band_{lado}", ""))
                         # segmento da luta (principal/preliminar), pelo nome de qualquer lado
                         seg_por_nome = {}
                         for l in lutas_espn:
                             for k in ("l1", "l2"):
                                 seg_por_nome[l[k].strip().upper()] = l.get("segmento", "")
                         atuais = load_lutas()
-                        n_ok, sem_par = 0, []
+                        n_ok, n_fotos, sem_par = 0, 0, []
                         for _, lt in atuais.iterrows():
                             upd = {}
                             for lado in ("1", "2"):
                                 nm = str(lt[f"lutador_{lado}"]).strip()
-                                rec, hist, nasc = dados_por_nome.get(nm.upper(), ("", "", ""))
+                                rec, hist, nasc, foto, band = dados_por_nome.get(nm.upper(), ("",) * 5)
+                                # A ESPN às vezes só põe a foto dias depois do card sair.
+                                # Troca só se veio uma e é diferente; foto que não é da
+                                # ESPN (colada à mão no CSV) fica.
+                                for col, novo in ((f"foto_{lado}", foto), (f"band_{lado}", band)):
+                                    atual = str(lt.get(col, "") or "").strip()
+                                    if novo and novo != atual and (not atual or "espncdn.com" in atual):
+                                        upd[col] = novo
+                                        if col.startswith("foto"):
+                                            n_fotos += 1
                                 if rec:
                                     upd[f"rec_{lado}"] = rec
                                 if hist:
                                     upd[f"hist_{lado}"] = hist
                                 if nasc:
                                     upd[f"nasc_{lado}"] = nasc
-                                if not (rec or hist or nasc):
+                                if not (rec or hist or nasc or foto):
                                     sem_par.append(nm)
                                 else:
                                     n_ok += 1
@@ -3213,7 +3224,8 @@ with tab_admin:
                             if upd:
                                 sb.table("lutas").update(upd).eq("id", int(lt["id"])).execute()
                         invalidate_cache()
-                        st.success(f"✅ {n_ok} lutadores atualizados.")
+                        st.success(f"✅ {n_ok} lutadores atualizados"
+                                   + (f" · {n_fotos} foto(s) nova(s)." if n_fotos else "."))
                         if sem_par:
                             st.caption("Sem dados (nome não bate com a ESPN ou ela não tem): "
                                        + ", ".join(sem_par))

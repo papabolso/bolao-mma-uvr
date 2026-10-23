@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">QR Zap</string>
+    <string name="dica">Aponte para o QR code</string>
+    <string name="mesmo_codigo">Mesmo código — afaste a câmera para ler de novo</string>
+    <string name="sem_permissao">Sem acesso à câmera. Toque para permitir.</string>
+    <string name="compartilhar">Compartilhar link</string>
+    <string name="lanterna">Lanterna</string>
+</resources>

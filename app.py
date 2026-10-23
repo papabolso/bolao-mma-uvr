@@ -2275,11 +2275,26 @@ def render_timer(target_str: str, title: str, color=None, end_text="ENCERRADO"):
 tab_votar, tab_ranking, tab_admin = st.tabs(["🥊 Palpitar", "🏆 Ranking", "🔐 Admin"])
 
 # ============== VOTAR ==============
-with tab_votar:
-    lutas = load_lutas()
-    cfg = load_config()
-    agora = datetime.utcnow() - timedelta(hours=3)
+PICK_JS = """<script>
+(function () {
+  var w = window.parent, d = w.document;
+  if (w.__pkRapido) return;
+  w.__pkRapido = true;
+  d.addEventListener("click", function (e) {
+    var card = e.target.closest && e.target.closest('[class*="st-key-pk"]');
+    if (!card || !card.querySelector("button")) return;
+    var m = card.className.match(/st-key-pk(\\d+)([ab])/);
+    if (!m) return;
+    var outro = d.querySelector(".st-key-pk" + m[1] + (m[2] === "a" ? "b" : "a"));
+    card.setAttribute("data-pk", "on");
+    if (outro) outro.setAttribute("data-pk", "off");
+  }, true);
+})();
+</script>"""
 
+def status_bolao(cfg):
+    """ABERTO / AGUARDANDO / FECHADO pelo bloqueio e pelos horários (BRT)."""
+    agora = datetime.utcnow() - timedelta(hours=3)
     status = "ABERTO"
     abertura_str = (cfg.get("abertura") or "").strip()
     fechamento_str = (cfg.get("fechamento") or "").strip()
@@ -2295,6 +2310,14 @@ with tab_votar:
             if agora >= datetime.strptime(fechamento_str, "%d/%m/%Y %H:%M"):
                 status = "FECHADO"
         except: pass
+    return status
+
+with tab_votar:
+    lutas = load_lutas()
+    cfg = load_config()
+    status = status_bolao(cfg)
+    abertura_str = (cfg.get("abertura") or "").strip()
+    fechamento_str = (cfg.get("fechamento") or "").strip()
 
     if lutas.empty:
         st.warning("Nenhuma luta cadastrada ainda.")
@@ -2308,72 +2331,77 @@ with tab_votar:
         if fechamento_str:
             render_timer(fechamento_str, "FECHA EM", color=T["accent"], end_text="FECHADO!")
 
-        st.markdown('<div class="section-title">Identifique-se</div>', unsafe_allow_html=True)
-        nome_usuario = st.text_input("Nome", placeholder="Seu nome completo", label_visibility="collapsed")
+        # A tela de palpites roda isolada (st.fragment): cada toque num lutador
+        # refaz só ela, não o hero, o ranking e o admin. A seleção ainda aparece
+        # na hora do toque, antes do servidor responder (ver PICK_JS).
+        @st.fragment
+        def _tela_palpites():
+            st.markdown('<div class="section-title">Identifique-se</div>', unsafe_allow_html=True)
+            nome_usuario = st.text_input("Nome", placeholder="Seu nome completo", label_visibility="collapsed")
 
-        st.markdown('<div class="section-title">Palpites</div>', unsafe_allow_html=True)
-        palpites_usuario = {}
-        todos_lutadores = []
-        confrontos = []  # (id, lutador_1, lutador_2) na ordem do card
+            st.markdown('<div class="section-title">Palpites</div>', unsafe_allow_html=True)
+            palpites_usuario = {}
+            todos_lutadores = []
+            confrontos = []  # (id, lutador_1, lutador_2) na ordem do card
 
-        tag_map = {
-            "F1": ("main", "LUTA PRINCIPAL"),
-            "F2": ("co-main", "CO-MAIN"),
-            "PRINCIPAL": ("", "CARD PRINCIPAL"),
-            "PRELIM": ("prelim", "PRELIMINAR"),
-        }
+            tag_map = {
+                "F1": ("main", "LUTA PRINCIPAL"),
+                "F2": ("co-main", "CO-MAIN"),
+                "PRINCIPAL": ("", "CARD PRINCIPAL"),
+                "PRELIM": ("prelim", "PRELIMINAR"),
+            }
 
-        # ── Fotos dos lutadores ──
-        # UFC: headshots oficiais (só quem já tem contrato)
-        # ESPN: https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{ID}.png&h=200&w=200&scale=crop
-        #   → pega o ID na URL do perfil: espn.com/mma/fighter/_/id/{ID}/nome
-        _ESPN = "https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{}.png&h=200&w=200&scale=crop"
-        FOTOS = {
-            # UFC Sacramento
-            "ANTHONY HERNANDEZ": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/HERNANDEZ_ANTHONY_08-22.png",
-            "GREGORY RODRIGUES": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/RODRIGUES_GREGORY_08-22.png",
-            "SERGHEI SPIVAC": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/SPIVAC_SERGHEI_08-22.png",
-            "VITOR PETRINO": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/PETRINO_VITOR_08-22.png",
-            "REINIER DE RIDDER": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DE-RIDDER_REINIER_08-22.png",
-            "ROMAN DOLIDZE": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DOLIDZE_ROMAN_08-22.png",
-            # DWCS S10 W3 (ESPN)
-            "BELLA MIR":          _ESPN.format(5369428),
-            "ALEX APODACA":       _ESPN.format(5394582),
-            "MARIO PIAZZON":      _ESPN.format(5149190),
-            "GUILHERME URIEL":    _ESPN.format(5220468),
-            "GARY BALLETTO":      _ESPN.format(4351084),
-            "SEAN CLANCY JR.":    _ESPN.format(5364353),
-            "RONALD HUMPHREY":    _ESPN.format(5361909),
-            "ALEXIS MIRANDA":     _ESPN.format(5364354),
-            "CARLOS PETRUZZELLA": _ESPN.format(5264647),
-            "NICK GALANTI":       _ESPN.format(5296770),
-        }
+            # ── Fotos dos lutadores ──
+            # UFC: headshots oficiais (só quem já tem contrato)
+            # ESPN: https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{ID}.png&h=200&w=200&scale=crop
+            #   → pega o ID na URL do perfil: espn.com/mma/fighter/_/id/{ID}/nome
+            _ESPN = "https://a.espncdn.com/combiner/i?img=/i/headshots/mma/players/full/{}.png&h=200&w=200&scale=crop"
+            FOTOS = {
+                # UFC Sacramento
+                "ANTHONY HERNANDEZ": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/HERNANDEZ_ANTHONY_08-22.png",
+                "GREGORY RODRIGUES": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/RODRIGUES_GREGORY_08-22.png",
+                "SERGHEI SPIVAC": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/SPIVAC_SERGHEI_08-22.png",
+                "VITOR PETRINO": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/PETRINO_VITOR_08-22.png",
+                "REINIER DE RIDDER": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DE-RIDDER_REINIER_08-22.png",
+                "ROMAN DOLIDZE": "https://ufc.com/images/styles/event_results_athlete_headshot/s3/2026-08/DOLIDZE_ROMAN_08-22.png",
+                # DWCS S10 W3 (ESPN)
+                "BELLA MIR":          _ESPN.format(5369428),
+                "ALEX APODACA":       _ESPN.format(5394582),
+                "MARIO PIAZZON":      _ESPN.format(5149190),
+                "GUILHERME URIEL":    _ESPN.format(5220468),
+                "GARY BALLETTO":      _ESPN.format(4351084),
+                "SEAN CLANCY JR.":    _ESPN.format(5364353),
+                "RONALD HUMPHREY":    _ESPN.format(5361909),
+                "ALEXIS MIRANDA":     _ESPN.format(5364354),
+                "CARLOS PETRUZZELLA": _ESPN.format(5264647),
+                "NICK GALANTI":       _ESPN.format(5296770),
+            }
 
-        def iniciais(nome):
-            partes = [p for p in nome.split() if p]
-            if len(partes) >= 2:
-                return (partes[0][0] + partes[-1][0]).upper()
-            return nome[:2].upper()
+            def iniciais(nome):
+                partes = [p for p in nome.split() if p]
+                if len(partes) >= 2:
+                    return (partes[0][0] + partes[-1][0]).upper()
+                return nome[:2].upper()
 
-        def avatar_html(nome, lado, url_direta=None):
-            url = (url_direta or "").strip() or FOTOS.get(nome.strip().upper())
-            ini = iniciais(nome)
-            borda = T["accent"] if lado == "l" else T["accent_bright"]
-            if url:
-                from urllib.parse import quote
-                proxy = "https://images.weserv.nl/?url=" + quote(url.replace("https://", ""), safe="") + "&w=200"
-                fb = "this.parentElement.innerHTML='<span class=&quot;ini&quot;>" + ini + "</span>'"
-                return (
-                    f'<div class="av" style="border-color:{borda}">'
-                    f'<img src="{url}" alt="{nome}" '
-                    f'onerror="if(!this.dataset.p){{this.dataset.p=1;this.src=\'{proxy}\';}}else{{{fb}}}">'
-                    f'</div>'
-                )
-            return f'<div class="av" style="border-color:{borda}"><span class="ini">{ini}</span></div>'
+            def avatar_html(nome, lado, url_direta=None):
+                url = (url_direta or "").strip() or FOTOS.get(nome.strip().upper())
+                ini = iniciais(nome)
+                borda = T["accent"] if lado == "l" else T["accent_bright"]
+                if url:
+                    from urllib.parse import quote
+                    proxy = "https://images.weserv.nl/?url=" + quote(url.replace("https://", ""), safe="") + "&w=200"
+                    fb = "this.parentElement.innerHTML='<span class=&quot;ini&quot;>" + ini + "</span>'"
+                    return (
+                        f'<div class="av" style="border-color:{borda}">'
+                        f'<img src="{url}" alt="{nome}" '
+                        f'onerror="if(!this.dataset.p){{this.dataset.p=1;this.src=\'{proxy}\';}}else{{{fb}}}">'
+                        f'</div>'
+                    )
+                return f'<div class="av" style="border-color:{borda}"><span class="ini">{ini}</span></div>'
 
-        _c = T["accent"]; _cb = T["accent_bright"]; _sf = T["surface"]; _sf2 = T["surface_2"]
-        _bd = T["border"]; _mu = T["muted"]
-        CARD_CSS = f"""
+            _c = T["accent"]; _cb = T["accent_bright"]; _sf = T["surface"]; _sf2 = T["surface_2"]
+            _bd = T["border"]; _mu = T["muted"]
+            CARD_CSS = f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&display=swap');
         *{{box-sizing:border-box;margin:0;padding:0}}
@@ -2426,134 +2454,156 @@ with tab_votar:
         </style>
         """
 
-        # ── Escolha clicável: a foto E o nome formam um único botão ────────
-        # st.markdown remove <img>, mas NAO remove background-image dentro de
-        # <style>. Entao a foto entra como fundo de um st.button de verdade,
-        # que vive no documento principal (nao num iframe) e devolve o clique.
-        # O gancho e a classe st-key-<key>, gerada pelo Streamlit >= 1.39.
-        from urllib.parse import quote as _q
+            # ── Escolha clicável: a foto E o nome formam um único botão ────────
+            # st.markdown remove <img>, mas NAO remove background-image dentro de
+            # <style>. Entao a foto entra como fundo de um st.button de verdade,
+            # que vive no documento principal (nao num iframe) e devolve o clique.
+            # O gancho e a classe st-key-<key>, gerada pelo Streamlit >= 1.39.
+            from urllib.parse import quote as _q
 
-        def _camadas_foto(nome, url):
-            """Fundo do avatar: foto -> proxy weserv -> cor chapada."""
-            u = (url or "").strip() or FOTOS.get(nome.strip().upper(), "")
-            if not u:
-                return None
-            prox = "https://images.weserv.nl/?url=" + _q(u.replace("https://", ""), safe="") + "&w=220"
-            return (f"url('{u}') center/cover no-repeat, "
-                    f"url('{prox}') center/cover no-repeat, #171A20")
+            def _camadas_foto(nome, url):
+                """Fundo do avatar: foto -> proxy weserv -> cor chapada."""
+                u = (url or "").strip() or FOTOS.get(nome.strip().upper(), "")
+                if not u:
+                    return None
+                prox = "https://images.weserv.nl/?url=" + _q(u.replace("https://", ""), safe="") + "&w=220"
+                return (f"url('{u}') center/cover no-repeat, "
+                        f"url('{prox}') center/cover no-repeat, #171A20")
 
-        # cores dos cards de escolha (palpite e bônus); o tema pode trocar via "pick"
-        PK = {
-            "borda": "var(--border)", "borda_sel": "var(--ufc-red-bright)",
-            "foto_bd": "#39414D", "foto_bd_sel": "var(--ufc-red-bright)",
-            "txt": "#C8CDD6", "txt_sel": "#fff",
-            "fundo": "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))",
-            "fundo_sel": "linear-gradient(180deg,var(--sel-a),var(--sel-b))",
-            "glow_sel": "0 0 0 1px var(--ufc-red-bright),0 10px 30px var(--sel-glow)",
-            "chk": "var(--ufc-red-bright)", "chk_txt": "#fff",
-            "rec": "var(--muted)", "rec_sel": "#E6E9EE", "hover": "var(--ufc-red-bright)",
-            "foto_vazia": "#171A20", "ini": "var(--muted)", "bx_txt": "#fff",
-            "idade": "#E5484D", "idade_sel": "#FF6369",
-        }
-        PK.update(T.get("pick", {}))
+            # cores dos cards de escolha (palpite e bônus); o tema pode trocar via "pick"
+            PK = {
+                "borda": "var(--border)", "borda_sel": "var(--ufc-red-bright)",
+                "foto_bd": "#39414D", "foto_bd_sel": "var(--ufc-red-bright)",
+                "txt": "#C8CDD6", "txt_sel": "#fff",
+                "fundo": "linear-gradient(180deg,rgba(30,36,48,.26),rgba(12,15,20,.16))",
+                "fundo_sel": "linear-gradient(180deg,var(--sel-a),var(--sel-b))",
+                "glow_sel": "0 0 0 1px var(--ufc-red-bright),0 10px 30px var(--sel-glow)",
+                "chk": "var(--ufc-red-bright)", "chk_txt": "#fff",
+                "rec": "var(--muted)", "rec_sel": "#E6E9EE", "hover": "var(--ufc-red-bright)",
+                "foto_vazia": "#171A20", "ini": "var(--muted)", "bx_txt": "#fff",
+                "idade": "#E5484D", "idade_sel": "#FF6369",
+            }
+            PK.update(T.get("pick", {}))
 
-        def _css_pick(key, nome, url, sel, band="", rec="", alto=150, idade=""):
-            cam = _camadas_foto(nome, url)
-            # linha de baixo do nome: cartel no ::before e idade (em vermelho) no
-            # ::after do container do texto, que vira flex para os dois ficarem lado
-            # a lado embaixo do <p>. O ::before/::after do botao ja sao foto e check.
-            # So digitos, hifen, ponto e letras: nao quebra o content.
-            sep = " ·" if (rec and idade) else ""
-            _mc = f'.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]'
-            cartel = (f'''
-{_mc}{{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;column-gap:5px}}
-{_mc} p{{flex:0 0 100%}}
-{_mc}::before,{_mc}::after{{margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
- font-variant-numeric:tabular-nums}}
-{_mc}::before{{content:"{rec}{sep}";order:1;color:{PK["rec_sel"] if sel else PK["rec"]}}}
-{_mc}::after{{content:"{idade}";order:2;color:{PK["idade_sel"] if sel else PK["idade"]}}}'''
-                      if (rec or idade) else "")
-            ini = iniciais(nome)
-            # bandeira: camada de fundo no topo-esquerdo, antes do gradiente
-            _bandeira = f"url('{band}') 11px 11px/26px auto no-repeat," if band else ""
-            borda    = PK["borda_sel"] if sel else PK["borda"]
-            foto_bd  = PK["foto_bd_sel"] if sel else PK["foto_bd"]
-            cor_txt  = PK["txt_sel"] if sel else PK["txt"]
-            fundo    = PK["fundo_sel"] if sel else PK["fundo"]
-            glow     = f"box-shadow:{PK['glow_sel']};" if sel else ""
-            check = (f'''
-.st-key-{key} div[data-testid="stButton"]>button::after{{content:"\\2713";position:absolute;top:9px;right:9px;
+            def _cores_pick(px, sel, band, rec, idade, oposto=False):
+                """Só o que muda entre escolhido e não escolhido, sob o seletor px.
+                Sai duas vezes por card: o estado real (px = .st-key-X) e o oposto sob
+                [data-pk], que o toque marca na hora, antes do servidor responder."""
+                b = f'{px} div[data-testid="stButton"]>button'
+                _mc = f'{b} div[data-testid="stMarkdownContainer"]'
+                # bandeira: camada de fundo no topo-esquerdo, antes do gradiente
+                _bandeira = f"url('{band}') 11px 11px/26px auto no-repeat," if band else ""
+                fundo = PK["fundo_sel"] if sel else PK["fundo"]
+                # não escolhido não tem sombra própria; só o "oposto" precisa apagar o brilho
+                glow = (f"box-shadow:{PK['glow_sel']}!important;" if sel
+                        else "box-shadow:none!important;" if oposto else "")
+                css = f'''
+{b}{{background:{_bandeira}{fundo}!important;border:2px solid {PK["borda_sel"] if sel else PK["borda"]}!important;
+ {glow}color:{PK["txt_sel"] if sel else PK["txt"]}!important}}
+{b}::before{{border-color:{PK["foto_bd_sel"] if sel else PK["foto_bd"]}!important}}'''
+                if sel:
+                    css += f'''
+{b}::after{{content:"\\2713";position:absolute;top:9px;right:9px;
  width:21px;height:21px;border-radius:50%;background:{PK["chk"]};
  color:{PK["chk_txt"]};font-size:12px;line-height:21px;text-align:center;font-weight:700}}'''
-                     if sel else "")
-            return f'''
-.st-key-{key} div[data-testid="stButton"]>button{{position:relative;width:100%;height:{alto}px;margin:0;
- padding:92px 8px 14px!important;background:{_bandeira}{fundo}!important;border:2px solid {borda}!important;
- border-radius:16px!important;clip-path:none!important;font-family:inherit!important;{glow}color:{cor_txt}!important;font-weight:700!important;
+                else:
+                    css += f"\n{b}::after{{content:none}}"
+                if rec or idade:
+                    css += f'''
+{_mc}::before{{color:{PK["rec_sel"] if sel else PK["rec"]}}}
+{_mc}::after{{color:{PK["idade_sel"] if sel else PK["idade"]}}}'''
+                return css
+
+            # Regras iguais em todos os cards saem uma vez só (PICK_CSS); por card
+            # vai só o que muda (altura, foto, cartel/idade e cores). Cada toque
+            # reenvia esse CSS pro celular, então quanto menor, mais rápido.
+            _P = '[class*="st-key-pk"] div[data-testid="stButton"]>button'
+            _PM = f'{_P} div[data-testid="stMarkdownContainer"]'
+            PICK_CSS = f'''
+{_P}{{position:relative;width:100%;margin:0;padding:92px 8px 14px!important;
+ border-radius:16px!important;clip-path:none!important;font-family:inherit!important;font-weight:700!important;
  font-size:.82rem!important;letter-spacing:.03em!important;line-height:1.15!important;
- white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s}}
-.st-key-{key} div[data-testid="stButton"]>button:hover{{border-color:{PK["hover"]}!important;
- transform:translateY(-2px)}}
-.st-key-{key} div[data-testid="stButton"]>button:focus{{box-shadow:0 0 0 2px {PK["hover"]}!important}}
-.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
- position:absolute!important;left:6px;right:6px;bottom:10px;margin:0!important;
- z-index:2;text-align:center}}
-.st-key-{key} div[data-testid="stButton"]>button p{{
- position:static!important;margin:0!important;line-height:1.14!important;text-align:center;
- white-space:normal!important;overflow-wrap:anywhere;word-break:break-word}}
-.st-key-{key} div[data-testid="stButton"]>button::before{{content:{'""' if cam else f'"{ini}"'};
- position:absolute;top:14px;left:50%;transform:translateX(-50%);
- width:72px;height:72px;border-radius:50%;
- background:{cam or PK["foto_vazia"]};border:2px solid {foto_bd};
+ white-space:normal!important;transition:border-color .15s,box-shadow .15s,transform .12s,background .12s}}
+{_P}:hover{{border-color:{PK["hover"]}!important;transform:translateY(-2px)}}
+{_P}:focus{{box-shadow:0 0 0 2px {PK["hover"]}!important}}
+{_PM}{{position:absolute!important;left:6px;right:6px;bottom:10px;margin:0!important;z-index:2;text-align:center;
+ display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;column-gap:5px}}
+{_P} p{{position:static!important;margin:0!important;line-height:1.14!important;text-align:center;
+ white-space:normal!important;overflow-wrap:anywhere;word-break:break-word;flex:0 0 100%}}
+{_P}::before{{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+ width:72px;height:72px;border-radius:50%;border:2px solid;
  color:{PK["ini"]};font-size:21px;font-weight:800;line-height:72px;
  text-align:center;letter-spacing:.06em;box-shadow:0 6px 18px rgba(0,0,0,.55)}}
-{check}{cartel}
+{_PM}::before,{_PM}::after{{margin-top:4px;font-size:.72rem;font-weight:600;letter-spacing:.12em;
+ font-variant-numeric:tabular-nums}}
+{_PM}::before{{order:1}}
+{_PM}::after{{order:2}}
 @media (max-width:640px){{
-.st-key-{key} div[data-testid="stButton"]>button{{height:{alto - 6}px;padding:80px 6px 10px!important;
- border-radius:14px!important;font-size:.76rem!important}}
-.st-key-{key} div[data-testid="stButton"]>button::before{{top:12px;width:60px;height:60px;
- line-height:60px;font-size:18px}}
-.st-key-{key} div[data-testid="stButton"]>button div[data-testid="stMarkdownContainer"]{{
- left:4px;right:4px;bottom:9px}}
+{_P}{{padding:80px 6px 10px!important;border-radius:14px!important;font-size:.76rem!important}}
+{_P}::before{{top:12px;width:60px;height:60px;line-height:60px;font-size:18px}}
+{_PM}{{left:4px;right:4px;bottom:9px}}
 }}'''
 
-        # ── Últimas lutas: setinha embaixo de cada confronto ───────────────
-        # <details> nativo: abre/fecha no navegador, sem rerun do Streamlit,
-        # e não disputa o clique com o botão do palpite. HTML numa linha só:
-        # indentação ou linha em branco viram bloco de código no markdown.
-        import html as _html
-        _HX_TIT = {"V": "Vitória", "D": "Derrota", "E": "Empate", "NC": "Sem resultado"}
+            def _css_pick(key, nome, url, sel, band="", rec="", alto=150, idade=""):
+                cam = _camadas_foto(nome, url)
+                ini = iniciais(nome)
+                b = f'.st-key-{key} div[data-testid="stButton"]>button'
+                # linha de baixo do nome: cartel no ::before e idade (em vermelho) no
+                # ::after do container do texto (flex, ver PICK_CSS). O ::before/::after
+                # do botao ja sao foto e check. So digitos, hifen, ponto e letras: nao
+                # quebra o content.
+                sep = " ·" if (rec and idade) else ""
+                cartel = (f'''
+{b} div[data-testid="stMarkdownContainer"]::before{{content:"{rec}{sep}"}}
+{b} div[data-testid="stMarkdownContainer"]::after{{content:"{idade}"}}'''
+                          if (rec or idade) else "")
+                # estado real + o oposto, que o toque liga na hora (ver PICK_JS)
+                cores = (_cores_pick(f".st-key-{key}", sel, band, rec, idade)
+                         + _cores_pick(f'.st-key-{key}[data-pk="{"off" if sel else "on"}"]',
+                                       not sel, band, rec, idade, oposto=True))
+                return f'''
+{b}{{height:{alto}px}}
+{b}::before{{content:{'""' if cam else f'"{ini}"'};background:{cam or PK["foto_vazia"]}}}
+{cores}{cartel}
+@media (max-width:640px){{{b}{{height:{alto - 6}px}}}}'''
 
-        def _hx_chips(hist):
-            if not hist:
-                return '<span class="hx-vazio">—</span>'
-            return "".join(
-                f'<span class="hx-b hx-{h["r"].lower()}" title="{_HX_TIT.get(h["r"], "")}'
-                f' · {_html.escape(h.get("op", ""))}">{h["r"]}</span>'
-                for h in hist
-            )
+            # ── Últimas lutas: setinha embaixo de cada confronto ───────────────
+            # <details> nativo: abre/fecha no navegador, sem rerun do Streamlit,
+            # e não disputa o clique com o botão do palpite. HTML numa linha só:
+            # indentação ou linha em branco viram bloco de código no markdown.
+            import html as _html
+            _HX_TIT = {"V": "Vitória", "D": "Derrota", "E": "Empate", "NC": "Sem resultado"}
 
-        def _hx_col(nome, hist):
-            linhas = "".join(
-                f'<div class="hx-row"><span class="hx-b hx-{h["r"].lower()}">{h["r"]}</span>'
-                f'<div class="hx-tx"><span class="hx-op">{_html.escape(h.get("op", "?"))}</span>'
-                f'<span class="hx-met">{_html.escape(" · ".join(x for x in (h.get("met"), h.get("dt")) if x))}'
-                f'</span></div></div>'
-                for h in hist
-            ) or '<div class="hx-sem">Sem lutas registradas na ESPN</div>'
-            return f'<div class="hx-col"><div class="hx-nm">{_html.escape(nome)}</div>{linhas}</div>'
+            def _hx_chips(hist):
+                if not hist:
+                    return '<span class="hx-vazio">—</span>'
+                return "".join(
+                    f'<span class="hx-b hx-{h["r"].lower()}" title="{_HX_TIT.get(h["r"], "")}'
+                    f' · {_html.escape(h.get("op", ""))}">{h["r"]}</span>'
+                    for h in hist
+                )
 
-        def _hx_html(l1, h1, l2, h2):
-            return (
-                '<details class="hx"><summary>'
-                f'<span class="hx-form">{_hx_chips(h1)}</span>'
-                '<span class="hx-btn"><span class="hx-txt">Últimas lutas</span>'
-                '<span class="hx-chev"></span></span>'
-                f'<span class="hx-form">{_hx_chips(h2)}</span>'
-                f'</summary><div class="hx-body">{_hx_col(l1, h1)}{_hx_col(l2, h2)}</div></details>'
-            )
+            def _hx_col(nome, hist):
+                linhas = "".join(
+                    f'<div class="hx-row"><span class="hx-b hx-{h["r"].lower()}">{h["r"]}</span>'
+                    f'<div class="hx-tx"><span class="hx-op">{_html.escape(h.get("op", "?"))}</span>'
+                    f'<span class="hx-met">{_html.escape(" · ".join(x for x in (h.get("met"), h.get("dt")) if x))}'
+                    f'</span></div></div>'
+                    for h in hist
+                ) or '<div class="hx-sem">Sem lutas registradas na ESPN</div>'
+                return f'<div class="hx-col"><div class="hx-nm">{_html.escape(nome)}</div>{linhas}</div>'
 
-        HX_CSS = """
+            def _hx_html(l1, h1, l2, h2):
+                return (
+                    '<details class="hx"><summary>'
+                    f'<span class="hx-form">{_hx_chips(h1)}</span>'
+                    '<span class="hx-btn"><span class="hx-txt">Últimas lutas</span>'
+                    '<span class="hx-chev"></span></span>'
+                    f'<span class="hx-form">{_hx_chips(h2)}</span>'
+                    f'</summary><div class="hx-body">{_hx_col(l1, h1)}{_hx_col(l2, h2)}</div></details>'
+                )
+
+            HX_CSS = """
 .hx{margin:-.35rem 0 .4rem;font-family:inherit}
 .hx summary{list-style:none;display:grid;align-items:center;cursor:pointer;
  /* mesmas proporções das colunas dos cards ([1, .17, 1]) pra forma ficar
@@ -2626,123 +2676,123 @@ with tab_votar:
 @media (prefers-reduced-motion:reduce){.hx-chev,.hx[open] .hx-body{transition:none;animation:none}}
 """
 
-        _css_cards = []
-        for _, luta in lutas.iterrows():
-            lid = int(luta["id"])
-            l1, l2 = str(luta["lutador_1"]).strip(), str(luta["lutador_2"]).strip()
-            tipo = str(luta["tipo"]).strip().upper()
-            f1_url = str(luta.get("foto_1", "") or "").strip()
-            f2_url = str(luta.get("foto_2", "") or "").strip()
-            b1_url = str(luta.get("band_1", "") or "").strip()
-            b2_url = str(luta.get("band_2", "") or "").strip()
-            r1, i1 = fmt_cartel(luta.get("rec_1", "")), fmt_idade(luta.get("nasc_1", ""))
-            r2, i2 = fmt_cartel(luta.get("rec_2", "")), fmt_idade(luta.get("nasc_2", ""))
-            # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel/idade
-            alto = 166 if (r1 or r2 or i1 or i2) else 150
-            todos_lutadores.extend([l1, l2])
-            confrontos.append((lid, l1, l2))
-            tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
+            _css_cards = []
+            for _, luta in lutas.iterrows():
+                lid = int(luta["id"])
+                l1, l2 = str(luta["lutador_1"]).strip(), str(luta["lutador_2"]).strip()
+                tipo = str(luta["tipo"]).strip().upper()
+                f1_url = str(luta.get("foto_1", "") or "").strip()
+                f2_url = str(luta.get("foto_2", "") or "").strip()
+                b1_url = str(luta.get("band_1", "") or "").strip()
+                b2_url = str(luta.get("band_2", "") or "").strip()
+                r1, i1 = fmt_cartel(luta.get("rec_1", "")), fmt_idade(luta.get("nasc_1", ""))
+                r2, i2 = fmt_cartel(luta.get("rec_2", "")), fmt_idade(luta.get("nasc_2", ""))
+                # os dois cards da luta com a mesma altura, mesmo se só um tiver cartel/idade
+                alto = 166 if (r1 or r2 or i1 or i2) else 150
+                todos_lutadores.extend([l1, l2])
+                confrontos.append((lid, l1, l2))
+                tag_class, tag_label = tag_map.get(tipo, ("", "FIGHT"))
 
-            skey = f"pick_{lid}"
-            if skey not in st.session_state:
-                st.session_state[skey] = None
+                skey = f"pick_{lid}"
+                if skey not in st.session_state:
+                    st.session_state[skey] = None
 
-            _f2esp = bool(cfg.get("f2_especial", False))
-            pts = 2 if (tag_class == "main" or (tag_class == "co-main" and _f2esp)) else 1
-            st.markdown(
-                f'''<div class="pick-head">
+                _f2esp = bool(cfg.get("f2_especial", False))
+                pts = 2 if (tag_class == "main" or (tag_class == "co-main" and _f2esp)) else 1
+                st.markdown(
+                    f'''<div class="pick-head">
                   <span class="pick-tag {tag_class}">{tag_label}</span>
                   <span class="pick-pts">{pts} {"PONTOS" if pts > 1 else "PONTO"}</span>
                 </div>''',
-                unsafe_allow_html=True,
-            )
+                    unsafe_allow_html=True,
+                )
 
-            ca, cv, cb = st.columns([1, 0.17, 1])
-            with ca:
-                if st.button(l1, key=f"pk{lid}a", use_container_width=True):
-                    st.session_state[skey] = l1
-            with cv:
-                st.markdown('<div class="pick-vs">VS</div>', unsafe_allow_html=True)
-            with cb:
-                if st.button(l2, key=f"pk{lid}b", use_container_width=True):
-                    st.session_state[skey] = l2
+                ca, cv, cb = st.columns([1, 0.17, 1])
+                with ca:
+                    if st.button(l1, key=f"pk{lid}a", use_container_width=True):
+                        st.session_state[skey] = l1
+                with cv:
+                    st.markdown('<div class="pick-vs">VS</div>', unsafe_allow_html=True)
+                with cb:
+                    if st.button(l2, key=f"pk{lid}b", use_container_width=True):
+                        st.session_state[skey] = l2
 
-            h1 = parse_hist(luta.get("hist_1", ""))
-            h2 = parse_hist(luta.get("hist_2", ""))
-            if h1 or h2:
-                st.markdown(_hx_html(l1, h1, l2, h2), unsafe_allow_html=True)
+                h1 = parse_hist(luta.get("hist_1", ""))
+                h2 = parse_hist(luta.get("hist_2", ""))
+                if h1 or h2:
+                    st.markdown(_hx_html(l1, h1, l2, h2), unsafe_allow_html=True)
 
-            sel = st.session_state[skey]
-            _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto, i1))
-            _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto, i2))
-            palpites_usuario[lid] = sel
+                sel = st.session_state[skey]
+                _css_cards.append(_css_pick(f"pk{lid}a", l1, f1_url, sel == l1, b1_url, r1, alto, i1))
+                _css_cards.append(_css_pick(f"pk{lid}b", l2, f2_url, sel == l2, b2_url, r2, alto, i2))
+                palpites_usuario[lid] = sel
 
-        # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,
-        # entao nao precisa de um segundo reload so para repintar o selecionado.
-        st.markdown("<style>" + HX_CSS + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
+            # Um unico <style> no fim: o CSS ja enxerga o clique desta mesma execucao,
+            # entao nao precisa de um segundo reload so para repintar o selecionado.
+            st.markdown("<style>" + HX_CSS + PICK_CSS + "".join(_css_cards) + "</style>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-title">Bônus da Noite</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Bônus da Noite</div>', unsafe_allow_html=True)
 
-        # ── Bônus: dois botões lado a lado que abrem a escolha (st.popover) ──
-        # Fechado ocupa uma linha; o botão mostra o que foi escolhido. Dentro,
-        # chips (st.pills): Luta da noite = um chip por luta; Performance = um
-        # par de chips por luta, pra escolher já vendo o adversário.
-        def _sobrenome(nome):
-            partes = nome.split()
-            if len(partes) >= 2 and partes[-1].rstrip(".").upper() in ("JR", "SR", "II", "III", "IV"):
-                return " ".join(partes[-2:])
-            return partes[-1] if partes else nome
+            # ── Bônus: dois botões lado a lado que abrem a escolha (st.popover) ──
+            # Fechado ocupa uma linha; o botão mostra o que foi escolhido. Dentro,
+            # chips (st.pills): Luta da noite = um chip por luta; Performance = um
+            # par de chips por luta, pra escolher já vendo o adversário.
+            def _sobrenome(nome):
+                partes = nome.split()
+                if len(partes) >= 2 and partes[-1].rstrip(".").upper() in ("JR", "SR", "II", "III", "IV"):
+                    return " ".join(partes[-2:])
+                return partes[-1] if partes else nome
 
-        _ids = [c[0] for c in confrontos]
-        _por_id = {c[0]: c for c in confrontos}
-        # card trocado (luta ou lutador sumiu): esquece a escolha antiga
-        if st.session_state.get("bonus_fotn") not in _ids:
-            st.session_state["bonus_fotn"] = None
-        for _lid, _a, _b in confrontos:
-            if st.session_state.get(f"bonus_potn_{_lid}") not in (_a, _b, None):
-                st.session_state[f"bonus_potn_{_lid}"] = None
+            _ids = [c[0] for c in confrontos]
+            _por_id = {c[0]: c for c in confrontos}
+            # card trocado (luta ou lutador sumiu): esquece a escolha antiga
+            if st.session_state.get("bonus_fotn") not in _ids:
+                st.session_state["bonus_fotn"] = None
+            for _lid, _a, _b in confrontos:
+                if st.session_state.get(f"bonus_potn_{_lid}") not in (_a, _b, None):
+                    st.session_state[f"bonus_potn_{_lid}"] = None
 
-        def _so_um_potn(lid_escolhido):
-            """Performance é um lutador só: marcar um chip desmarca os das outras lutas."""
-            if st.session_state.get(f"bonus_potn_{lid_escolhido}"):
-                for _o in _ids:
-                    if _o != lid_escolhido:
-                        st.session_state[f"bonus_potn_{_o}"] = None
-            st.session_state["bx_potn"] = False  # escolheu: fecha o painel
+            def _so_um_potn(lid_escolhido):
+                """Performance é um lutador só: marcar um chip desmarca os das outras lutas."""
+                if st.session_state.get(f"bonus_potn_{lid_escolhido}"):
+                    for _o in _ids:
+                        if _o != lid_escolhido:
+                            st.session_state[f"bonus_potn_{_o}"] = None
+                st.session_state["bx_potn"] = False  # escolheu: fecha o painel
 
-        def _fechar_fotn():
-            st.session_state["bx_fotn"] = False  # escolheu: fecha o painel
+            def _fechar_fotn():
+                st.session_state["bx_fotn"] = False  # escolheu: fecha o painel
 
-        fotn_lid = st.session_state.get("bonus_fotn")
-        potn_nome = next((st.session_state.get(f"bonus_potn_{_l}") for _l in _ids
-                          if st.session_state.get(f"bonus_potn_{_l}")), None)
-        fotn_txt = (f"{_sobrenome(_por_id[fotn_lid][1])} x {_sobrenome(_por_id[fotn_lid][2])}"
-                    if fotn_lid else "Luta da noite")
-        potn_txt = potn_nome or "Performance"
+            fotn_lid = st.session_state.get("bonus_fotn")
+            potn_nome = next((st.session_state.get(f"bonus_potn_{_l}") for _l in _ids
+                              if st.session_state.get(f"bonus_potn_{_l}")), None)
+            fotn_txt = (f"{_sobrenome(_por_id[fotn_lid][1])} x {_sobrenome(_por_id[fotn_lid][2])}"
+                        if fotn_lid else "Luta da noite")
+            potn_txt = potn_nome or "Performance"
 
-        with st.container(horizontal=True, gap="small", wrap=False):
-            # on_change="rerun" faz o popover guardar aberto/fechado no session_state,
-            # o que permite fechá-lo pelo callback da escolha
-            with st.popover(fotn_txt, icon="🌟", width="stretch", key="bx_fotn", on_change="rerun"):
-                st.markdown('<div class="bx-tit">Luta da noite <span>+2 pts</span></div>',
-                            unsafe_allow_html=True)
-                st.pills("Luta da noite", _ids, key="bonus_fotn", label_visibility="collapsed",
-                         on_change=_fechar_fotn,
-                         format_func=lambda l: f"{_sobrenome(_por_id[l][1])} x {_sobrenome(_por_id[l][2])}")
-            with st.popover(potn_txt, icon="⚡", width="stretch", key="bx_potn", on_change="rerun"):
-                st.markdown('<div class="bx-tit">Performance da noite <span>+1 pt</span></div>',
-                            unsafe_allow_html=True)
-                for _lid, _a, _b in confrontos:
-                    st.pills(f"Performance {_lid}", [_a, _b], key=f"bonus_potn_{_lid}",
-                             label_visibility="collapsed", on_change=_so_um_potn, args=(_lid,))
+            with st.container(horizontal=True, gap="small", wrap=False):
+                # on_change="rerun" faz o popover guardar aberto/fechado no session_state,
+                # o que permite fechá-lo pelo callback da escolha
+                with st.popover(fotn_txt, icon="🌟", width="stretch", key="bx_fotn", on_change="rerun"):
+                    st.markdown('<div class="bx-tit">Luta da noite <span>+2 pts</span></div>',
+                                unsafe_allow_html=True)
+                    st.pills("Luta da noite", _ids, key="bonus_fotn", label_visibility="collapsed",
+                             on_change=_fechar_fotn,
+                             format_func=lambda l: f"{_sobrenome(_por_id[l][1])} x {_sobrenome(_por_id[l][2])}")
+                with st.popover(potn_txt, icon="⚡", width="stretch", key="bx_potn", on_change="rerun"):
+                    st.markdown('<div class="bx-tit">Performance da noite <span>+1 pt</span></div>',
+                                unsafe_allow_html=True)
+                    for _lid, _a, _b in confrontos:
+                        st.pills(f"Performance {_lid}", [_a, _b], key=f"bonus_potn_{_lid}",
+                                 label_visibility="collapsed", on_change=_so_um_potn, args=(_lid,))
 
-        # legenda do botão (pontos ou "escolhido") e destaque quando há escolha
-        def _css_bx(key, escolhido, pts):
-            borda = PK["borda_sel"] if escolhido else PK["borda"]
-            fundo = PK["fundo_sel"] if escolhido else PK["fundo"]
-            texto = PK["txt_sel"] if escolhido else PK["bx_txt"]
-            leg = f"✓ +{pts} se acertar" if escolhido else f"Vale +{pts}"
-            return f'''
+            # legenda do botão (pontos ou "escolhido") e destaque quando há escolha
+            def _css_bx(key, escolhido, pts):
+                borda = PK["borda_sel"] if escolhido else PK["borda"]
+                fundo = PK["fundo_sel"] if escolhido else PK["fundo"]
+                texto = PK["txt_sel"] if escolhido else PK["bx_txt"]
+                leg = f"✓ +{pts} se acertar" if escolhido else f"Vale +{pts}"
+                return f'''
 .st-key-{key} button{{min-height:58px;padding:8px 12px!important;border-radius:14px!important;
  border:1.5px solid {borda}!important;background:{fundo}!important;color:{texto}!important;
  clip-path:none!important;font-family:inherit!important;box-shadow:none!important;
@@ -2755,11 +2805,11 @@ with tab_votar:
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
  color:{"var(--sel-leg)" if escolhido else "var(--muted)"}}}'''
 
-        st.markdown(
-            "<style>"
-            + _css_bx("bx_fotn", bool(fotn_lid), "2 pts")
-            + _css_bx("bx_potn", bool(potn_nome), "1 pt")
-            + """
+            st.markdown(
+                "<style>"
+                + _css_bx("bx_fotn", bool(fotn_lid), "2 pts")
+                + _css_bx("bx_potn", bool(potn_nome), "1 pt")
+                + """
 /* os dois botões do bônus com a mesma largura, lado a lado até no celular */
 .st-key-bx_fotn,.st-key-bx_potn{flex:1 1 0!important;min-width:0!important;width:auto!important}
 .st-key-bx_fotn button,.st-key-bx_potn button{width:100%}
@@ -2771,42 +2821,59 @@ div:has(> .bx-tit){margin-bottom:0!important}
 div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"]{gap:.45rem}
 div[data-testid="stPopoverBody"] [data-testid="stButtonGroup"] button{border-radius:999px}
 """
-            + "</style>",
-            unsafe_allow_html=True,
-        )
+                + "</style>",
+                unsafe_allow_html=True,
+            )
 
-        st.markdown("---")
-        if st.button("✅ ENVIAR PALPITES"):
-            nome_limpo = nome_usuario.strip()
-            _faltando = [lid for lid, pal in palpites_usuario.items() if not pal]
-            if not nome_limpo:
-                st.error("Informe seu nome.")
-            elif _faltando:
-                st.error(f"Faltam {len(_faltando)} luta(s) sem palpite. "
-                         "Clique no lutador que você acha que vence em cada uma.")
-            else:
-                if fotn_lid:
-                    f1v, f2v = _por_id[fotn_lid][1], _por_id[fotn_lid][2]
+            st.markdown("---")
+            if st.button("✅ ENVIAR PALPITES"):
+                nome_limpo = nome_usuario.strip()
+                _faltando = [lid for lid, pal in palpites_usuario.items() if not pal]
+                if not nome_limpo:
+                    st.error("Informe seu nome.")
+                elif _faltando:
+                    st.error(f"Faltam {len(_faltando)} luta(s) sem palpite. "
+                             "Clique no lutador que você acha que vence em cada uma.")
                 else:
-                    f1v, f2v = "", ""
-                p1v = potn_nome or ""
+                    if fotn_lid:
+                        f1v, f2v = _por_id[fotn_lid][1], _por_id[fotn_lid][2]
+                    else:
+                        f1v, f2v = "", ""
+                    p1v = potn_nome or ""
 
-                try:
-                    # Apaga os palpites antigos desse nome (case-insensitive)
-                    sb.table("palpites").delete().ilike("nome", nome_limpo).execute()
-                    # Insere os novos
-                    rows = [{
-                        "nome": nome_limpo,
-                        "luta_id": lid,
-                        "palpite": pal,
-                        "fotn_1": f1v, "fotn_2": f2v,
-                        "potn_1": p1v, "potn_2": "",
-                    } for lid, pal in palpites_usuario.items()]
-                    sb.table("palpites").insert(rows).execute()
-                    invalidate_cache()
-                    st.success(f"🥊 Palpites de **{nome_limpo}** salvos com sucesso!")
-                    # Som de gong (Web Audio API — sem dependências)
-                    components.html("""
+                    # a tela roda isolada e não refaz o status a cada toque: confere
+                    # de novo se ainda está aberto antes de gravar
+                    load_config.clear()
+                    _salvou = False
+                    try:
+                        if status_bolao(load_config()) != "ABERTO":
+                            raise RuntimeError("o bolão fechou enquanto você palpitava")
+                        # Apaga os palpites antigos desse nome (case-insensitive)
+                        sb.table("palpites").delete().ilike("nome", nome_limpo).execute()
+                        # Insere os novos
+                        rows = [{
+                            "nome": nome_limpo,
+                            "luta_id": lid,
+                            "palpite": pal,
+                            "fotn_1": f1v, "fotn_2": f2v,
+                            "potn_1": p1v, "potn_2": "",
+                        } for lid, pal in palpites_usuario.items()]
+                        sb.table("palpites").insert(rows).execute()
+                        invalidate_cache()
+                        # recarrega a página inteira (o ranking vê o envio na hora);
+                        # a mensagem e o gong saem logo abaixo, nessa nova execução
+                        st.session_state["_enviado"] = nome_limpo
+                        _salvou = True
+                    except Exception as e:
+                        st.error(f"Erro ao salvar: {e}")
+                    if _salvou:
+                        st.rerun()
+
+            _enviado = st.session_state.pop("_enviado", None)
+            if _enviado:
+                st.success(f"🥊 Palpites de **{_enviado}** salvos com sucesso!")
+                # Som de gong (Web Audio API — sem dependências)
+                components.html("""
                     <script>
                     try {
                       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2828,9 +2895,18 @@ div[data-testid="stPopoverBody"] [data-testid="stButtonGroup"] button{border-rad
                     } catch(e) {}
                     </script>
                     """, height=0)
-                    st.balloons()
-                except Exception as e:
-                    st.error(f"Erro ao salvar: {e}")
+                st.balloons()
+
+        # Seleção na hora do toque: marca o card tocado com data-pk="on" e o
+        # adversário com "off"; o CSS de cada card já traz esse estado pronto.
+        # components.html é iframe da mesma origem, então alcança a página.
+        # O clique segue normal pro Streamlit, que confirma em seguida.
+        st.markdown('<div class="pk-js-mark"></div><style>'
+                    'div[data-testid="stElementContainer"]:has(.pk-js-mark),'
+                    'div[data-testid="stElementContainer"]:has(.pk-js-mark)+div[data-testid="stElementContainer"]'
+                    '{display:none}</style>', unsafe_allow_html=True)
+        components.html(PICK_JS, height=0)
+        _tela_palpites()
 
 # ============== RANKING ==============
 with tab_ranking:

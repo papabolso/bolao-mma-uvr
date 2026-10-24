@@ -1516,6 +1516,8 @@ div[data-testid="stPopoverBody"] button[data-variant="pills"] *{color:inherit!im
   background:#0B0906!important; color:#E8C766!important; border-bottom:1px solid #6E5418!important; letter-spacing:.16em;
 }
 .rank-table td{border-bottom-color:#1F1A10!important}
+/* VAR: o "vermelho" do tema é quase preto; o escolhido vai em ouro forte */
+.rank-table td.var-pick{color:#F4D45C!important;font-weight:700!important}
 .rank-table tr.top-1 td{color:#FBEFC6; background:rgba(212,175,55,.10); box-shadow:inset 3px 0 0 var(--gold)}
 [data-testid="stAlert"]{border-left-color:#E8C766!important}
 
@@ -1966,6 +1968,8 @@ st.markdown("""
 .rank-table tr.top-2 td{color:#c0c0c0; font-weight:600}
 .rank-table tr.top-3 td{color:#cd7f32; font-weight:600}
 .rank-table tr:hover td{background:rgba(42,182,227,.07)}
+/* VAR: lutador escolhido pelo participante */
+.rank-table td.var-pick{font-weight:600;color:var(--mm-red)}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -2971,7 +2975,7 @@ with tab_ranking:
                 hist_rows += (
                     f'<tr>'
                     f'<td>{hr["Combate"]}</td>'
-                    f'<td style="font-weight:600; color:var(--mm-red)">{hr["palpite"]}</td>'
+                    f'<td class="var-pick">{hr["palpite"]}</td>'
                     f'</tr>'
                 )
             st.markdown(

@@ -1,0 +1,61 @@
+# Compila o app Android FitSync (pasta fitsync-android/). Não mexe no bolão.
+name: FitSync APK
+
+on:
+  push:
+    paths:
+      - "fitsync-android/**"
+      - ".github/workflows/fitsync-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitsync-android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Keystore de assinatura
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FITSYNC_KEYSTORE_BASE64 }}
+          HMS_APP_ID: ${{ vars.HMS_APP_ID }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > release.jks
+            echo "Assinando com a keystore do secret FITSYNC_KEYSTORE_BASE64."
+          else
+            echo "::warning::Sem FITSYNC_KEYSTORE_BASE64: APK sai com chave de debug e a Huawei vai recusar o login."
+          fi
+          if [ -z "$HMS_APP_ID" ]; then
+            echo "::warning::Sem HMS_APP_ID: a Huawei Health Kit não funciona sem o App ID do AppGallery Connect."
+          fi
+        shell: bash
+
+      - name: Compilar
+        env:
+          FITSYNC_KEYSTORE_PASSWORD: ${{ secrets.FITSYNC_KEYSTORE_PASSWORD }}
+          HMS_APP_ID: ${{ vars.HMS_APP_ID }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Renomear APK
+        run: |
+          mkdir -p saida
+          cp app/build/outputs/apk/release/*.apk "saida/FitSync-${{ github.run_number }}.apk"
+          ls -la saida
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitSync-${{ github.run_number }}
+          path: fitsync-android/saida/*.apk
+          retention-days: 30

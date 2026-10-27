@@ -146,7 +146,7 @@ A ESPN lista prelim → main; o importador **inverte**. O CSV não tem foto nem 
 
 ## Deploy
 
-GitHub → Streamlit Cloud redeploya sozinho. Não há CI.
+GitHub → Streamlit Cloud redeploya sozinho. Não há CI do bolão (o único workflow é o do FitSync, abaixo).
 Migrações de banco são arquivos `migracao_*.sql` aplicados à mão no Supabase.
 
 ## Fluxo de trabalho
@@ -173,3 +173,10 @@ Migrações de banco são arquivos `migracao_*.sql` aplicados à mão no Supabas
 - Tabela de ranking: pódio para os 3 primeiros
 - FOTN/POTN ainda são `selectbox`; poderiam virar cards clicáveis
 - Aba VAR nunca recebeu tratamento de design
+
+## Outro projeto no repo: `fitsync-android/`
+
+App Android (Kotlin/Compose) que sincroniza os treinos do Huawei Watch Fit 5 com o Strava, no
+lugar do Health Sync. **Não tem nada a ver com o bolão**; fica aqui só por enquanto. Compila pelo
+workflow `.github/workflows/fitsync-apk.yml` (só dispara em mudanças dentro de `fitsync-android/`).
+Detalhes e configuração no `fitsync-android/README.md`.

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Android 11+: precisa declarar os apps da Huawei com que conversamos -->
+    <queries>
+        <package android:name="com.huawei.hwid" />
+        <package android:name="com.huawei.health" />
+        <intent>
+            <action android:name="com.huawei.hms.core.aidlservice" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Tema">
+
+        <meta-data
+            android:name="com.huawei.hms.client.appid"
+            android:value="${hmsAppId}" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Volta do login do Strava: fitsync://localhost?code=... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fitsync" android:host="localhost" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 
 data class Estado(
@@ -33,6 +34,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private var tarefa: Job? = null
 
+    // Como a grade está sendo vista; fica aqui para sobreviver ao girar a tela
+    var modo = Modo.PASTA
+    var dia: LocalDate? = null // dia procurado no calendário (só no modo DATA)
+
     fun varrer() {
         if (tarefa?.isActive == true) return
         tarefa = viewModelScope.launch {
@@ -40,10 +45,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val job = coroutineContext[Job]
             try {
                 val r = withContext(Dispatchers.IO) {
-                    Scanner.varrer(
+                    val bruto = Scanner.varrer(
                         { msg, p -> _estado.update { it.copy(mensagem = msg, progresso = p) } },
                         { job?.isActive != true },
                     )
+                    _estado.update { it.copy(mensagem = "Descobrindo as datas…", progresso = -1f) }
+                    // Sem o banco de mídia ainda dá para datar pelo nome e pelo arquivo
+                    val galeria = try {
+                        LeitorGaleria.ler(getApplication())
+                    } catch (e: Exception) {
+                        null
+                    }
+                    Datas.datar(bruto, galeria)
                 }
                 Repositorio.resultado = r
                 _estado.value = Estado(resultado = r)

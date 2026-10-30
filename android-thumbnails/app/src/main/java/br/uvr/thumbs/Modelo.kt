@@ -23,6 +23,10 @@ data class Miniatura(
     val embutida: Boolean,
     val indice: Int, // posição dentro do contêiner (1..n); 0 para as soltas
     val modificado: Long,
+    // Preenchidos depois da varredura (Datas.datar)
+    val idMidia: Long? = null, // _ID da foto/vídeo no banco de mídia do Android
+    val data: Long = 0, // milissegundos; 0 = sem data
+    val origemData: OrigemData = OrigemData.NENHUMA,
 ) {
     val chave: String get() = "${arquivo.absolutePath}@$inicio"
 
@@ -51,10 +55,25 @@ data class Resultado(
     val todas: List<Miniatura> = secoes.flatMap { it.itens }
 }
 
+/** De onde veio a data de uma miniatura, da mais confiável para a menos. */
+enum class OrigemData(val descricao: String) {
+    GALERIA("da galeria"),
+    NOME("pelo nome do arquivo"),
+    ESTIMADA("estimada pela ordem das fotos"),
+    ARQUIVO("data do arquivo de miniatura"),
+    NENHUMA("sem data"),
+}
+
+enum class Modo { PASTA, DATA }
+
 /** Guarda a última varredura para a tela de visualização (que abre por cima da grade). */
 object Repositorio {
     @Volatile
     var resultado: Resultado? = null
+
+    /** As imagens na ordem em que a grade mostra agora (por pasta, por mês ou só um dia). */
+    @Volatile
+    var visiveis: List<Miniatura> = emptyList()
 }
 
 fun fmtBytes(n: Long): String = when {

@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/procurarData"
+        android:icon="@drawable/ic_calendario"
+        android:title="@string/procurar_data"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/atualizar"
         android:icon="@drawable/ic_atualizar"
         android:title="@string/atualizar"

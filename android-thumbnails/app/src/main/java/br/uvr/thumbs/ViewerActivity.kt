@@ -17,8 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DateFormat
-import java.util.Date
 import java.util.Locale
 
 /** Tela cheia: arrasta para os lados, toque esconde/mostra as barras. */
@@ -34,12 +32,11 @@ class ViewerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Se o Android matou o app em segundo plano, a lista se perdeu: volta para a grade
-        val r = Repositorio.resultado
-        if (r == null || r.todas.isEmpty()) {
+        lista = Repositorio.visiveis
+        if (Repositorio.resultado == null || lista.isEmpty()) {
             finish()
             return
         }
-        lista = r.todas
         b = ActivityViewerBinding.inflate(layoutInflater)
         setContentView(b.root)
         setSupportActionBar(b.barra)
@@ -61,13 +58,12 @@ class ViewerActivity : AppCompatActivity() {
         supportActionBar?.title = "${pos + 1} de ${lista.size}"
         supportActionBar?.subtitle = if (m.embutida) "${m.arquivo.name} · #${m.indice}" else m.arquivo.name
         val base = buildString {
-            append(Scanner.caminhoCurto(m.arquivo))
+            append("Data: ${Datas.descrever(m)}")
+            append("\n${Scanner.caminhoCurto(m.arquivo)}")
             if (m.embutida) {
                 append(String.format(Locale.getDefault(), "\nPosição no arquivo: 0x%X (byte %,d)", m.inicio, m.inicio))
-            } else {
-                append("\nModificado: ")
-                append(DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(m.modificado)))
             }
+            m.idMidia?.let { append("\nNº na galeria: $it") }
             append("\nTamanho: ${fmtBytes(m.tamanho)} · ${m.formato.name}")
         }
         b.info.text = base

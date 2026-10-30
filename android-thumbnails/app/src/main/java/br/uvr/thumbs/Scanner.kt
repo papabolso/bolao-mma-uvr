@@ -23,6 +23,10 @@ object Scanner {
     private const val JPEG_MIN = 200L
     private const val JPEG_MAX = 32L * 1024 * 1024
 
+    // Android 4 a 9 guardava tudo em DCIM/.thumbnails; do 10 em diante o sistema usa
+    // Pictures/.thumbnails para fotos e Movies/.thumbnails para vídeos, com o ID da mídia no nome
+    private val PASTAS = listOf("DCIM/.thumbnails", "Pictures/.thumbnails", "Movies/.thumbnails")
+
     private val interno: String get() = Environment.getExternalStorageDirectory().absolutePath
 
     fun pastasCandidatas(): List<File> {
@@ -31,7 +35,7 @@ object Scanner {
         File("/storage").listFiles()
             ?.filter { it.isDirectory && it.name != "emulated" && it.name != "self" }
             ?.forEach { raizes += it }
-        return raizes.flatMap { listOf(File(it, "DCIM/.thumbnails"), File(it, "Pictures/.thumbnails")) }
+        return raizes.flatMap { PASTAS.map { p -> File(it, p) } }
     }
 
     fun caminhoCurto(f: File): String {

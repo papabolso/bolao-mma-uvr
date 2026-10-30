@@ -21,7 +21,7 @@ class QuadradoImageView(ctx: Context, attrs: AttributeSet?) : AppCompatImageView
 
 /**
  * Grade de miniaturas com um cabeçalho por grupo (toque recolhe/expande).
- * [aoTocar] recebe a posição da imagem na lista completa ([Resultado.todas]).
+ * [aoTocar] recebe a posição da imagem em [Repositorio.visiveis], que segue a ordem da grade.
  */
 class GradeAdapter(
     private val escopo: CoroutineScope,
@@ -41,12 +41,18 @@ class GradeAdapter(
         var tarefa: Job? = null
     }
 
-    private var resultado: Resultado? = null
+    private var secoes: List<Secao> = emptyList()
+    private var info = ""
+    private var rotuloData = false
     private val recolhidas = mutableSetOf<Int>()
     private var linhas: List<Linha> = emptyList()
 
-    fun definir(r: Resultado) {
-        resultado = r
+    /** [rotuloData]: o selo de cada miniatura mostra o dia em vez do número no .thumbdata. */
+    fun definir(secoes: List<Secao>, info: String, rotuloData: Boolean) {
+        this.secoes = secoes
+        this.info = info
+        this.rotuloData = rotuloData
+        Repositorio.visiveis = secoes.flatMap { it.itens }
         recolhidas.clear()
         montar()
     }
@@ -54,10 +60,10 @@ class GradeAdapter(
     fun ehImagem(pos: Int) = linhas.getOrNull(pos) is Linha.Imagem
 
     private fun montar() {
-        val r = resultado ?: return
-        val l = mutableListOf<Linha>(Linha.Info(resumo(r)))
+        val l = mutableListOf<Linha>()
+        if (info.isNotEmpty()) l += Linha.Info(info)
         var global = 0
-        r.secoes.forEachIndexed { i, s ->
+        secoes.forEachIndexed { i, s ->
             val recolhida = i in recolhidas
             l += Linha.Cabecalho(i, s, recolhida)
             if (recolhida) global += s.itens.size
@@ -66,16 +72,6 @@ class GradeAdapter(
         linhas = l
         @Suppress("NotifyDataSetChanged")
         notifyDataSetChanged()
-    }
-
-    private fun resumo(r: Resultado): String = buildString {
-        append("Pastas lidas: ")
-        append(r.verificadas.joinToString { Scanner.caminhoCurto(it) })
-        if (r.semImagem.isNotEmpty()) {
-            append("\nSem imagem (índices e marcadores): ")
-            append(r.semImagem.take(6).joinToString { it.name })
-            if (r.semImagem.size > 6) append(" e mais ${r.semImagem.size - 6}")
-        }
     }
 
     override fun getItemCount() = linhas.size
@@ -101,7 +97,9 @@ class GradeAdapter(
             is Linha.Cabecalho -> {
                 val b = (h as CabecalhoVH).b
                 b.titulo.text = linha.secao.titulo
-                b.detalhe.text = "${linha.secao.detalhe} · ${linha.secao.itens.size} imagens"
+                b.detalhe.text = listOf(linha.secao.detalhe, "${linha.secao.itens.size} imagens")
+                    .filter { it.isNotEmpty() }
+                    .joinToString(" · ")
                 b.seta.rotation = if (linha.recolhida) -90f else 0f
                 b.root.setOnClickListener {
                     if (!recolhidas.remove(linha.indice)) recolhidas += linha.indice
@@ -116,8 +114,13 @@ class GradeAdapter(
         val m = linha.m
         h.chave = m.chave
         h.tarefa?.cancel()
-        h.b.rotulo.isVisible = m.embutida
-        h.b.rotulo.text = "#${m.indice}"
+        val selo = when {
+            rotuloData -> Datas.rotulo(m)
+            m.embutida -> "#${m.indice}"
+            else -> ""
+        }
+        h.b.rotulo.isVisible = selo.isNotEmpty()
+        h.b.rotulo.text = selo
         h.b.root.setOnClickListener { aoTocar(linha.global) }
 
         val pronta = Carregador.doCache(m, ALVO)

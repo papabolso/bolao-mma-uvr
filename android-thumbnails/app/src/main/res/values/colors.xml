@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fundo">#0E0F12</color>
+    <color name="celula">#1C1E23</color>
+    <color name="texto">#ECECEC</color>
+    <color name="texto_fraco">#9AA0A6</color>
+    <color name="ambar">#F2B233</color>
+    <color name="sobre_ambar">#1A1200</color>
+    <color name="veu">#99000000</color>
+</resources>

@@ -1,0 +1,42 @@
+# Compila o app Android "Explorador de Thumbnails" (pasta android-thumbnails/). Não mexe no bolão.
+name: Explorador de Thumbnails (APK)
+
+on:
+  push:
+    paths:
+      - "android-thumbnails/**"
+      - ".github/workflows/explorador-thumbnails.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-thumbnails
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compilar
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk explorador-thumbnails.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: explorador-thumbnails-apk
+          path: android-thumbnails/explorador-thumbnails.apk
+      - name: Publicar na release "explorador-thumbnails" (baixar direto pelo celular)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: explorador-thumbnails
+          name: Explorador de Thumbnails (último build)
+          make_latest: false
+          files: android-thumbnails/explorador-thumbnails.apk

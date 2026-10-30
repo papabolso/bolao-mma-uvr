@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Explorador de Thumbnails</string>
+    <string name="permissao_titulo">Acesso aos arquivos</string>
+    <string name="permissao_texto">A pasta DCIM/.thumbnails é oculta: a galeria e o seletor de fotos não mostram o que tem nela. Para ler, o Android exige a permissão \"Acesso a todos os arquivos\". O app só lê; nada é apagado nem enviado para fora do celular.</string>
+    <string name="permissao_botao">Permitir acesso</string>
+    <string name="atualizar">Atualizar</string>
+    <string name="exportar">Salvar todas na galeria</string>
+    <string name="sobre">O que é isso?</string>
+    <string name="salvar">Salvar na galeria</string>
+    <string name="compartilhar">Compartilhar</string>
+    <string name="sobre_texto">A galeria do Android cria miniaturas das fotos e vídeos para a grade abrir rápido, e guarda em DCIM/.thumbnails.\n\n• Miniaturas soltas: um arquivo por foto, com o número da foto no banco de mídia.\n\n• Arquivos .thumbdata (Android 4 a 9): várias miniaturas empilhadas num arquivo só. O app recorta cada JPEG de dentro dele. Quando uma foto é apagada, a miniatura dela costuma continuar ali, então aparecem imagens que já não estão na galeria.\n\n• .thumbindex e .nomedia: índices, sem imagem.\n\nNo Android 10 ou mais novo a pasta pode estar vazia ou nem existir, porque o sistema passou a guardar as miniaturas em outro lugar.</string>
+</resources>

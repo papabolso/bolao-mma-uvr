@@ -1532,6 +1532,34 @@ div[data-testid="stButton"]>button:hover{
   background:#1E1A12!important; color:#F6E7B8!important;
   box-shadow:0 8px 20px -6px rgba(30,20,2,.6)!important;
 }
+
+/* pódio: 2º/3º em cartão ouro-claro (mesma linguagem dos cards de palpite);
+   o preto marca só o campeão, igual ao card escolhido */
+.podio-item{
+  background:linear-gradient(180deg,rgba(255,236,180,.22),rgba(255,236,180,.08))!important;
+  border-color:rgba(42,30,6,.28)!important;
+}
+.podio-nome{color:#2A1F08!important}
+.podio-item.p2 .podio-pts,.podio-item.p3 .podio-pts{color:#5A4216!important}
+.podio-ava{background:#17140F!important;color:#F6E7B8!important}
+.podio-item.p1{
+  background:linear-gradient(180deg,#1A1610,#070605)!important;
+  border-color:#0B0906!important;
+}
+.podio-item.p1 .podio-nome{color:#F6E7B8!important}
+.podio-item.p1 .podio-pts{color:#F4D45C!important}
+.podio-item.p1 .podio-ava{border-color:#E8C766!important;
+  box-shadow:0 0 0 3px rgba(232,199,102,.18)!important}
+
+/* progresso: cartão ouro-claro com texto escuro, sem placa preta */
+.rk-progress{
+  background:linear-gradient(180deg,rgba(255,236,180,.22),rgba(255,236,180,.08))!important;
+  border-color:rgba(42,30,6,.28)!important;
+}
+.rk-progress-txt{color:rgba(42,31,8,.72)!important}
+.rk-progress-txt .rk-next{color:#6E4F0A!important}
+.rk-bar{background:rgba(42,30,6,.22)!important}
+.rk-bar-fill{background:linear-gradient(90deg,#8A6A16,#6E5418)!important}
 """,
     },
 }

@@ -144,6 +144,25 @@ A ESPN **já entrega a bandeira pronta** em `flag.href`
 
 A ESPN lista prelim → main; o importador **inverte**. O CSV não tem foto nem bandeira.
 
+## Resultados automáticos (ESPN)
+
+Sem servidor nem cron: o próprio app sincroniza. A aba Ranking é um `@st.fragment(run_every=60)`
+que chama `sincronizar_espn()`; a consulta à ESPN (`espn_resultados`, `st.cache_data(ttl=60)`) é
+compartilhada entre visitantes, então a ESPN é chamada no máximo 1x/min por evento, e só enquanto
+alguém está com o site aberto. Nomes de atleta ficam em cache de 1 dia (`_espn_nome_atleta`).
+
+- `config.espn_evento` (ID) e `config.espn_auto` (liga/desliga), via `migracao_espn_auto.sql`.
+  O ID é gravado sozinho no "IMPORTAR (ESPN)" e no "Atualizar cartéis"; também dá pra colar no
+  painel "📡 Resultados automáticos" do Admin, que tem o "Sincronizar agora".
+- Luta encerrada = `status.type.completed`; vencedor = `competitors[].winner`. Encerrada sem
+  vencedor vira `Empate` (empate e no contest dão 0 pts igual).
+- Casa a luta por qualquer um dos dois nomes, sem acento/caixa (`_norm_nome`). Se o nome do
+  vencedor vier diferente do banco, deduz pelo outro lado.
+- **Só preenche luta sem resultado.** O que o admin marcou à mão nunca é trocado. Para corrigir
+  um resultado da ESPN, é só marcar no Admin.
+- A rede das sessões do Claude bloqueia a ESPN: teste com o `supabase.py` falso interceptando
+  `urllib.request.urlopen` com respostas no formato da core API.
+
 ## Deploy
 
 GitHub → Streamlit Cloud redeploya sozinho. Não há CI.

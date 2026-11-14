@@ -82,6 +82,114 @@ def invalidate_cache():
     load_resultados.clear()
     load_config.clear()
 
+# ──────────────────────────────────────────────
+# RESULTADOS AUTOMÁTICOS DA ESPN
+# Sem servidor extra: quem estiver com o site aberto dispara a consulta, no
+# máximo 1x por minuto (cache compartilhado entre todos os visitantes).
+# Só preenche luta SEM resultado; o que o admin marcou à mão nunca é trocado.
+# ──────────────────────────────────────────────
+def _espn_get(u):
+    import json, urllib.request
+    req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def _norm_nome(n) -> str:
+    """Compara nomes sem acento/caixa/espaço extra (José == JOSE)."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(n or ""))
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return " ".join(s.upper().split())
+
+@st.cache_data(ttl=3600 * 24, show_spinner=False)
+def _espn_nome_atleta(ref: str) -> str:
+    """Nome não muda: cache de um dia, a sincronização não refaz essas chamadas."""
+    return _espn_get(ref).get("fullName", "")
+
+@st.cache_data(ttl=60, show_spinner=False)
+def espn_resultados(evid: str) -> list:
+    """Lutas ENCERRADAS do evento: [{"nomes": (n1, n2), "vencedor": nome | ""}].
+    vencedor "" = acabou sem vencedor (empate / no contest)."""
+    from concurrent.futures import ThreadPoolExecutor
+    base = f"https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/events/{evid}"
+    comps_ref = _espn_get(base).get("competitions", [])
+
+    def _uma(cref):
+        comp = _espn_get(cref["$ref"]) if "$ref" in cref else cref
+        st_ = comp.get("status") or {}
+        if "$ref" in st_:
+            st_ = _espn_get(st_["$ref"])
+        if not (st_.get("type") or {}).get("completed"):
+            return None
+        cs = comp.get("competitors", [])[:2]
+        if len(cs) < 2:
+            return None
+        nomes = []
+        for c in cs:
+            a = c.get("athlete") or {}
+            nomes.append(a.get("fullName") or (_espn_nome_atleta(a["$ref"]) if "$ref" in a else ""))
+        venc = next((nomes[i] for i, c in enumerate(cs) if c.get("winner")), "")
+        return {"nomes": tuple(nomes), "vencedor": venc}
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        return [r for r in ex.map(_uma, comps_ref) if r]
+
+def sincronizar_espn(forcar: bool = False) -> dict:
+    """Grava no banco os resultados novos da ESPN. Devolve um resumo pro Admin."""
+    cfg = load_config()
+    evid = str(cfg.get("espn_evento") or "").strip()
+    if not evid or (not forcar and cfg.get("espn_auto") is False):
+        return {"ok": False, "msg": "desligado"}
+    if forcar:
+        espn_resultados.clear()
+    try:
+        encerradas = espn_resultados(evid)
+    except Exception as e:
+        return {"ok": False, "msg": f"ESPN indisponível: {e}"}
+
+    lutas, res = load_lutas(), load_resultados()
+    ja = set()
+    if not res.empty:
+        v = res["vencedor_real"].astype(str).str.strip().str.upper()
+        ja = set(res.loc[~v.isin(["", "SELECIONE", "NONE", "NAN"]), "luta_id"].astype(int))
+    f2_esp = bool(cfg.get("f2_especial", False))
+
+    novos = []
+    for _, lt in lutas.iterrows():
+        lid = int(lt["id"])
+        if lid in ja:
+            continue
+        l1, l2 = str(lt["lutador_1"]).strip(), str(lt["lutador_2"]).strip()
+        n1, n2 = _norm_nome(l1), _norm_nome(l2)
+        for r in encerradas:
+            ne = {_norm_nome(x) for x in r["nomes"]}
+            if not ({n1, n2} & ne):
+                continue
+            # luta achada por pelo menos um nome; o vencedor é traduzido pro nome do banco
+            nv = _norm_nome(r["vencedor"])
+            if not nv:
+                venc = "Empate"
+            elif nv == n1:
+                venc = l1
+            elif nv == n2:
+                venc = l2
+            elif n1 in ne:          # vencedor é o outro lado, com nome escrito diferente
+                venc = l2
+            elif n2 in ne:
+                venc = l1
+            else:
+                break
+            tipo = str(lt.get("tipo", "")).strip().upper()
+            peso = 2 if tipo == "F1" else (2 if (tipo == "F2" and f2_esp) else 1)
+            novos.append({"luta_id": lid, "vencedor_real": venc, "pontos": peso})
+            break
+
+    if novos:
+        sb.table("resultados").upsert(novos).execute()
+        load_resultados.clear()
+    return {"ok": True, "msg": f"{len(encerradas)} encerrada(s) na ESPN · {len(novos)} resultado(s) novo(s)",
+            "novos": novos}
+
 def fmt_cartel(rec) -> str:
     """'4-1-0' -> '4-1'; '4-1-2' fica igual. Empate só aparece se houver."""
     import re
@@ -2998,7 +3106,10 @@ div[data-testid="stPopoverBody"] [data-testid="stButtonGroup"] button{border-rad
         _tela_palpites()
 
 # ============== RANKING ==============
-with tab_ranking:
+# Ranking ao vivo: a cada 60s puxa os resultados da ESPN e redesenha só esta aba
+@st.fragment(run_every=60)
+def _tela_ranking():
+    sincronizar_espn()
     lutas_df = load_lutas()
     palpites_df = load_palpites()
     resultados_df = load_resultados()
@@ -3129,6 +3240,9 @@ with tab_ranking:
             st.info(f"**🌟 FOTN:** {txt_f}")
             st.success(f"**⚡ POTN:** {txt_p}")
 
+with tab_ranking:
+    _tela_ranking()
+
 # ============== ADMIN ==============
 with tab_admin:
     SENHA = st.secrets.get("admin", {}).get("password", "mvpmma2026")
@@ -3196,6 +3310,41 @@ with tab_admin:
         # ----- Editor de Card -----
         st.markdown('<div class="admin-section">✏️ Editar Card do Evento</div>', unsafe_allow_html=True)
         st.caption("⚠️ Alterar lutas APAGA todos os palpites e resultados antigos.")
+
+        # ===== RESULTADOS AUTOMÁTICOS (ESPN) =====
+        with st.expander("📡 Resultados automáticos (ESPN)", expanded=False):
+            st.caption("Com o site aberto por qualquer pessoa, o app confere a ESPN a cada minuto e "
+                       "preenche sozinho o vencedor das lutas encerradas. Resultado marcado à mão "
+                       "nunca é trocado. O ID é gravado sozinho ao importar o card da ESPN.")
+            ea1, ea2 = st.columns([3, 2])
+            with ea1:
+                evid_cfg = st.text_input("ID do evento na ESPN",
+                                         value=str(cfg_adm.get("espn_evento") or ""),
+                                         placeholder="600060734", key="espn_auto_id")
+            with ea2:
+                auto_on = st.checkbox("Sincronizar sozinho",
+                                      value=cfg_adm.get("espn_auto") is not False, key="espn_auto_on")
+            es1, es2 = st.columns(2)
+            with es1:
+                if st.button("💾 Salvar", key="espn_auto_salvar"):
+                    import re as _re
+                    m = _re.search(r"/id/(\d+)", evid_cfg) or _re.search(r"^\s*(\d+)\s*$", evid_cfg or "")
+                    try:
+                        sb.table("config").update({"espn_evento": m.group(1) if m else "",
+                                                   "espn_auto": bool(auto_on)}).eq("id", 1).execute()
+                        invalidate_cache()
+                        st.success("Salvo.")
+                    except Exception as e:
+                        st.error(f"Erro: {e} — rode migracao_espn_auto.sql no Supabase.")
+            with es2:
+                if st.button("🔄 Sincronizar agora", key="espn_auto_ja"):
+                    r = sincronizar_espn(forcar=True)
+                    if r["ok"]:
+                        st.success(r["msg"])
+                        for n in r.get("novos", []):
+                            st.caption(f"Luta {n['luta_id']}: {n['vencedor_real']}")
+                    else:
+                        st.warning("Sem ID do evento salvo." if r["msg"] == "desligado" else r["msg"])
 
         # ===== IMPORT VIA CSV/COLA =====
         # ===== IMPORT VIA ESPN (experimental) =====
@@ -3455,6 +3604,10 @@ with tab_admin:
                                     upd["tipo"] = novo
                             if upd:
                                 sb.table("lutas").update(upd).eq("id", int(lt["id"])).execute()
+                        try:
+                            sb.table("config").update({"espn_evento": evid}).eq("id", 1).execute()
+                        except Exception:
+                            pass  # banco sem migracao_espn_auto.sql
                         invalidate_cache()
                         st.success(f"✅ {n_ok} lutadores atualizados"
                                    + (f" · {n_fotos} foto(s) nova(s)." if n_fotos else "."))
@@ -3541,6 +3694,11 @@ with tab_admin:
                                     sb.table("config").update({
                                         "fotn_1": "", "fotn_2": "", "potn_1": "", "potn_2": "",
                                     }).eq("id", 1).execute()
+                                    # liga os resultados automáticos neste evento
+                                    try:
+                                        sb.table("config").update({"espn_evento": evid}).eq("id", 1).execute()
+                                    except Exception:
+                                        pass  # banco sem migracao_espn_auto.sql
                                     invalidate_cache()
                                     st.success(
                                         f"✅ Importado do ESPN! {len(validas)} lutas com fotos. "

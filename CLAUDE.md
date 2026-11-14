@@ -160,6 +160,11 @@ alguém está com o site aberto. Nomes de atleta ficam em cache de 1 dia (`_espn
   vencedor vier diferente do banco, deduz pelo outro lado.
 - **Só preenche luta sem resultado.** O que o admin marcou à mão nunca é trocado. Para corrigir
   um resultado da ESPN, é só marcar no Admin.
+- **Admin acompanha o banco:** os campos de resultado guardam em `_res_db_{lid}` o valor do banco
+  da última renderização; se o banco mudou (ESPN ou outro aparelho), o campo é reescrito. O
+  "SALVAR TUDO" só grava as lutas que o admin alterou naquela tela, então uma tela velha não
+  apaga resultado recém-sincronizado. `📡 ESPN` no rótulo = resultado igual ao da ESPN
+  (`casar_espn` sobre o cache de `espn_resultados`).
 - A rede das sessões do Claude bloqueia a ESPN: teste com o `supabase.py` falso interceptando
   `urllib.request.urlopen` com respostas no formato da core API.
 

@@ -152,13 +152,22 @@ def sincronizar_espn(forcar: bool = False) -> dict:
     if not res.empty:
         v = res["vencedor_real"].astype(str).str.strip().str.upper()
         ja = set(res.loc[~v.isin(["", "SELECIONE", "NONE", "NAN"]), "luta_id"].astype(int))
-    f2_esp = bool(cfg.get("f2_especial", False))
 
-    novos = []
+    casados = casar_espn(lutas, encerradas, bool(cfg.get("f2_especial", False)))
+    novos = [{"luta_id": lid, "vencedor_real": venc, "pontos": peso}
+             for lid, (venc, peso) in casados.items() if lid not in ja]
+
+    if novos:
+        sb.table("resultados").upsert(novos).execute()
+        load_resultados.clear()
+    return {"ok": True, "msg": f"{len(encerradas)} encerrada(s) na ESPN · {len(novos)} resultado(s) novo(s)",
+            "novos": novos}
+
+def casar_espn(lutas: pd.DataFrame, encerradas: list, f2_esp: bool) -> dict:
+    """{luta_id: (vencedor com o nome do banco, peso)} pra cada luta do card que a ESPN já encerrou."""
+    out = {}
     for _, lt in lutas.iterrows():
         lid = int(lt["id"])
-        if lid in ja:
-            continue
         l1, l2 = str(lt["lutador_1"]).strip(), str(lt["lutador_2"]).strip()
         n1, n2 = _norm_nome(l1), _norm_nome(l2)
         for r in encerradas:
@@ -181,14 +190,9 @@ def sincronizar_espn(forcar: bool = False) -> dict:
                 break
             tipo = str(lt.get("tipo", "")).strip().upper()
             peso = 2 if tipo == "F1" else (2 if (tipo == "F2" and f2_esp) else 1)
-            novos.append({"luta_id": lid, "vencedor_real": venc, "pontos": peso})
+            out[lid] = (venc, peso)
             break
-
-    if novos:
-        sb.table("resultados").upsert(novos).execute()
-        load_resultados.clear()
-    return {"ok": True, "msg": f"{len(encerradas)} encerrada(s) na ESPN · {len(novos)} resultado(s) novo(s)",
-            "novos": novos}
+    return out
 
 def fmt_cartel(rec) -> str:
     """'4-1-0' -> '4-1'; '4-1-2' fica igual. Empate só aparece se houver."""
@@ -3831,8 +3835,21 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
 
         # ----- Resultados das lutas -----
         st.markdown('<div class="admin-section">🏁 Resultados</div>', unsafe_allow_html=True)
-        st.caption("Vencedor + pontos da luta (edite os pontos por luta livremente).")
+        st.caption("Vencedor + pontos da luta (edite os pontos por luta livremente). "
+                   "📡 = preenchido pela ESPN; dá pra trocar à mão normalmente.")
         resultados_novos = []
+        # luta cujo resultado no banco é o mesmo que a ESPN dá (consulta em cache, sem custo extra)
+        espn_ids = set()
+        _evid = str(cfg_adm.get("espn_evento") or "").strip()
+        if _evid:
+            try:
+                _cas = casar_espn(lutas_adm, espn_resultados(_evid), f2_flag)
+                for _, _r in res_adm.iterrows():
+                    _c = _cas.get(int(_r["luta_id"]))
+                    if _c and str(_r["vencedor_real"]).strip() == _c[0]:
+                        espn_ids.add(int(_r["luta_id"]))
+            except Exception:
+                pass
 
         for _, luta in lutas_adm.iterrows():
             lid = int(luta["id"])
@@ -3855,13 +3872,25 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
             if venc_atual not in opcoes: venc_atual = "Selecione"
             idx = opcoes.index(venc_atual)
 
-            st.markdown(f"<div style='color:var(--muted); font-size:.8rem; margin-top:.8rem'>Luta {lid} · {l1} vs {l2}</div>", unsafe_allow_html=True)
+            # O widget guarda o valor da 1ª vez que apareceu. Se o banco mudou depois
+            # (a ESPN gravou, ou outro aparelho salvou), o campo passa a mostrar o novo.
+            db_key = f"_res_db_{lid}"
+            if st.session_state.get(db_key) != (venc_atual, peso_atual):
+                st.session_state[f"res_{lid}"] = venc_atual
+                st.session_state[f"peso_{lid}"] = peso_atual
+                st.session_state[db_key] = (venc_atual, peso_atual)
+
+            origem = " · 📡 ESPN" if lid in espn_ids else ""
+            st.markdown(f"<div style='color:var(--muted); font-size:.8rem; margin-top:.8rem'>Luta {lid} · {l1} vs {l2}{origem}</div>", unsafe_allow_html=True)
             c1, c2 = st.columns([4,1])
             with c1:
-                venc = st.selectbox(f"r{lid}", opcoes, index=idx, key=f"res_{lid}", label_visibility="collapsed")
+                venc = st.selectbox(f"r{lid}", opcoes, key=f"res_{lid}", label_visibility="collapsed")
             with c2:
-                peso = st.number_input(f"p{lid}", value=peso_atual, min_value=1, step=1, key=f"peso_{lid}", label_visibility="collapsed", help="Pts")
-            resultados_novos.append({"luta_id":lid, "vencedor_real":venc, "pontos":int(peso)})
+                peso = st.number_input(f"p{lid}", min_value=1, step=1, key=f"peso_{lid}", label_visibility="collapsed", help="Pts")
+            # só vai pro banco o que o admin mudou nesta tela; o resto fica como está
+            # (assim um campo desatualizado não apaga um resultado que a ESPN acabou de gravar)
+            if (venc, int(peso)) != (venc_atual, int(peso_atual)):
+                resultados_novos.append({"luta_id":lid, "vencedor_real":venc, "pontos":int(peso)})
 
         # ----- Bônus -----
         st.markdown('<div class="admin-section">🌟 Bônus da Noite</div>', unsafe_allow_html=True)
@@ -3901,8 +3930,9 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
         st.markdown("---")
         if st.button("💾 SALVAR TUDO"):
             try:
-                # Salva resultados (upsert)
-                sb.table("resultados").upsert(resultados_novos).execute()
+                # Salva só os resultados alterados nesta tela (upsert)
+                if resultados_novos:
+                    sb.table("resultados").upsert(resultados_novos).execute()
                 # Salva config
                 sb.table("config").update({
                     "fotn_1": fotn_1v, "fotn_2": fotn_2v,

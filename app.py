@@ -2082,24 +2082,30 @@ hr{border:none; border-top:1px solid var(--ufc-red)!important; margin:1.7rem 0!i
   font-family:'Oswald',sans-serif!important;
 }
 
-/* Expanders */
+/* Expanders — desde o Streamlit 1.67 o <details> interno traz borda clara própria */
 [data-testid="stExpander"]{
   border:1px solid var(--border)!important;
   border-radius:3px!important;
   background:var(--surface)!important;
 }
+[data-testid="stExpander"] details{border:none!important}
 [data-testid="stExpander"] summary{
   font-family:'Oswald',sans-serif!important;
   letter-spacing:.1em;
   color:#fff!important;
 }
 
-/* Alerts */
+/* Alerts — desde o Streamlit 1.67 o stAlertContainer (interno) pinta o fundo
+   claro padrão por cima do stAlert; tem que ficar transparente */
 [data-testid="stAlert"]{
   border-radius:3px!important;
   border-left:4px solid var(--ufc-red)!important;
   background:var(--surface)!important;
   color:var(--text)!important;
+}
+[data-testid="stAlert"] [data-testid="stAlertContainer"]{
+  background:transparent!important;
+  border:none!important;
 }
 [data-testid="stAlert"] *{color:var(--text)!important}
 </style>

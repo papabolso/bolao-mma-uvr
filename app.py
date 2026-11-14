@@ -1998,8 +1998,13 @@ st.markdown("""
 .rank-table tr:hover td{background:rgba(42,182,227,.07)}
 /* VAR: lutador escolhido pelo participante */
 .rank-table td.var-pick{font-weight:600;color:var(--mm-red)}
-/* posição nunca quebra linha no celular; nome pode quebrar */
-.rank-table td:first-child, .rank-table th:first-child{white-space:nowrap}
+/* só a posição do ranking não quebra linha; as outras tabelas (VAR, admin) quebram */
+.rank-table td.rk-pos{white-space:nowrap}
+/* celular estreito: a tabela tem que caber, o tema esconde o scroll lateral */
+@media (max-width:400px){
+  .rank-table th,.rank-table td{padding:.6rem .35rem}
+  .rank-table th{letter-spacing:.06em}
+}
 .rank-table td.rk-bonus{text-align:center; color:var(--muted)}
 .rank-table td.rk-bonus.on{color:var(--gold); font-weight:700}
 

@@ -1970,6 +1970,46 @@ st.markdown("""
 .rank-table tr:hover td{background:rgba(42,182,227,.07)}
 /* VAR: lutador escolhido pelo participante */
 .rank-table td.var-pick{font-weight:600;color:var(--mm-red)}
+/* posição nunca quebra linha no celular; nome pode quebrar */
+.rank-table td:first-child, .rank-table th:first-child{white-space:nowrap}
+.rank-table td.rk-bonus{text-align:center; color:var(--muted)}
+.rank-table td.rk-bonus.on{color:var(--gold); font-weight:700}
+
+/* ── Progresso do evento (aba Ranking): placa, pra ler em qualquer tema ── */
+.rk-progress{background:var(--surface); border:1px solid var(--border); border-radius:4px;
+  padding:.55rem .7rem .65rem; margin:.2rem 0 1rem}
+.rk-progress-txt{display:flex; justify-content:space-between; align-items:baseline; gap:.8rem;
+  font-family:'Oswald',sans-serif; font-size:.72rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:.4rem}
+.rk-progress-txt span:first-child{white-space:nowrap}
+.rk-progress-txt .rk-next{color:var(--gold); text-align:right; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rk-bar{height:3px; background:rgba(255,255,255,.14); border-radius:2px; overflow:hidden}
+.rk-bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-dark),var(--gold)); border-radius:2px}
+
+/* ── Pódio top 3: 2º · 1º · 3º ── */
+.podio{display:flex; align-items:flex-end; justify-content:center; gap:.6rem; margin:0 0 1.1rem}
+.podio-item{flex:1; min-width:0; text-align:center; padding:.6rem .3rem .7rem;
+  background:var(--surface); border:1px solid var(--border); border-radius:4px}
+.podio-ava{position:relative; margin:0 auto .5rem; border-radius:50%;
+  background:var(--surface-2); border:2px solid var(--border);
+  font-family:'Anton',sans-serif; color:var(--text);
+  display:flex; align-items:center; justify-content:center}
+.podio-medal{position:absolute; bottom:-7px; right:-7px; font-size:1.05rem; line-height:1;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.podio-nome{font-family:'Oswald',sans-serif; font-size:.78rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--text); padding:0 .15rem;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.podio-pts{font-family:'Bebas Neue',sans-serif; font-size:1.05rem; color:var(--gold); margin-top:.1rem}
+.podio-item.p1{padding-top:.9rem; padding-bottom:.9rem; border-color:var(--gold-dark)}
+.podio-item.p1 .podio-ava{width:72px; height:72px; font-size:1.5rem; border-color:var(--gold);
+  box-shadow:0 0 16px var(--gold-glow)}
+.podio-item.p1 .podio-nome{color:var(--gold-bright)}
+.podio-item.p1 .podio-pts{font-size:1.25rem}
+.podio-item.p2 .podio-ava{width:54px; height:54px; font-size:1.1rem; border-color:#c0c0c0}
+.podio-item.p3 .podio-ava{width:54px; height:54px; font-size:1.1rem; border-color:#cd7f32}
+.podio-item.p2 .podio-pts{color:#c0c0c0}
+.podio-item.p3 .podio-pts{color:#cd7f32}
 
 /* INPUTS */
 div[data-testid="stTextInput"] input,
@@ -2213,21 +2253,27 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
             if tipo == "F2": scores[nome]["Acerto_F2"] += 1
             scores[nome]["Desempate_Lutas"][luta_id] = 1
 
-    # Bônus FOTN/POTN
+    # Bônus FOTN/POTN (Bonus separado pra coluna própria no ranking)
     for acc in scores.values():
+        acc["Bonus"] = 0
         if fotn_real:
             fu = {acc["_fotn_1"].upper(), acc["_fotn_2"].upper()} - {"","NAN","NONE"}
-            if fu and fu == fotn_real: acc["Pontos"] += 2
+            if fu and fu == fotn_real:
+                acc["Pontos"] += 2
+                acc["Bonus"] += 2
         if potn_real:
             pu = {acc["_potn_1"].upper(), acc["_potn_2"].upper()} - {"","NAN","NONE"}
-            acc["Pontos"] += sum(1 for n in pu if n in potn_real)
+            g = sum(1 for n in pu if n in potn_real)
+            acc["Pontos"] += g
+            acc["Bonus"] += g
 
     if not scores: return pd.DataFrame()
 
     linhas = []
     for n, v in scores.items():
         linha = {"Nome":n, "Pontos":v["Pontos"], "Acertos":v["Acertos"],
-                 "Acerto_F1":v["Acerto_F1"], "Acerto_F2":v["Acerto_F2"]}
+                 "Acerto_F1":v["Acerto_F1"], "Acerto_F2":v["Acerto_F2"],
+                 "Bonus":v.get("Bonus", 0)}
         for lid in lutas_ordenadas:
             linha[f"Luta_{lid}"] = v["Desempate_Lutas"][lid]
         linhas.append(linha)
@@ -2932,20 +2978,72 @@ with tab_ranking:
         if not palpites_df.empty:
             st.caption(f"Participantes confirmados: **{palpites_df['nome'].nunique()}**")
     else:
+        # ── Progresso do evento: quantas lutas já foram apuradas + qual vem agora ──
+        validos = resultados_df["vencedor_real"].astype(str).str.strip().str.upper()
+        feitos_ids = set(resultados_df.loc[~validos.isin(["", "SELECIONE", "NONE", "NAN"]),
+                                           "luta_id"].astype(int))
+        ids_card = set(lutas_df["id"].astype(int))
+        total_lutas = len(ids_card)
+        apuradas = len(feitos_ids & ids_card)
+        if total_lutas and apuradas < total_lutas:
+            pend = lutas_df[~lutas_df["id"].astype(int).isin(feitos_ids)]
+            # cronológico: prelim (ordem maior) acontece antes da principal (ordem 1)
+            prox = pend.sort_values("ordem", ascending=False, na_position="last").iloc[0]
+            prox_txt = f'Agora: {prox["lutador_1"]} vs {prox["lutador_2"]}'
+        else:
+            prox_txt = "Evento encerrado"
+        pct = int(apuradas / total_lutas * 100) if total_lutas else 0
+        st.markdown(
+            f'<div class="rk-progress">'
+            f'<div class="rk-progress-txt"><span>{apuradas} de {total_lutas} lutas apuradas</span>'
+            f'<span class="rk-next">{prox_txt}</span></div>'
+            f'<div class="rk-bar"><div class="rk-bar-fill" style="width:{pct}%"></div></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # ── Pódio top 3 (2º à esquerda, 1º no centro, 3º à direita) ──
+        def _iniciais(nome):
+            partes = [p for p in str(nome).split() if p]
+            if not partes: return "?"
+            if len(partes) >= 2: return (partes[0][0] + partes[-1][0]).upper()
+            return partes[0][:2].upper()
+
         medals = {1:"🥇", 2:"🥈", 3:"🥉"}
+        top3 = ranking.head(3).to_dict("records")
+        ordem_podio = [1, 0, 2] if len(top3) == 3 else list(range(len(top3)))
+        itens = ""
+        for idx in ordem_podio:
+            r = top3[idx]
+            pos = int(r["Pos"])
+            itens += (
+                f'<div class="podio-item p{pos}">'
+                f'<div class="podio-ava">{_iniciais(r["Nome"])}'
+                f'<span class="podio-medal">{medals[pos]}</span></div>'
+                f'<div class="podio-nome">{r["Nome"]}</div>'
+                f'<div class="podio-pts">{int(r["Pontos"])} pts</div>'
+                f'</div>'
+            )
+        st.markdown(f'<div class="podio">{itens}</div>', unsafe_allow_html=True)
+
+        # ── Tabela: coluna de bônus (FOTN/POTN) no lugar dos F1/F2 crípticos ──
+        bonus_def = bool(str(cfg.get("fotn_1", "")).strip() or str(cfg.get("potn_1", "")).strip())
         rows = ""
         for _, r in ranking.iterrows():
             pos = int(r["Pos"])
             cls = f"top-{pos}" if pos <= 3 else ""
-            medal = medals.get(pos, "")
+            if bonus_def:
+                b = int(r.get("Bonus", 0))
+                bonus_td = f'<td class="rk-bonus on">+{b}</td>' if b > 0 else '<td class="rk-bonus">0</td>'
+            else:
+                bonus_td = '<td class="rk-bonus">–</td>'
             rows += (
                 f'<tr class="{cls}">'
-                f'<td>{medal} {pos}º</td>'
+                f'<td class="rk-pos">{pos}º</td>'
                 f'<td>{r["Nome"]}</td>'
                 f'<td style="text-align:center">{int(r["Pontos"])}</td>'
                 f'<td style="text-align:center">{int(r["Acertos"])}</td>'
-                f'<td style="text-align:center">{"✅" if int(r["Acerto_F1"]) else "❌"}</td>'
-                f'<td style="text-align:center">{"✅" if int(r["Acerto_F2"]) else "❌"}</td>'
+                f'{bonus_td}'
                 f'</tr>'
             )
         st.markdown(
@@ -2954,12 +3052,11 @@ with tab_ranking:
             f'<th>POS</th><th>NOME</th>'
             f'<th style="text-align:center">PTS</th>'
             f'<th style="text-align:center">ACERTOS</th>'
-            f'<th style="text-align:center">F1</th>'
-            f'<th style="text-align:center">F2</th>'
+            f'<th style="text-align:center">BÔNUS</th>'
             f'</tr></thead><tbody>{rows}</tbody></table>',
             unsafe_allow_html=True,
         )
-        st.caption("Desempate: Pts › Acertos › Luta 1 › Luta 2 › ... › Nome")
+        st.caption("Desempate: Pts › Acertos › Luta 1 › Luta 2 › ... › Nome · Bônus = Luta/Performance da Noite")
 
         st.markdown("---")
         st.markdown('<div class="admin-section">🔍 VAR · Histórico</div>', unsafe_allow_html=True)

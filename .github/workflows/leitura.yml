@@ -1,0 +1,42 @@
+# Compila o app Android "Desafio de Leitura" (pasta desafio-leitura/). Não mexe no bolão.
+name: Desafio de Leitura (APK)
+
+on:
+  push:
+    paths:
+      - "desafio-leitura/**"
+      - ".github/workflows/leitura.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desafio-leitura
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compilar
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk desafio-leitura.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desafio-leitura-apk
+          path: desafio-leitura/desafio-leitura.apk
+      - name: Publicar na release "leitura" (baixar direto pelo celular)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: leitura
+          name: Desafio de Leitura (último build)
+          make_latest: false
+          files: desafio-leitura/desafio-leitura.apk

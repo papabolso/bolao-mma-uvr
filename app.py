@@ -2197,6 +2197,17 @@ li[role="option"][aria-selected="true"]{
   color:#fff!important;
 }
 
+/* botão de download: os temas só estilizam o stButton, e sem isto ele fica branco no branco */
+div[data-testid="stDownloadButton"]>button{
+  width:100%; background:var(--surface)!important; border:1px solid var(--gold-dark)!important;
+  border-radius:6px!important; padding:.75rem 1rem!important;
+}
+div[data-testid="stDownloadButton"]>button,
+div[data-testid="stDownloadButton"]>button p{
+  color:var(--gold-bright)!important; font-family:'Oswald',sans-serif!important;
+  font-weight:600!important; letter-spacing:.12em!important;
+}
+
 /* BOTÕES */
 div[data-testid="stButton"]>button{
   background:var(--ufc-red)!important;
@@ -2754,6 +2765,54 @@ def gerar_imagem_ranking(linhas, estilo="dourado", titulo="RANKING FINAL",
     b = io.BytesIO()
     out.save(b, "JPEG", quality=93, subsampling=0, optimize=True)
     return b.getvalue()
+
+def botao_whatsapp(img_bytes: bytes, nome_arq: str, legenda: str = ""):
+    """Botão que abre o 'compartilhar' do celular já com a imagem (Web Share API).
+    O iframe do components.html não tem permissão de web-share, então o share é
+    chamado na janela do app (window.parent, mesma origem); o toque no iframe vale
+    como gesto do usuário pra ela também. Sem suporte (computador): baixa a imagem
+    e abre o WhatsApp com a legenda."""
+    import base64, json as _json
+    b64 = base64.b64encode(img_bytes).decode()
+    components.html(f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
+html,body{{margin:0;background:transparent}}
+#wa{{width:100%;height:52px;border:0;border-radius:6px;cursor:pointer;
+  background:linear-gradient(180deg,#25D366,#1DA851);color:#fff;
+  font-family:'Oswald',sans-serif;font-weight:600;font-size:16px;letter-spacing:.14em;
+  box-shadow:0 6px 18px -6px rgba(29,168,81,.6)}}
+#wa:active{{transform:translateY(1px)}}
+#msg{{font:12px/1.3 sans-serif;color:#888;margin-top:6px;text-align:center}}
+</style>
+<button id="wa">📲 ENVIAR NO WHATSAPP</button><div id="msg"></div>
+<script>
+const B64 = "{b64}", NOME = {_json.dumps(nome_arq)}, TXT = {_json.dumps(legenda)};
+const P = (function(){{ try {{ return window.parent.navigator ? window.parent : window; }} catch(e) {{ return window; }} }})();
+function bytes(){{ const s = atob(B64), u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }}
+function planoB(){{
+  const blob = new P.Blob([bytes()], {{type:"image/jpeg"}});
+  const a = P.document.createElement("a");
+  a.href = P.URL.createObjectURL(blob); a.download = NOME;
+  P.document.body.appendChild(a); a.click(); a.remove();
+  P.open("https://wa.me/?text=" + encodeURIComponent(TXT), "_blank");
+  document.getElementById("msg").textContent = "Imagem baixada. Anexe no WhatsApp que abriu.";
+}}
+document.getElementById("wa").addEventListener("click", async () => {{
+  try {{
+    const f = new P.File([bytes()], NOME, {{type:"image/jpeg"}});
+    const nav = P.navigator;
+    if (nav.share && nav.canShare && nav.canShare({{files:[f]}})) {{
+      await nav.share({{files:[f], text:TXT}});
+    }} else {{ planoB(); }}
+  }} catch (e) {{
+    if (e && e.name === "AbortError") return;   // a pessoa fechou o compartilhar
+    planoB();
+  }}
+}});
+</script>""", height=82)
+
 
 # ──────────────────────────────────────────────
 # CRONÔMETRO
@@ -4307,12 +4366,19 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                         linhas_img, "dourado" if estilo_lbl.startswith("🏆") else "preto",
                         img_tit or "RANKING FINAL", img_ev, detalhe, _baixar_fontes(),
                         rotulo="CAMPEÃO DA NOITE" if n_apur >= n_lutas else "LIDERANDO")
+                c1_ = linhas_img[0]
+                st.session_state["_img_legenda"] = (
+                    f"🏆 {(img_tit or 'RANKING FINAL').title()} · Bolão UVR\n"
+                    f"{'🥇 Campeão' if n_apur >= n_lutas else '🔝 Liderando'}: {c1_['nome']} ({c1_['pts']} pts)")
             if st.session_state.get("_img_rank"):
-                st.image(st.session_state["_img_rank"], width="stretch")
-                st.download_button("⬇️ BAIXAR IMAGEM", st.session_state["_img_rank"],
-                                   file_name=f"ranking_uvr_{datetime.now().strftime('%d-%m-%Y')}.jpg",
+                img_b = st.session_state["_img_rank"]
+                nome_arq = f"ranking_uvr_{datetime.now().strftime('%d-%m-%Y')}.jpg"
+                st.image(img_b, width="stretch")
+                botao_whatsapp(img_b, nome_arq, st.session_state.get("_img_legenda", ""))
+                st.download_button("⬇️ BAIXAR IMAGEM", img_b, file_name=nome_arq,
                                    mime="image/jpeg", key="img_baixar")
-                st.caption("No celular: baixe, abra na galeria e compartilhe no grupo.")
+                st.caption("📲 abre o compartilhar do celular com a imagem pronta: toque no WhatsApp "
+                           "e escolha o grupo. No computador, ele baixa a imagem e abre o WhatsApp.")
 
         # ----- Reset -----
         st.markdown("---")

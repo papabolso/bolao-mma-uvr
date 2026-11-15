@@ -179,6 +179,12 @@ vem com o Streamlit) e oferece prévia + download. Dois modelos em `ESTILOS_IMG`
   `/tmp/uvr_fontes` (`_baixar_fontes`, `st.cache_resource`); sem rede cai na fonte padrão.
 - O "º" da Anton parece um 0: `posicao()` desenha o número na Anton e o º na Barlow.
 - Título/rótulo se ajustam: com luta sem resultado vira "RANKING PARCIAL" / "LIDERANDO".
+- **"📲 Enviar no WhatsApp"** (`botao_whatsapp`): Web Share API com a imagem + legenda. O iframe
+  do `components.html` não tem `allow="web-share"`, então o `share` roda em `window.parent`
+  (mesma origem; o toque no iframe vale como gesto). Sem suporte (computador) baixa a imagem e
+  abre `wa.me` com a legenda. Postar sozinho em grupo não existe de graça (API Business é paga).
+- `st.download_button` mora em `stDownloadButton`, que os temas não estilizam: tem regra própria
+  no CSS global (sem ela fica branco no branco).
 
 ## Deploy
 

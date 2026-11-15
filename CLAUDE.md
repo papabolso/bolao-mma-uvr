@@ -168,6 +168,18 @@ alguém está com o site aberto. Nomes de atleta ficam em cache de 1 dia (`_espn
 - A rede das sessões do Claude bloqueia a ESPN: teste com o `supabase.py` falso interceptando
   `urllib.request.urlopen` com respostas no formato da core API.
 
+## Ranking em imagem (pro grupo)
+
+Admin → "📸 Ranking em imagem": gera um JPEG 1080px com `gerar_imagem_ranking` (Pillow, que já
+vem com o Streamlit) e oferece prévia + download. Dois modelos em `ESTILOS_IMG`: `dourado`
+(evento numerado; padrão quando o tema é ouro/cinturao/numbered) e `preto` (Fight Night).
+
+- Desenha em 2x e reduz com LANCZOS (bordas lisas). Grão no fundo, por isso JPEG e não PNG.
+- Fontes (Anton, Barlow, Barlow Condensed) baixadas do GitHub do Google Fonts uma vez para
+  `/tmp/uvr_fontes` (`_baixar_fontes`, `st.cache_resource`); sem rede cai na fonte padrão.
+- O "º" da Anton parece um 0: `posicao()` desenha o número na Anton e o º na Barlow.
+- Título/rótulo se ajustam: com luta sem resultado vira "RANKING PARCIAL" / "LIDERANDO".
+
 ## Deploy
 
 GitHub → Streamlit Cloud redeploya sozinho. Não há CI.

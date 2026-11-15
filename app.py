@@ -2431,6 +2431,331 @@ def calcular_ranking(palpites: pd.DataFrame, lutas: pd.DataFrame, resultados: pd
     return df
 
 # ──────────────────────────────────────────────
+# IMAGEM DO RANKING PRO GRUPO (Pillow, já vem com o Streamlit)
+# Desenha em 2x e reduz pra 1080px; fontes do Google Fonts baixadas uma vez.
+# ──────────────────────────────────────────────
+import io, os, urllib.request
+
+_FONTES_URL = {
+    "anton": "ofl/anton/Anton-Regular.ttf",
+    "cond_sb": "ofl/barlowcondensed/BarlowCondensed-SemiBold.ttf",
+    "cond_b": "ofl/barlowcondensed/BarlowCondensed-Bold.ttf",
+    "cond_m": "ofl/barlowcondensed/BarlowCondensed-Medium.ttf",
+    "barlow_sb": "ofl/barlow/Barlow-SemiBold.ttf",
+}
+
+@st.cache_resource(show_spinner=False)
+def _baixar_fontes(pasta="/tmp/uvr_fontes"):
+    """Baixa as fontes do Google Fonts uma vez; sem rede, devolve o que tiver."""
+    os.makedirs(pasta, exist_ok=True)
+    out = {}
+    for k, rel in _FONTES_URL.items():
+        p = os.path.join(pasta, os.path.basename(rel))
+        if not os.path.exists(p):
+            try:
+                req = urllib.request.Request(
+                    "https://raw.githubusercontent.com/google/fonts/main/" + rel,
+                    headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    data = r.read()
+                with open(p, "wb") as f:
+                    f.write(data)
+            except Exception:
+                continue
+        out[k] = p
+    return out
+
+ESTILOS_IMG = {
+    # evento numerado: página de ouro fosco, o preto marca o campeão
+    "dourado": {
+        "bg_top": (214, 178, 92), "bg_bot": (150, 113, 38), "glow": (255, 238, 186, 120),
+        "txt": (30, 22, 6), "txt2": (74, 56, 20), "linha": (40, 28, 6, 120),
+        "acento": (30, 22, 6),
+        "camp_a": (30, 26, 18), "camp_b": (8, 7, 5), "camp_txt": (246, 231, 184),
+        "camp_nome": (244, 212, 92), "camp_borda": (232, 199, 102),
+        "card_a": (255, 240, 196, 92), "card_b": (255, 236, 180, 38), "card_borda": (60, 42, 8, 70),
+        "card_txt": (34, 25, 8), "card_txt2": (92, 70, 26),
+        "ava": (23, 20, 15), "ava_txt": (246, 231, 184),
+        "linha_a": (255, 238, 190, 70), "linha_b": (255, 236, 180, 26), "linha_borda": (60, 42, 8, 55),
+        "pos_txt": (92, 66, 14), "pts_txt": (30, 22, 6),
+        "pill": (8, 7, 5), "pill_txt": (244, 212, 92),
+        "num_pod": {2: (96, 98, 108), 3: (128, 72, 30)},
+        "grao": 7,
+    },
+    # Fight Night: preto com brasa vermelha, o ouro marca o campeão
+    "preto": {
+        "bg_top": (14, 14, 17), "bg_bot": (5, 5, 6), "glow": (190, 8, 8, 60),
+        "txt": (255, 255, 255), "txt2": (150, 150, 158), "linha": (255, 255, 255, 40),
+        "acento": (210, 10, 10),
+        "camp_a": (244, 214, 128), "camp_b": (176, 136, 44), "camp_txt": (26, 19, 4),
+        "camp_nome": (16, 12, 3), "camp_borda": (255, 232, 160),
+        "card_a": (30, 30, 34, 255), "card_b": (17, 17, 20, 255), "card_borda": (255, 255, 255, 28),
+        "card_txt": (255, 255, 255), "card_txt2": (150, 150, 158),
+        "ava": (10, 10, 12), "ava_txt": (255, 255, 255),
+        "linha_a": (24, 24, 28, 255), "linha_b": (15, 15, 18, 255), "linha_borda": (255, 255, 255, 22),
+        "pos_txt": (210, 10, 10), "pts_txt": (232, 199, 102),
+        "pill": (16, 12, 3), "pill_txt": (244, 214, 128),
+        "num_pod": {2: (200, 202, 210), 3: (214, 140, 86)},
+        "grao": 5,
+    },
+}
+_ANEL = {1: ((255, 226, 130), (176, 128, 30)), 2: ((236, 236, 240), (150, 152, 160)),
+         3: ((232, 160, 104), (140, 82, 40))}
+
+def gerar_imagem_ranking(linhas, estilo="dourado", titulo="RANKING FINAL",
+                         evento="", detalhe="", fontes=None, rotulo="CAMPEÃO DA NOITE") -> bytes:
+    """linhas: [{"pos","nome","pts","acertos","bonus"}] já ordenadas. PNG 1080px de largura."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageChops
+    import numpy as np
+
+    E = ESTILOS_IMG.get(estilo, ESTILOS_IMG["dourado"])
+    fontes = fontes or {}
+    S = 2                      # desenha em 2x e reduz: bordas lisas
+    W = 1080
+    P = 64                     # margem
+
+    def F(k, tam):
+        try:
+            return ImageFont.truetype(fontes[k], int(tam * S))
+        except Exception:
+            try:
+                return ImageFont.load_default(int(tam * S))
+            except Exception:
+                return ImageFont.load_default()
+
+    n = len(linhas)
+    resto = max(0, n - 3)
+    LH = 84                                         # altura de cada linha (4º em diante)
+    y_camp, h_camp = 346, 452
+    y_pod, h_pod = y_camp + h_camp + 28, 214
+    y_lin = (y_pod + h_pod + 36) if n > 1 else (y_camp + h_camp + 36)
+    H = y_lin + resto * LH + (150 if resto else 120)
+    if n <= 1:
+        H = y_camp + h_camp + 150
+
+    s = lambda v: int(round(v * S))
+    img = Image.new("RGBA", (s(W), s(H)), E["bg_bot"] + (255,))
+
+    # fundo: degradê vertical + brilho no topo + grão
+    grad = Image.linear_gradient("L").resize((s(W), s(H)))
+    topo = Image.new("RGBA", img.size, E["bg_top"] + (255,))
+    img = Image.composite(img, topo, grad)
+    glow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse([s(-200), s(-520), s(W + 200), s(520)], fill=E["glow"])
+    glow = glow.filter(ImageFilter.GaussianBlur(s(140)))
+    img = Image.alpha_composite(img, glow)
+    rng = np.random.default_rng(7)
+    arr = np.asarray(img).astype(np.int16)
+    ruido = rng.integers(-E["grao"], E["grao"] + 1, size=arr.shape[:2])[..., None]
+    arr[..., :3] = np.clip(arr[..., :3] + ruido, 0, 255)
+    img = Image.fromarray(arr.astype(np.uint8), "RGBA")
+
+    d = ImageDraw.Draw(img)
+
+    def larg(txt, fonte, esp=0):
+        if not txt:
+            return 0
+        return d.textlength(txt, font=fonte) + esp * S * (len(txt) - 1)
+
+    def texto(x, y, txt, fonte, cor, esp=0, ancora="l"):
+        """Texto com espaçamento entre letras; ancora l/c/r em x, y = topo da caixa."""
+        w = larg(txt, fonte, esp)
+        x = s(x) - (w / 2 if ancora == "c" else w if ancora == "r" else 0)
+        if not esp:
+            d.text((x, s(y)), txt, font=fonte, fill=cor)
+            return
+        for ch in txt:
+            d.text((x, s(y)), ch, font=fonte, fill=cor)
+            x += d.textlength(ch, font=fonte) + esp * S
+
+    def caber(txt, k, tam, max_w, minimo=20, esp=0):
+        while tam > minimo and larg(txt, F(k, tam), esp) > s(max_w):
+            tam -= 2
+        return F(k, tam)
+
+    def sombra(box, raio, forca=110, blur=26, dy=14):
+        nonlocal img, d
+        cam = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(cam).rounded_rectangle(
+            [s(box[0]), s(box[1] + dy), s(box[2]), s(box[3] + dy)], s(raio), fill=(0, 0, 0, forca))
+        img = Image.alpha_composite(img, cam.filter(ImageFilter.GaussianBlur(s(blur))))
+        d = ImageDraw.Draw(img)
+
+    def placa(box, raio, c1, c2, borda=None, larg_borda=2):
+        """Retângulo arredondado com degradê vertical (cores RGB ou RGBA)."""
+        nonlocal img, d
+        x0, y0, x1, y1 = [s(v) for v in box]
+        w, h = x1 - x0, y1 - y0
+        c1 = c1 if len(c1) == 4 else c1 + (255,)
+        c2 = c2 if len(c2) == 4 else c2 + (255,)
+        g = Image.linear_gradient("L").resize((w, h))
+        a = Image.new("RGBA", (w, h), c1)
+        b = Image.new("RGBA", (w, h), c2)
+        cor = Image.composite(b, a, g)
+        mask = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1], s(raio), fill=255)
+        alfa = ImageChops.multiply(cor.getchannel("A"), mask)
+        cor.putalpha(alfa)
+        cam = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        cam.paste(cor, (x0, y0))
+        img = Image.alpha_composite(img, cam)
+        d = ImageDraw.Draw(img)
+        if borda:
+            cam = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            ImageDraw.Draw(cam).rounded_rectangle([x0, y0, x1 - 1, y1 - 1], s(raio),
+                                                  outline=borda, width=s(larg_borda))
+            img = Image.alpha_composite(img, cam)
+            d = ImageDraw.Draw(img)
+
+    def iniciais(nome):
+        p = [x for x in str(nome).split() if x]
+        if not p:
+            return "?"
+        return (p[0][0] + p[-1][0]).upper() if len(p) > 1 else p[0][:2].upper()
+
+    def avatar(cx, cy, r, nome, pos, anel=7):
+        nonlocal img, d
+        a1, a2 = _ANEL.get(pos, ((90, 90, 96), (50, 50, 56)))
+        placa((cx - r - anel, cy - r - anel, cx + r + anel, cy + r + anel), r + anel, a1, a2)
+        d.ellipse([s(cx - r), s(cy - r), s(cx + r), s(cy + r)], fill=E["ava"])
+        f = F("anton", r * 0.78)
+        t = iniciais(nome)
+        bb = d.textbbox((0, 0), t, font=f)
+        d.text((s(cx) - (bb[0] + bb[2]) / 2, s(cy) - (bb[1] + bb[3]) / 2), t, font=f, fill=E["ava_txt"])
+
+    def coroa(cx, cy, w, cor1, cor2):
+        nonlocal img, d
+        h = w * 0.62
+        x0, y0 = cx - w / 2, cy - h / 2
+        pts = [(x0, y0 + h), (x0, y0 + h * 0.28), (x0 + w * 0.27, y0 + h * 0.62),
+               (cx, y0), (x0 + w * 0.73, y0 + h * 0.62), (x0 + w, y0 + h * 0.28), (x0 + w, y0 + h)]
+        mask = Image.new("L", img.size, 0)
+        md = ImageDraw.Draw(mask)
+        md.polygon([(s(x), s(y)) for x, y in pts], fill=255)
+        for px, py in ((x0, y0 + h * 0.28), (cx, y0), (x0 + w, y0 + h * 0.28)):
+            md.ellipse([s(px - w * .075), s(py - w * .075), s(px + w * .075), s(py + w * .075)], fill=255)
+        g = Image.linear_gradient("L").resize(img.size)
+        cor = Image.composite(Image.new("RGBA", img.size, cor2 + (255,)),
+                              Image.new("RGBA", img.size, cor1 + (255,)), g)
+        img = Image.composite(cor, img, mask)
+        d = ImageDraw.Draw(img)
+        d.rectangle([s(x0), s(y0 + h * 0.86), s(x0 + w), s(y0 + h)], fill=cor2)
+
+    def posicao(x, y_meio, num, tam, cor, ancora="l"):
+        """'4º' com o º pequeno e alto; y_meio = centro vertical do número."""
+        fn, fo = F("anton", tam), F("cond_b", tam * 0.46)
+        t = str(num)
+        bb = d.textbbox((0, 0), t, font=fn)
+        wn = bb[2] - bb[0]
+        bo = d.textbbox((0, 0), "º", font=fo)
+        wo = bo[2] - bo[0]
+        total = wn + s(3) + wo
+        x0 = s(x) - (total / 2 if ancora == "c" else total if ancora == "r" else 0)
+        ytop = s(y_meio) - (bb[1] + bb[3]) / 2
+        d.text((x0 - bb[0], ytop), t, font=fn, fill=cor)
+        d.text((x0 + wn + s(3) - bo[0], ytop + bb[1] - bo[1]), "º", font=fo, fill=cor)
+
+    def filete(y, x0, x1, cor, losango=True):
+        d.line([s(x0), s(y), s(x1), s(y)], fill=cor, width=s(2))
+        if losango:
+            cx = (x0 + x1) / 2
+            d.polygon([(s(cx), s(y - 9)), (s(cx + 9), s(y)), (s(cx), s(y + 9)), (s(cx - 9), s(y))],
+                      fill=E["acento"])
+
+    # ── cabeçalho ──
+    f_marca = F("cond_sb", 26)
+    marca = "BOLÃO UVR"
+    wm = larg(marca, f_marca, 9) / S
+    texto(W / 2, 62, marca, f_marca, E["txt2"], esp=9, ancora="c")
+    d.line([s(W / 2 - wm / 2 - 120), s(79), s(W / 2 - wm / 2 - 24), s(79)], fill=E["linha"], width=s(2))
+    d.line([s(W / 2 + wm / 2 + 24), s(79), s(W / 2 + wm / 2 + 120), s(79)], fill=E["linha"], width=s(2))
+    f_tit = caber(titulo.upper(), "anton", 120, W - 2 * P, esp=2)
+    texto(W / 2, 96, titulo.upper(), f_tit, E["txt"], esp=2, ancora="c")
+    if evento:
+        f_ev = caber(evento.upper(), "cond_b", 36, W - 2 * P, esp=5)
+        texto(W / 2, 262, evento.upper(), f_ev, E["acento"] if estilo == "preto" else E["txt"], esp=5, ancora="c")
+
+    if not linhas:
+        out = img.resize((W, H), Image.LANCZOS).convert("RGB")
+        b = io.BytesIO(); out.save(b, "PNG", optimize=True); return b.getvalue()
+
+    # ── campeão ──
+    c = linhas[0]
+    bx = (P, y_camp, W - P, y_camp + h_camp)
+    sombra(bx, 28, forca=150 if estilo == "dourado" else 200)
+    placa(bx, 28, E["camp_a"], E["camp_b"], borda=E["camp_borda"] + (200,), larg_borda=3)
+    # filetes internos
+    d.rounded_rectangle([s(P + 12), s(y_camp + 12), s(W - P - 12), s(y_camp + h_camp - 12)], s(20),
+                        outline=E["camp_borda"] + (70,), width=s(1))
+    cor_c1, cor_c2 = ((255, 226, 130), (196, 146, 40)) if estilo == "dourado" else ((40, 30, 8), (12, 9, 2))
+    coroa(W / 2, y_camp + 62, 78, cor_c1, cor_c2)
+    avatar(W / 2, y_camp + 178, 68, c["nome"], 1, anel=8)
+    lab = rotulo
+    ac_txt = lambda n: f"{n} ACERTO" if n == 1 else f"{n} ACERTOS"
+    f_lab = F("cond_sb", 24)
+    texto(W / 2, y_camp + 268, lab, f_lab, E["camp_txt"], esp=7, ancora="c")
+    f_nome = caber(str(c["nome"]).upper(), "anton", 66, W - 2 * P - 80, esp=1)
+    texto(W / 2, y_camp + 298, str(c["nome"]).upper(), f_nome, E["camp_nome"], esp=1, ancora="c")
+    stats = f'{c["pts"]} PTS   ·   {ac_txt(c["acertos"])}' + (f'   ·   +{c["bonus"]} BÔNUS' if c.get("bonus") else "")
+    f_st = F("cond_sb", 27)
+    texto(W / 2, y_camp + 396, stats, f_st, E["camp_txt"], esp=3, ancora="c")
+
+    # ── 2º e 3º ──
+    if n > 1:
+        gap = 24
+        cw = (W - 2 * P - gap) / 2
+        for i, r in enumerate(linhas[1:3]):
+            x0 = P + i * (cw + gap)
+            box = (x0, y_pod, x0 + cw, y_pod + h_pod)
+            sombra(box, 22, forca=70 if estilo == "dourado" else 160, blur=18, dy=10)
+            placa(box, 22, E["card_a"], E["card_b"], borda=E["card_borda"], larg_borda=2)
+            avatar(x0 + 78, y_pod + h_pod / 2 - 10, 46, r["nome"], r["pos"], anel=6)
+            # número grande da posição
+            cor_num = E["num_pod"].get(r["pos"], E["card_txt2"])
+            posicao(x0 + cw - 28, y_pod + 58, r["pos"], 62, cor_num, ancora="r")
+            tx = x0 + 148
+            f_n = caber(str(r["nome"]).upper(), "anton", 36, cw - 148 - 24)
+            texto(tx, y_pod + 104, str(r["nome"]).upper(), f_n, E["card_txt"])
+            texto(tx, y_pod + 152, f'{r["pts"]} PTS · {ac_txt(r["acertos"])}', F("cond_sb", 24), E["card_txt2"], esp=2)
+
+    # ── demais ──
+    for k, r in enumerate(linhas[3:]):
+        y0 = y_lin + k * LH
+        box = (P, y0, W - P, y0 + LH - 12)
+        placa(box, 16, E["linha_a"], E["linha_b"], borda=E["linha_borda"], larg_borda=2)
+        cy = y0 + (LH - 12) / 2
+        posicao(P + 66, cy, r["pos"], 38, E["pos_txt"], ancora="c")
+        f_n = caber(str(r["nome"]), "barlow_sb", 32, W - 2 * P - 400)
+        bb = d.textbbox((0, 0), str(r["nome"]), font=f_n)
+        d.text((s(P + 124), s(cy) - (bb[1] + bb[3]) / 2), str(r["nome"]), font=f_n, fill=E["card_txt"])
+        # pontos à direita + acertos
+        f_p = F("anton", 40)
+        pt = str(r["pts"])
+        bb = d.textbbox((0, 0), pt, font=f_p)
+        xr = s(W - P - 92)
+        d.text((xr - bb[2], s(cy) - (bb[1] + bb[3]) / 2), pt, font=f_p, fill=E["pts_txt"])
+        f_u = F("cond_sb", 22)
+        bb2 = d.textbbox((0, 0), "PTS", font=f_u)
+        d.text((xr + s(10), s(cy) - (bb2[1] + bb2[3]) / 2 + s(2)), "PTS", font=f_u, fill=E["card_txt2"])
+        ac = ac_txt(r["acertos"]).lower()
+        f_a = F("cond_m", 24)
+        bb3 = d.textbbox((0, 0), ac, font=f_a)
+        d.text((xr - bb[2] - s(28) - bb3[2], s(cy) - (bb3[1] + bb3[3]) / 2), ac, font=f_a, fill=E["card_txt2"])
+
+    # ── rodapé ──
+    yf = H - 104
+    filete(yf, P + 120, W - P - 120, E["linha"])
+    if detalhe:
+        texto(W / 2, yf + 28, detalhe.upper(), F("cond_sb", 24), E["txt2"], esp=5, ancora="c")
+    texto(W / 2, yf + 62, "QUEM CRAVAR MAIS LEVA A NOITE", F("cond_m", 20), E["txt2"], esp=6, ancora="c")
+
+    out = img.resize((W, H), Image.LANCZOS).convert("RGB")
+    b = io.BytesIO()
+    out.save(b, "JPEG", quality=93, subsampling=0, optimize=True)
+    return b.getvalue()
+
+# ──────────────────────────────────────────────
 # CRONÔMETRO
 # ──────────────────────────────────────────────
 def render_timer(target_str: str, title: str, color=None, end_text="ENCERRADO"):
@@ -3946,6 +4271,48 @@ Separador: vírgula `,` ou ponto-e-vírgula `;`. Se omitir o tipo, vira `PRELIM`
                 st.success("🏆 Tudo salvo!")
             except Exception as e:
                 st.error(f"Erro: {e}")
+
+        # ----- Ranking em imagem (pro grupo) -----
+        st.markdown("---")
+        st.markdown('<div class="admin-section">📸 Ranking em imagem</div>', unsafe_allow_html=True)
+        rk_img = calcular_ranking(load_palpites(), lutas_adm, res_adm, cfg_adm)
+        if rk_img.empty:
+            st.caption("A imagem fica disponível depois do primeiro resultado.")
+        else:
+            # padrão: dourado em evento numerado (temas de cinturão), preto no resto
+            numerado = str(cfg_adm.get("tema") or "") in ("ouro", "cinturao", "numbered")
+            ci1, ci2 = st.columns(2)
+            with ci1:
+                estilo_lbl = st.radio("Modelo", ["🏆 Dourado · numerado", "🖤 Preto · Fight Night"],
+                                      index=0 if numerado else 1, key="img_estilo")
+            v_res = res_adm["vencedor_real"].astype(str).str.strip().str.upper() if not res_adm.empty else pd.Series([], dtype=str)
+            n_apur = int((~v_res.isin(["", "SELECIONE", "NONE", "NAN"])).sum())
+            n_lutas = len(lutas_adm)
+            with ci2:
+                img_tit = st.text_input("Título", key="img_titulo",
+                                        value="RANKING FINAL" if n_apur >= n_lutas else "RANKING PARCIAL")
+            principal = lutas_adm.sort_values("ordem").iloc[0] if not lutas_adm.empty else None
+            sobren = lambda n: str(n).split()[-1] if str(n).split() else str(n)
+            ev_pad = (f"UFC · {sobren(principal['lutador_1'])} vs {sobren(principal['lutador_2'])}"
+                      if principal is not None else "UFC")
+            img_ev = st.text_input("Evento (linha abaixo do título)", value=ev_pad, key="img_evento")
+            if st.button("🎨 GERAR IMAGEM", key="img_gerar"):
+                linhas_img = [{"pos": int(r["Pos"]), "nome": str(r["Nome"]), "pts": int(r["Pontos"]),
+                               "acertos": int(r["Acertos"]), "bonus": int(r.get("Bonus", 0) or 0)}
+                              for _, r in rk_img.iterrows()]
+                detalhe = (f"{n_lutas} lutas · {len(linhas_img)} participantes" if n_apur >= n_lutas
+                           else f"{n_apur} de {n_lutas} lutas apuradas · {len(linhas_img)} participantes")
+                with st.spinner("Desenhando…"):
+                    st.session_state["_img_rank"] = gerar_imagem_ranking(
+                        linhas_img, "dourado" if estilo_lbl.startswith("🏆") else "preto",
+                        img_tit or "RANKING FINAL", img_ev, detalhe, _baixar_fontes(),
+                        rotulo="CAMPEÃO DA NOITE" if n_apur >= n_lutas else "LIDERANDO")
+            if st.session_state.get("_img_rank"):
+                st.image(st.session_state["_img_rank"], width="stretch")
+                st.download_button("⬇️ BAIXAR IMAGEM", st.session_state["_img_rank"],
+                                   file_name=f"ranking_uvr_{datetime.now().strftime('%d-%m-%Y')}.jpg",
+                                   mime="image/jpeg", key="img_baixar")
+                st.caption("No celular: baixe, abra na galeria e compartilhe no grupo.")
 
         # ----- Reset -----
         st.markdown("---")
